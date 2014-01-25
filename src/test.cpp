@@ -78,19 +78,28 @@ void fillRandomly(unsigned char* seq, int seqLength, int alphabetLength) {
 }
 
 void runRandomTests(int numTests) {
-    int alphabetLength = 4;
+    int alphabetLength = 10;
     int numTestsFailed = 0;
+    clock_t start, finish;
+    double timeMyers = 0;
+    double timeSimple = 0;
+    
     for (int i = 0; i < numTests; i++) {
-        int queryLength = 10 + rand() % 200;
-        int targetLength = 100 + rand() % 2000;
+        int queryLength = 10 + rand() % 2000;
+        int targetLength = 100 + rand() % 20000;
         unsigned char query[queryLength];
         unsigned char target[targetLength];
         fillRandomly(query, queryLength, alphabetLength);
         fillRandomly(target, targetLength, alphabetLength);
-        
-        int score1 = myersCalcEditDistance(query, queryLength, target, targetLength, alphabetLength, -1);
-        int score2 = calcEditDistanceSimple(query, queryLength, target, targetLength, alphabetLength);
 
+        start = clock();
+        int score1 = myersCalcEditDistance(query, queryLength, target, targetLength, alphabetLength, -1);
+        timeMyers += clock() - start;
+        
+        start = clock();
+        int score2 = calcEditDistanceSimple(query, queryLength, target, targetLength, alphabetLength);
+        timeSimple += clock() - start;
+        
         if (score1 != score2) {
             numTestsFailed++;
             printf("%d, %d\n", score1, score2);
@@ -98,6 +107,11 @@ void runRandomTests(int numTests) {
     }
     
     printf("%d/%d random tests passed!\n", numTests - numTestsFailed, numTests);
+    double mTime = ((double)(timeMyers))/CLOCKS_PER_SEC;
+    double sTime = ((double)(timeSimple))/CLOCKS_PER_SEC;
+    printf("Time Myers: %lf\n", mTime);
+    printf("Time Simple: %lf\n", sTime);
+    printf("Times faster: %.2lf\n", sTime / mTime);
 }
 
 
