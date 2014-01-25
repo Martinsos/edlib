@@ -8,10 +8,15 @@ typedef uint64_t Word;
 static const int WORD_SIZE = sizeof(Word) * 8; // Size of Word in bits
 static const Word HIGH_BIT_MASK = ((Word)1) << (WORD_SIZE-1);
 
-static int myersCalcEditDistance_(Word* P, Word* M, int* score, Word** Peq, int W, int maxNumBlocks,
-                                  const unsigned char* query, int queryLength,
-                                  const unsigned char* target, int targetLength,
-                                  int alphabetLength, int k);
+
+static int myersCalcEditDistanceHW(Word* P, Word* M, int* score, Word** Peq, int W, int maxNumBlocks,
+                                   const unsigned char* query, int queryLength,
+                                   const unsigned char* target, int targetLength,
+                                   int alphabetLength, int k);
+static int myersCalcEditDistanceNW(Word* P, Word* M, int* score, Word** Peq, int W, int maxNumBlocks,
+                                   const unsigned char* query, int queryLength,
+                                   const unsigned char* target, int targetLength,
+                                   int alphabetLength, int k); 
 
 static inline int ceilDiv(int x, int y);
 
@@ -19,7 +24,7 @@ static inline int ceilDiv(int x, int y);
 
 int myersCalcEditDistance(const unsigned char* query, int queryLength,
                           const unsigned char* target, int targetLength,
-                          int alphabetLength, int k) {
+                          int alphabetLength, int k, int mode) {
     
     /*--------------------- INITIALIZATION ------------------*/
     int maxNumBlocks = ceilDiv(queryLength, WORD_SIZE); // bmax in Myers
@@ -57,13 +62,21 @@ int myersCalcEditDistance(const unsigned char* query, int queryLength,
         k = WORD_SIZE;
         bestScore = -1;
         while (bestScore == -1) {
-            bestScore = myersCalcEditDistance_(P, M, score, Peq, W, maxNumBlocks,
-                                               query, queryLength, target, targetLength, alphabetLength, k);
+            if (mode == MYERS_MODE_HW)
+                bestScore = myersCalcEditDistanceHW(P, M, score, Peq, W, maxNumBlocks,
+                                                    query, queryLength, target, targetLength, alphabetLength, k);
+            else  // mode == MYERS_MODE_NW
+                bestScore = myersCalcEditDistanceNW(P, M, score, Peq, W, maxNumBlocks,
+                                                    query, queryLength, target, targetLength, alphabetLength, k);
             k *= 2;
         }
     } else {
-        bestScore = myersCalcEditDistance_(P, M, score, Peq, W, maxNumBlocks,
-                                           query, queryLength, target, targetLength, alphabetLength, k);
+        if (mode == MYERS_MODE_HW)
+            bestScore = myersCalcEditDistanceHW(P, M, score, Peq, W, maxNumBlocks,
+                                                query, queryLength, target, targetLength, alphabetLength, k);
+        else  // mode == MYERS_MODE_NW
+            bestScore = myersCalcEditDistanceNW(P, M, score, Peq, W, maxNumBlocks,
+                                                query, queryLength, target, targetLength, alphabetLength, k);
     }
     /*-------------------------------------------------------*/
     
@@ -134,10 +147,10 @@ static inline int min(int x, int y) {
     return x < y ? x : y;
 }
 
-static int myersCalcEditDistance_(Word* P, Word* M, int* score, Word** Peq, int W, int maxNumBlocks,
-                                  const unsigned char* query, int queryLength,
-                                  const unsigned char* target, int targetLength,
-                                  int alphabetLength, int k) {
+static int myersCalcEditDistanceHW(Word* P, Word* M, int* score, Word** Peq, int W, int maxNumBlocks,
+                                   const unsigned char* query, int queryLength,
+                                   const unsigned char* target, int targetLength,
+                                   int alphabetLength, int k) {
 
     int currNumBlocks = min(ceilDiv(k, WORD_SIZE), maxNumBlocks); // y in Myers
     
@@ -189,4 +202,47 @@ static int myersCalcEditDistance_(Word* P, Word* M, int* score, Word** Peq, int 
     }
     
     return bestScore;
+}
+
+
+
+
+
+static int myersCalcEditDistanceNW(Word* P, Word* M, int* score, Word** Peq, int W, int maxNumBlocks,
+                                   const unsigned char* query, int queryLength,
+                                   const unsigned char* target, int targetLength,
+                                   int alphabetLength, int k) {
+
+    // TODO: int first_block_of_band
+    int currNumBlocks = maxNumBlocks; // y in Myers TODO: NW
+    
+    // Initialize P, M and score
+    for (int b = 0; b < currNumBlocks; b++) {
+        score[b] = (b+1) * WORD_SIZE;
+        P[b] = (Word)-1; // All 1s
+        M[b] = (Word)0;
+    }
+
+    for (int c = 0; c < targetLength + W; c++) { // for each column
+        // We pretend like target is padded at end with W wildcard symbols 
+        Word* Peq_c = c < targetLength ? Peq[target[c]] : Peq[alphabetLength];
+
+        //----------------------- Calculate column -------------------------//
+        int hout = 1;
+        for (int b = 0; b < currNumBlocks; b++) { // TODO: calculate blocks in band
+            hout = calculateBlock(P[b], M[b], Peq_c[b], hout, P[b], M[b]);
+            score[b] += hout;
+        }
+        //------------------------------------------------------------------//
+
+        //---------- Adjust number of blocks according to Ukkonen ----------//
+        // Return -1 if band stops to exist
+        //------------------------------------------------------------------//
+    }
+
+    int bestScore = score[maxNumBlocks-1];
+    if (bestScore <= k)
+        return bestScore;
+    else
+        return -1;
 }

@@ -6,6 +6,9 @@
 extern "C" {
 #endif
 
+#define MYERS_MODE_HW 0
+#define MYERS_MODE_NW 1
+
     /**
      * Calculates edit distance of query and target 
      * using Myers's fast bit-vector algorithm and Ukkonen's algorithm.
@@ -30,7 +33,7 @@ extern "C" {
      */
     int myersCalcEditDistance(const unsigned char* query, int queryLength,
                               const unsigned char* target, int targetLength,
-                              int alphabetLength, int k);
+                              int alphabetLength, int k, int mode);
 
 #ifdef __cplusplus 
 }
