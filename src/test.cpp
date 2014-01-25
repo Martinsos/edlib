@@ -7,24 +7,27 @@
 using namespace std;
 
 
-int calcEditDistanceSimple(const unsigned char* query, int queryLength,
-                           const unsigned char* target, int targetLength,
-                           int alphabetLength);
-void fillRandomly(unsigned char* seq, int seqLength, int alphabetLength);
-
 void runRandomTests(int numTests);
 bool runTests();
 
 
+int main() {
+    srand(time(NULL));
+
+    runRandomTests(100);
+
+    printf("Specific tests:\n");
+    if (runTests())
+        printf("All specific tests passed!\n");
+    else
+        printf("Some specific tests failed\n");
+    
+    return 0;
+}
 
 
 int min(int x, int y) {
     return x < y ? x : y;
-}
-
-void fillRandomly(unsigned char* seq, int seqLength, int alphabetLength) {
-    for (int i = 0; i < seqLength; i++)
-        seq[i] = rand() % alphabetLength;
 }
 
 int calcEditDistanceSimple(const unsigned char* query, int queryLength,
@@ -69,31 +72,45 @@ int calcEditDistanceSimple(const unsigned char* query, int queryLength,
     return bestScore;
 }
 
+void fillRandomly(unsigned char* seq, int seqLength, int alphabetLength) {
+    for (int i = 0; i < seqLength; i++)
+        seq[i] = rand() % alphabetLength;
+}
+
 void runRandomTests(int numTests) {
     int alphabetLength = 4;
     int numTestsFailed = 0;
     for (int i = 0; i < numTests; i++) {
-        int queryLength = 10 + rand() % 500;
-        int targetLength = 10 + rand() % 2000;
+        int queryLength = 10 + rand() % 200;
+        int targetLength = 100 + rand() % 2000;
         unsigned char query[queryLength];
         unsigned char target[targetLength];
         fillRandomly(query, queryLength, alphabetLength);
         fillRandomly(target, targetLength, alphabetLength);
         
-        int score1 = calcEditDistance(query, queryLength, target, targetLength, alphabetLength);
+        int score1 = myersCalcEditDistance(query, queryLength, target, targetLength, alphabetLength, -1);
         int score2 = calcEditDistanceSimple(query, queryLength, target, targetLength, alphabetLength);
 
-        if (score1 != score2)
+        if (score1 != score2) {
             numTestsFailed++;
-        printf("%d, %d\n", score1, score2); 
+            printf("%d, %d\n", score1, score2);
+        }
     }
     
-    if (numTestsFailed > 0)
-        printf("%d/%d random tests failed!\n", numTestsFailed, numTests);
-    else
-        printf("All random tests passed!\n");
+    printf("%d/%d random tests passed!\n", numTests - numTestsFailed, numTests);
 }
-    
+
+
+bool executeTest(const unsigned char* query, int queryLength,
+                 const unsigned char* target, int targetLength,
+                 int alphabetLength, int correct) {
+    int score1 = myersCalcEditDistance(query, queryLength, target, targetLength, alphabetLength, -1);
+    int score2 = calcEditDistanceSimple(query, queryLength, target, targetLength, alphabetLength);
+
+    printf("Myers -> %d, simple -> %d, correct -> %d\n", score1, score2, correct);
+    return score1 == score2 && score2 == correct;
+}
+
 bool test1() {
     int alphabetLength = 4;
     int queryLength = 4;
@@ -102,11 +119,7 @@ bool test1() {
     unsigned char target[4] = {0,1,2,3};
     int correct = 0;
 
-    int score1 = calcEditDistance(query, queryLength, target, targetLength, alphabetLength);
-    int score2 = calcEditDistanceSimple(query, queryLength, target, targetLength, alphabetLength);
-
-    printf("Myers -> %d, simple -> %d, correct -> %d\n", score1, score2, correct);
-    return score1 == score2 && score2 == correct;
+    return executeTest(query, queryLength, target, targetLength, alphabetLength, correct);
 }
 
 bool test2() {
@@ -117,11 +130,7 @@ bool test2() {
     unsigned char target[9] = {8,5,0,1,3,4,6,7,5}; // "remachine"
     int correct = 1;
 
-    int score1 = calcEditDistance(query, queryLength, target, targetLength, alphabetLength);
-    int score2 = calcEditDistanceSimple(query, queryLength, target, targetLength, alphabetLength);
-
-    printf("Myers -> %d, simple -> %d, correct -> %d\n", score1, score2, correct);
-    return score1 == score2 && score2 == correct;
+    return executeTest(query, queryLength, target, targetLength, alphabetLength, correct);
 }
 
 bool test3() {
@@ -132,28 +141,36 @@ bool test3() {
     unsigned char target[9] = {1,2,0,1,2,3,4,5,4};
     int correct = 0;
 
-    int score1 = calcEditDistance(query, queryLength, target, targetLength, alphabetLength);
-    int score2 = calcEditDistanceSimple(query, queryLength, target, targetLength, alphabetLength);
+    return executeTest(query, queryLength, target, targetLength, alphabetLength, correct);
+}
 
-    printf("Myers -> %d, simple -> %d, correct -> %d\n", score1, score2, correct);
-    return score1 == score2 && score2 == correct;
+bool test4() {
+    int alphabetLength = 2;
+    int queryLength = 200;
+    int targetLength = 200;
+    unsigned char query[200] = {0};
+    unsigned char target[200] = {1};
+    int correct = 1;
+
+    return executeTest(query, queryLength, target, targetLength, alphabetLength, correct);
+}
+
+bool test5() {
+    int alphabetLength = 2;
+    int queryLength = 64; // Testing for special case when queryLength == word size
+    int targetLength = 64;
+    unsigned char query[64] = {0};
+    unsigned char target[64] = {1};
+    int correct = 1;
+
+    return executeTest(query, queryLength, target, targetLength, alphabetLength, correct);
 }
 
 bool runTests() {
     bool t1 = test1();
     bool t2 = test2();
     bool t3 = test3();
-    return t1 && t2 && t3;
-}
-
-
-int main() {
-    srand(time(NULL));
-
-    //    runRandomTests(50);
-    //runTests();
-
-    test1();
-    
-    return 0;
+    bool t4 = test4();
+    bool t5 = test5();
+    return t1 && t2 && t3 && t4 && t5;
 }

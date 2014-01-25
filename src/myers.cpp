@@ -9,22 +9,22 @@ typedef uint64_t Word;
 static const int WORD_SIZE = sizeof(Word) * 8; // Size of Word in bits
 static const Word HIGH_BIT_MASK = ((Word)1) << (WORD_SIZE-1);
 
-static void printBits(Word w);   // TODO: remove this declaration
-static int ceilDiv(int x, int y);  // TODO: remove this declaration
 static int calcEditDistanceUkkonen(const unsigned char* query, int queryLength,
                                    const unsigned char* target, int targetLength,
                                    int alphabetLength, int k);
 
 
-int calcEditDistance(const unsigned char* query, int queryLength,
-                     const unsigned char* target, int targetLength,
-                     int alphabetLength) {
-    
-    int k = queryLength;
+int myersCalcEditDistance(const unsigned char* query, int queryLength,
+                          const unsigned char* target, int targetLength,
+                          int alphabetLength, int k) {
+    if (k < 0)
+        k = queryLength;
     return calcEditDistanceUkkonen(query, queryLength, target, targetLength, alphabetLength, k);
 }
 
+
 // For debugging
+/*
 static void printBits(Word w) {
     for (int i = 0; i < WORD_SIZE; i++) {
         if (w & HIGH_BIT_MASK)
@@ -35,6 +35,12 @@ static void printBits(Word w) {
     }
     printf("\n");
 }
+
+static void setBit(Word &w, int idx) {
+    w |= (Word)1 << idx;
+}
+*/
+
 
 /**
  * Corresponds to Advance_Block function from Myers.
@@ -48,10 +54,12 @@ static void printBits(Word w) {
  * @param [out] MvOut  Bitset, MvOut[i] == 1 if vout is -1, otherwise MvOut[i] == 0.
  * @param [out] hout  Will be +1, 0 or -1.
  */
-static inline int calculateBlock(const Word Pv, const Word Mv, const Word Eq, const int hin,
+static inline int calculateBlock(Word Pv, Word Mv, Word Eq, const int hin,
                                  Word &PvOut, Word &MvOut) {
     Word Xv = Eq | Mv;
-    Word Xh = (((Eq & Pv) + Pv) ^ Pv) | (hin < 0 ? Eq | (Word)1 : Eq);
+    if (hin < 0)
+        Eq |= (Word)1;
+    Word Xh = (((Eq & Pv) + Pv) ^ Pv) | Eq;
 
     Word Ph = Mv | ~(Xh | Pv);
     Word Mh = Pv & Xh;
@@ -83,6 +91,10 @@ static inline int ceilDiv(int x, int y) {
     return (x + y - 1) / y;
 }
 
+static inline int min(int x, int y) {
+    return x < y ? x : y;
+}
+
 static int calcEditDistanceUkkonen(const unsigned char* query, int queryLength,
                                    const unsigned char* target, int targetLength,
                                    int alphabetLength, int k) {
@@ -92,25 +104,28 @@ static int calcEditDistanceUkkonen(const unsigned char* query, int queryLength,
     Word* M = new Word[maxNumBlocks];
     Word* score = new Word[maxNumBlocks];
     Word** Peq = new Word*[alphabetLength+1]; // [alphabetLength+1][maxNumBlocks]. Last letter is wildcard.
+    
+    int W = maxNumBlocks * WORD_SIZE - queryLength; // number of redundant cells in last level blocks
 
-    int currNumBlocks = ceilDiv(k, WORD_SIZE); // y in Myers
-    int W = WORD_SIZE - (queryLength % WORD_SIZE); // number of redundant cells in last level blocks
-
-    // Build Peq -> last column is wildcard with just zeroes
+    // Build Peq (1 is match, 0 is mismatch). NOTE: last column is wildcard(symbol that matches anything) with just 1s
     for (int symbol = 0; symbol <= alphabetLength; symbol++) {
         Peq[symbol] = new Word[maxNumBlocks];
         for (int b = 0; b < maxNumBlocks; b++) {
-            Peq[symbol][b] = 0;
-            if (symbol < alphabetLength) { // NOTE: last symbol is wildcard, so it is all 0s
+            if (symbol < alphabetLength) {
+                Peq[symbol][b] = 0;
                 for (int r = (b+1) * WORD_SIZE - 1; r >= b * WORD_SIZE; r--) {
                     Peq[symbol][b] <<= 1;
                     // NOTE: We pretend like query is padded at the end with W wildcard symbols
-                    if (r < queryLength && query[r] != symbol)
+                    if (r >= queryLength || query[r] == symbol)
                         Peq[symbol][b] += 1;
                 }
+            } else { // Last symbol is wildcard, so it is all 1s
+                Peq[symbol][b] = (Word)-1;
             }
         }
     }
+
+    int currNumBlocks = min(ceilDiv(k, WORD_SIZE), maxNumBlocks); // y in Myers
     
     // Initialize P, M and score
     for (int b = 0; b < currNumBlocks; b++) {
@@ -123,7 +138,7 @@ static int calcEditDistanceUkkonen(const unsigned char* query, int queryLength,
     for (int c = 0; c < targetLength + W; c++) { // for each column
         // We pretend like target is padded at end with W wildcard symbols 
         Word* Peq_c = c < targetLength ? Peq[target[c]] : Peq[alphabetLength];
-        
+
         //----------------------- Calculate column -------------------------//
         int hout = 0;
         for (int b = 0; b < currNumBlocks; b++) {
@@ -148,14 +163,14 @@ static int calcEditDistanceUkkonen(const unsigned char* query, int queryLength,
         //------------------------------------------------------------------//
 
         //------------------------- Update best score ----------------------//
-        if (currNumBlocks == maxNumBlocks) {
+        if (c >= W && currNumBlocks == maxNumBlocks) { // We ignore scores from first W columns, they are not relevant.
             int colScore = score[maxNumBlocks-1];
             if (colScore <= k) { // Scores > k dont have correct values (so we cannot use them), but are certainly > k. 
                 // NOTE: Score that I find in column c is actually score from column c-W
                 if (bestScore == -1 || colScore < bestScore)
                     bestScore = colScore;
             }
-        }   // TODO: What about scores from first W columns, ignore them? They do not have good scores in them for sure
+        }
         //------------------------------------------------------------------//
     }
 
