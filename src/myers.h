@@ -25,10 +25,13 @@ extern "C" {
      * @param [in] targetLength
      * @param [in] alphabetLength
      * @param [in] k  Non-negative number, constraint for Ukkonen. 
-                      Only best score <= k will be searched for.
-                      If k is smaller then calculation is faster.
-                      If you are interested in score only if it is <= K, set k to K.
-                      If k is negative then k will be auto-adjusted (increased) until score is found.
+     *                 Only best score <= k will be searched for.
+     *                 If k is smaller then calculation is faster.
+     *                 If you are interested in score only if it is <= K, set k to K.
+     *                 If k is negative then k will be auto-adjusted (increased) until score is found.
+     * @param [in] mode  Mode that determines alignment algorithm.
+     *                    MYERS_MODE_NW: global (Needleman-Wunsch)
+     *                    MYERS_MODE_HW: semi-global. Gaps before and after query are not penalized.
      * @return Best score (smallest edit distance) or -1 if there is no best score <= k.
      */
     int myersCalcEditDistance(const unsigned char* query, int queryLength,
