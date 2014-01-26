@@ -147,12 +147,20 @@ static inline int min(int x, int y) {
     return x < y ? x : y;
 }
 
+static inline int max(int x, int y) {
+    return x > y ? x : y;
+}
+
+static inline int abs(int x) {
+    return x < 0 ? -1 * x : x;
+}
+
 static int myersCalcEditDistanceHW(Word* P, Word* M, int* score, Word** Peq, int W, int maxNumBlocks,
                                    const unsigned char* query, int queryLength,
                                    const unsigned char* target, int targetLength,
                                    int alphabetLength, int k) {
 
-    int currNumBlocks = min(ceilDiv(k, WORD_SIZE), maxNumBlocks); // y in Myers
+    int currNumBlocks = min(ceilDiv(k + 1, WORD_SIZE), maxNumBlocks); // y in Myers
     
     // Initialize P, M and score
     for (int b = 0; b < currNumBlocks; b++) {
@@ -177,7 +185,7 @@ static int myersCalcEditDistanceHW(Word* P, Word* M, int* score, Word** Peq, int
         //---------- Adjust number of blocks according to Ukkonen ----------//
         if ((score[currNumBlocks-1] - hout <= k) && (currNumBlocks < maxNumBlocks)
             && ((Peq_c[currNumBlocks] & (Word)1) || hout < 0)) {
-            // Calculate one more block
+            // If score of left block is not too big, calculate one more block
             currNumBlocks++;
             int b = currNumBlocks-1; // index of last block (one we just added)
             P[b] = (Word)-1; // All 1s
@@ -212,37 +220,78 @@ static int myersCalcEditDistanceNW(Word* P, Word* M, int* score, Word** Peq, int
                                    const unsigned char* query, int queryLength,
                                    const unsigned char* target, int targetLength,
                                    int alphabetLength, int k) {
-
-    // TODO: int first_block_of_band
-    int currNumBlocks = maxNumBlocks; // y in Myers TODO: NW
     
+    if (k < abs(targetLength - queryLength))
+        return -1;
+
+    // firstBlock is 0-based index of first block in Ukkonen band.
+    // lastBlock is 0-based index of block AFTER last block in Ukkonen band. <- WATCH OUT!
+    int firstBlock = 0;
+    // Added + 1 below, without it about 2 of 100000 test examples fail
+    int lastBlock = min(ceilDiv(k - abs(targetLength - queryLength) + 1, WORD_SIZE), maxNumBlocks); // y in Myers
+
     // Initialize P, M and score
-    for (int b = 0; b < currNumBlocks; b++) {
+    for (int b = 0; b < lastBlock; b++) {
         score[b] = (b+1) * WORD_SIZE;
         P[b] = (Word)-1; // All 1s
         M[b] = (Word)0;
     }
 
-    for (int c = 0; c < targetLength + W; c++) { // for each column
-        // We pretend like target is padded at end with W wildcard symbols 
-        Word* Peq_c = c < targetLength ? Peq[target[c]] : Peq[alphabetLength];
+    for (int c = 0; c < targetLength; c++) { // for each column
+        Word* Peq_c = Peq[target[c]];
 
         //----------------------- Calculate column -------------------------//
         int hout = 1;
-        for (int b = 0; b < currNumBlocks; b++) { // TODO: calculate blocks in band
+        for (int b = firstBlock; b < lastBlock; b++) {
             hout = calculateBlock(P[b], M[b], Peq_c[b], hout, P[b], M[b]);
             score[b] += hout;
         }
         //------------------------------------------------------------------//
-
+        
         //---------- Adjust number of blocks according to Ukkonen ----------//
-        // Return -1 if band stops to exist
+        // Adjust first block
+        if (score[firstBlock] >= k + WORD_SIZE) // TODO: put some stronger constraint
+            firstBlock++;
+
+        // Adjust last block
+        if (score[lastBlock-1] - hout // score of block to left
+            + max(0, targetLength - c/*column of block to left*/)
+            + max(0, queryLength - (lastBlock * WORD_SIZE) <= k)
+            && (lastBlock < maxNumBlocks)
+            && ((Peq_c[lastBlock] & (Word)1) || hout < 0)) {
+            // If score of left block is not too big, calculate one more block
+            lastBlock++;
+            int b = lastBlock-1; // index of last block (one we just added)
+            P[b] = (Word)-1; // All 1s
+            M[b] = (Word)0;
+            score[b] = score[b-1] - hout + WORD_SIZE + calculateBlock(P[b], M[b], Peq_c[b], hout, P[b], M[b]);
+        } else {
+            while (score[lastBlock-1] >= k - max(0, targetLength - (c + 1))
+                   - max(0, queryLength - (lastBlock * WORD_SIZE)) + WORD_SIZE) {
+                lastBlock--;
+                if (lastBlock <= firstBlock) // If band stops to exist, return -1
+                    return -1;
+            }
+        }
         //------------------------------------------------------------------//
+        
     }
 
-    int bestScore = score[maxNumBlocks-1];
-    if (bestScore <= k)
-        return bestScore;
-    else
-        return -1;
+    if (lastBlock == maxNumBlocks) { // If last block of last column was calculated
+        int bestScore = score[maxNumBlocks-1];
+        
+        for (int i = 0; i < W; i++) {
+            if (P[maxNumBlocks-1] & HIGH_BIT_MASK)
+                bestScore--;
+            if (M[maxNumBlocks-1] & HIGH_BIT_MASK)
+                bestScore++;
+            P[maxNumBlocks-1] <<= 1;
+            M[maxNumBlocks-1] <<= 1;
+        }
+        
+        if (bestScore <= k)
+            return bestScore;
+    }
+
+    return -1;
 }

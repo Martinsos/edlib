@@ -17,7 +17,7 @@ int main() {
     runRandomTests(100,  MYERS_MODE_HW);
     printf("\n");
     
-    runRandomTests(100,  MYERS_MODE_NW);
+    runRandomTests(10000,  MYERS_MODE_NW);
     printf("\n");
 
     printf("Specific tests:\n");
@@ -96,7 +96,7 @@ void runRandomTests(int numTests, int mode) {
     double timeSimple = 0;
     
     for (int i = 0; i < numTests; i++) {
-        int queryLength = 10 + rand() % 200;
+        int queryLength = 10 + rand() % 2000;
         int targetLength = 100 + rand() % 2000;
         unsigned char query[queryLength];
         unsigned char target[targetLength];
