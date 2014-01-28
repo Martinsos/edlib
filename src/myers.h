@@ -8,6 +8,7 @@ extern "C" {
 
 #define MYERS_MODE_HW 0
 #define MYERS_MODE_NW 1
+#define MYERS_MODE_SHW 2
 
     /**
      * Calculates edit distance of query and target 
@@ -32,6 +33,7 @@ extern "C" {
      * @param [in] mode  Mode that determines alignment algorithm.
      *                    MYERS_MODE_NW: global (Needleman-Wunsch)
      *                    MYERS_MODE_HW: semi-global. Gaps before and after query are not penalized.
+     *                    MYERS_MODE_SHW: semi-global. Gap after query is not penalized.
      * @return Best score (smallest edit distance) or -1 if there is no best score <= k.
      */
     int myersCalcEditDistance(const unsigned char* query, int queryLength,

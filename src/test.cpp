@@ -17,7 +17,10 @@ int main() {
     runRandomTests(100,  MYERS_MODE_HW);
     printf("\n");
     
-    runRandomTests(10000,  MYERS_MODE_NW);
+    runRandomTests(100,  MYERS_MODE_NW);
+    printf("\n");
+
+    runRandomTests(100,  MYERS_MODE_SHW);
     printf("\n");
 
     printf("Specific tests:\n");
@@ -68,7 +71,8 @@ int calcEditDistanceSimple(const unsigned char* query, int queryLength,
             printf("%d ", newC[i]);
             printf("\n");*/
 
-        if (mode == MYERS_MODE_HW || c == targetLength - 1) // For NW check only last column
+        if (mode == MYERS_MODE_HW || mode == MYERS_MODE_SHW
+            || c == targetLength - 1) // For NW check only last column
             if (bestScore == -1 || newC[queryLength-1] < bestScore)
                 bestScore = newC[queryLength-1];
         
@@ -155,9 +159,11 @@ bool test1() {
     unsigned char target[4] = {0,1,2,3};
     int correctHW = 0;
     int correctNW = 0;
+    int correctSHW = 0;
 
     bool r = executeTest(query, queryLength, target, targetLength, alphabetLength, correctHW, MYERS_MODE_HW);
     r = r && executeTest(query, queryLength, target, targetLength, alphabetLength, correctNW, MYERS_MODE_NW);
+    r = r && executeTest(query, queryLength, target, targetLength, alphabetLength, correctSHW, MYERS_MODE_SHW);
     return r;
 }
 
@@ -169,9 +175,11 @@ bool test2() {
     unsigned char target[9] = {8,5,0,1,3,4,6,7,5}; // "remachine"
     int correctHW = 1;
     int correctNW = 6;
+    int correctSHW = 3;
 
     bool r = executeTest(query, queryLength, target, targetLength, alphabetLength, correctHW, MYERS_MODE_HW);
     r = r && executeTest(query, queryLength, target, targetLength, alphabetLength, correctNW, MYERS_MODE_NW);
+    r = r && executeTest(query, queryLength, target, targetLength, alphabetLength, correctSHW, MYERS_MODE_SHW);
     return r;
 }
 
@@ -183,9 +191,11 @@ bool test3() {
     unsigned char target[9] = {1,2,0,1,2,3,4,5,4};
     int correctHW = 0;
     int correctNW = 4;
+    int correctSHW = 2;
 
     bool r = executeTest(query, queryLength, target, targetLength, alphabetLength, correctHW, MYERS_MODE_HW);
     r = r && executeTest(query, queryLength, target, targetLength, alphabetLength, correctNW, MYERS_MODE_NW);
+    r = r && executeTest(query, queryLength, target, targetLength, alphabetLength, correctSHW, MYERS_MODE_SHW);
     return r;
 }
 
@@ -197,9 +207,11 @@ bool test4() {
     unsigned char target[200] = {1};
     int correctHW = 1;
     int correctNW = 1;
+    int correctSHW = 1;
 
     bool r = executeTest(query, queryLength, target, targetLength, alphabetLength, correctHW, MYERS_MODE_HW);
     r = r && executeTest(query, queryLength, target, targetLength, alphabetLength, correctNW, MYERS_MODE_NW);
+    r = r && executeTest(query, queryLength, target, targetLength, alphabetLength, correctSHW, MYERS_MODE_SHW);
     return r;
 }
 
@@ -211,9 +223,11 @@ bool test5() {
     unsigned char target[64] = {1};
     int correctHW = 1;
     int correctNW = 1;
+    int correctSHW = 1;
 
     bool r = executeTest(query, queryLength, target, targetLength, alphabetLength, correctHW, MYERS_MODE_HW);
     r = r && executeTest(query, queryLength, target, targetLength, alphabetLength, correctNW, MYERS_MODE_NW);
+    r = r && executeTest(query, queryLength, target, targetLength, alphabetLength, correctSHW, MYERS_MODE_SHW);
     return r;
 }
 
