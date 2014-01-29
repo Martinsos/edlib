@@ -6,6 +6,10 @@
 extern "C" {
 #endif
 
+// Status codes
+#define MYERS_STATUS_OK 0
+
+// Alignment modes
 #define MYERS_MODE_HW 0
 #define MYERS_MODE_NW 1
 #define MYERS_MODE_SHW 2
@@ -34,11 +38,15 @@ extern "C" {
      *                    MYERS_MODE_NW: global (Needleman-Wunsch)
      *                    MYERS_MODE_HW: semi-global. Gaps before and after query are not penalized.
      *                    MYERS_MODE_SHW: semi-global. Gap after query is not penalized.
-     * @return Best score (smallest edit distance) or -1 if there is no best score <= k.
+     * @param [out] score  Best score (smallest edit distance) or -1 if there is no best score <= k.
+     * @param [out] position  Zero-based position in target where query ends (position of last character).
+     *                        If gap after query is penalized then it counts as part of query,
+     *                        otherwise not.
+     * @return Status code.
      */
     int myersCalcEditDistance(const unsigned char* query, int queryLength,
                               const unsigned char* target, int targetLength,
-                              int alphabetLength, int k, int mode);
+                              int alphabetLength, int k, int mode, int* score, int* position);
 
 #ifdef __cplusplus 
 }

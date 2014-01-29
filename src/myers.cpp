@@ -12,11 +12,11 @@ static const Word HIGH_BIT_MASK = ((Word)1) << (WORD_SIZE-1);
 static int myersCalcEditDistanceSemiGlobal(Word* P, Word* M, int* score, Word** Peq, int W, int maxNumBlocks,
                                            const unsigned char* query, int queryLength,
                                            const unsigned char* target, int targetLength,
-                                           int alphabetLength, int k, int mode);
+                                           int alphabetLength, int k, int mode, int* bestScore, int* position);
 static int myersCalcEditDistanceNW(Word* P, Word* M, int* score, Word** Peq, int W, int maxNumBlocks,
                                    const unsigned char* query, int queryLength,
                                    const unsigned char* target, int targetLength,
-                                   int alphabetLength, int k); 
+                                   int alphabetLength, int k, int* bestScore, int* position); 
 
 static inline int ceilDiv(int x, int y);
 
@@ -24,7 +24,7 @@ static inline int ceilDiv(int x, int y);
 
 int myersCalcEditDistance(const unsigned char* query, int queryLength,
                           const unsigned char* target, int targetLength,
-                          int alphabetLength, int k, int mode) {
+                          int alphabetLength, int k, int mode, int* bestScore, int* position) {
     
     /*--------------------- INITIALIZATION ------------------*/
     int maxNumBlocks = ceilDiv(queryLength, WORD_SIZE); // bmax in Myers
@@ -57,28 +57,30 @@ int myersCalcEditDistance(const unsigned char* query, int queryLength,
 
     
     /*------------------ MAIN CALCULATION -------------------*/
-    int bestScore;
+    *bestScore = -1;
+    *position = -1;
     if (k < 0) { // If valid k is not given, auto-adjust k until solution is found.
         k = WORD_SIZE;
-        bestScore = -1;
-        while (bestScore == -1) {
+        while (*bestScore == -1) {
             if (mode == MYERS_MODE_HW || mode == MYERS_MODE_SHW)
-                bestScore = myersCalcEditDistanceSemiGlobal(P, M, score, Peq, W, maxNumBlocks,
-                                                            query, queryLength, target, targetLength,
-                                                            alphabetLength, k, mode);
+                myersCalcEditDistanceSemiGlobal(P, M, score, Peq, W, maxNumBlocks,
+                                                query, queryLength, target, targetLength,
+                                                alphabetLength, k, mode, bestScore, position);
             else  // mode == MYERS_MODE_NW
-                bestScore = myersCalcEditDistanceNW(P, M, score, Peq, W, maxNumBlocks,
-                                                    query, queryLength, target, targetLength, alphabetLength, k);
+                myersCalcEditDistanceNW(P, M, score, Peq, W, maxNumBlocks,
+                                        query, queryLength, target, targetLength,
+                                        alphabetLength, k, bestScore, position);
             k *= 2;
         }
     } else {
         if (mode == MYERS_MODE_HW || mode == MYERS_MODE_SHW)
-            bestScore = myersCalcEditDistanceSemiGlobal(P, M, score, Peq, W, maxNumBlocks,
-                                                        query, queryLength, target, targetLength,
-                                                        alphabetLength, k, mode);
+            myersCalcEditDistanceSemiGlobal(P, M, score, Peq, W, maxNumBlocks,
+                                            query, queryLength, target, targetLength,
+                                            alphabetLength, k, mode, bestScore, position);
         else  // mode == MYERS_MODE_NW
-            bestScore = myersCalcEditDistanceNW(P, M, score, Peq, W, maxNumBlocks,
-                                                query, queryLength, target, targetLength, alphabetLength, k);
+            myersCalcEditDistanceNW(P, M, score, Peq, W, maxNumBlocks,
+                                    query, queryLength, target, targetLength,
+                                    alphabetLength, k, bestScore, position);
     }
     /*-------------------------------------------------------*/
     
@@ -91,7 +93,7 @@ int myersCalcEditDistance(const unsigned char* query, int queryLength,
     delete[] Peq;
     //-------------------//
 
-    return bestScore;
+    return MYERS_STATUS_OK;
 }
 
 
@@ -163,7 +165,7 @@ static inline int abs(int x) {
 static int myersCalcEditDistanceSemiGlobal(Word* P, Word* M, int* score, Word** Peq, int W, int maxNumBlocks,
                                            const unsigned char* query, int queryLength,
                                            const unsigned char* target, int targetLength,
-                                           int alphabetLength, int k, int mode) {
+                                           int alphabetLength, int k, int mode, int* bestScore_, int* position_) {
     // firstBlock is 0-based index of first block in Ukkonen band.
     // lastBlock is 0-based index of block AFTER last block in Ukkonen band. <- WATCH OUT!
     int firstBlock = 0;
@@ -177,6 +179,7 @@ static int myersCalcEditDistanceSemiGlobal(Word* P, Word* M, int* score, Word** 
     }
 
     int bestScore = -1;
+    int position = -1;
     for (int c = 0; c < targetLength + W; c++) { // for each column
         // We pretend like target is padded at end with W wildcard symbols 
         Word* Peq_c = c < targetLength ? Peq[target[c]] : Peq[alphabetLength];
@@ -207,8 +210,11 @@ static int myersCalcEditDistanceSemiGlobal(Word* P, Word* M, int* score, Word** 
                 lastBlock--;
 
         // If band stops to exist, return -1
-        if (lastBlock <= firstBlock) 
-            return -1;
+        if (lastBlock <= firstBlock) {
+            *bestScore_ = -1;
+            *position_ = -1;
+            return MYERS_STATUS_OK;
+        }
         //------------------------------------------------------------------//
 
         //------------------------- Update best score ----------------------//
@@ -216,14 +222,18 @@ static int myersCalcEditDistanceSemiGlobal(Word* P, Word* M, int* score, Word** 
             int colScore = score[maxNumBlocks-1];
             if (colScore <= k) { // Scores > k dont have correct values (so we cannot use them), but are certainly > k. 
                 // NOTE: Score that I find in column c is actually score from column c-W
-                if (bestScore == -1 || colScore < bestScore)
+                if (bestScore == -1 || colScore < bestScore) {
                     bestScore = colScore;
+                    position = c - W;
+                }
             }
         }
         //------------------------------------------------------------------//
     }
-    
-    return bestScore;
+
+    *bestScore_ = bestScore;
+    *position_ = position;
+    return MYERS_STATUS_OK;
 }
 
 
@@ -233,10 +243,12 @@ static int myersCalcEditDistanceSemiGlobal(Word* P, Word* M, int* score, Word** 
 static int myersCalcEditDistanceNW(Word* P, Word* M, int* score, Word** Peq, int W, int maxNumBlocks,
                                    const unsigned char* query, int queryLength,
                                    const unsigned char* target, int targetLength,
-                                   int alphabetLength, int k) {
+                                   int alphabetLength, int k, int* bestScore_, int* position_) {
     
-    if (k < abs(targetLength - queryLength))
-        return -1;
+    if (k < abs(targetLength - queryLength)) {
+        *bestScore_ = *position_ = -1;
+        return MYERS_STATUS_OK;
+    }
 
     // firstBlock is 0-based index of first block in Ukkonen band.
     // lastBlock is 0-based index of block AFTER last block in Ukkonen band. <- WATCH OUT!
@@ -288,8 +300,10 @@ static int myersCalcEditDistanceNW(Word* P, Word* M, int* score, Word** Peq, int
         }
 
         // If band stops to exist, return -1
-        if (lastBlock <= firstBlock) 
-            return -1;
+        if (lastBlock <= firstBlock) {
+            *bestScore_ = *position_ = -1;
+            return MYERS_STATUS_OK;
+        }
         //------------------------------------------------------------------//
         
     }
@@ -306,9 +320,14 @@ static int myersCalcEditDistanceNW(Word* P, Word* M, int* score, Word** Peq, int
             M[maxNumBlocks-1] <<= 1;
         }
         
-        if (bestScore <= k)
-            return bestScore;
+        if (bestScore <= k) {
+            *bestScore_ = bestScore;
+            *position_ = targetLength - 1;
+            return MYERS_STATUS_OK;
+        }
     }
 
-    return -1;
+    
+    *bestScore_ = *position_ = -1;
+    return MYERS_STATUS_OK;
 }
