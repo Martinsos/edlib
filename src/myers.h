@@ -38,10 +38,10 @@ extern "C" {
      *                    MYERS_MODE_NW: global (Needleman-Wunsch)
      *                    MYERS_MODE_HW: semi-global. Gaps before and after query are not penalized.
      *                    MYERS_MODE_SHW: semi-global. Gap after query is not penalized.
-     * @param [out] score  Best score (smallest edit distance) or -1 if there is no best score <= k.
+     * @param [out] score  Best score (smallest edit distance) or -1 if there is no score <= k.
      * @param [out] position  Zero-based position in target where query ends (position of last character).
      *                        If gap after query is penalized then it counts as part of query,
-     *                        otherwise not.
+     *                        otherwise not. -1 if there is no score <= k.
      * @return Status code.
      */
     int myersCalcEditDistance(const unsigned char* query, int queryLength,
