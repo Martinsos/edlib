@@ -1,7 +1,6 @@
 #include "myers.h"
 
 #include <stdint.h>
-#include <stdio.h>
 
 using namespace std;
 
@@ -61,7 +60,7 @@ int myersCalcEditDistance(const unsigned char* query, int queryLength,
     *bestScore = -1;
     *position = -1;
     if (k < 0) { // If valid k is not given, auto-adjust k until solution is found.
-        k = WORD_SIZE;
+        k = WORD_SIZE; // Gives better results then smaller k
         while (*bestScore == -1) {
             if (mode == MYERS_MODE_HW || mode == MYERS_MODE_SHW)
                 myersCalcEditDistanceSemiGlobal(P, M, score, Peq, W, maxNumBlocks,
@@ -194,12 +193,10 @@ static int myersCalcEditDistanceSemiGlobal(Word* P, Word* M, int* score, Word** 
         //------------------------------------------------------------------//
 
         //---------- Adjust number of blocks according to Ukkonen ----------//
-        // TODO: Fix constraints! Not it works but I don't make band smaller
-        
-        /*  if (mode != MYERS_MODE_HW)
+        if (mode != MYERS_MODE_HW)
             if (score[firstBlock] >= k + WORD_SIZE) {
                 firstBlock++;
-                }*/
+            }
         
         if ((score[lastBlock-1] - hout <= k) && (lastBlock < maxNumBlocks)
             && ((Peq_c[lastBlock] & (Word)1) || hout < 0)) {
@@ -208,17 +205,17 @@ static int myersCalcEditDistanceSemiGlobal(Word* P, Word* M, int* score, Word** 
             int b = lastBlock-1; // index of last block (one we just added)
             P[b] = (Word)-1; // All 1s
             M[b] = (Word)0;
-            int hout_ = calculateBlock(P[b], M[b], Peq_c[b], hout, P[b], M[b]);
-            score[b] = score[b-1] - hout + WORD_SIZE + hout_;
+            score[b] = score[b-1] - hout + WORD_SIZE + calculateBlock(P[b], M[b], Peq_c[b], hout, P[b], M[b]);
         }
-        /*  else
+        else {
             while (lastBlock > 0 && score[lastBlock-1] >= k + WORD_SIZE)
-            lastBlock--;*/
+                lastBlock--;
+        }
         
-        // If band stops to exist, return -1
+        // If band stops to exist finish
         if (lastBlock <= firstBlock) {
-            *bestScore_ = -1;
-            *position_ = -1;
+            *bestScore_ = bestScore;
+            *position_ = position;
             return MYERS_STATUS_OK;
         }
         //------------------------------------------------------------------//
@@ -281,11 +278,11 @@ static int myersCalcEditDistanceNW(Word* P, Word* M, int* score, Word** Peq, int
         //------------------------------------------------------------------//
         
         //---------- Adjust number of blocks according to Ukkonen ----------//
-        // TODO: Fix constraints! Not it works but I don't make band smaller
+        // TODO: Fix constraints for reducing the last block!
         
         // Adjust first block
-        /*  if (score[firstBlock] >= k + WORD_SIZE) // TODO: put some stronger constraint
-            firstBlock++;*/
+          if (score[firstBlock] >= k + WORD_SIZE) // TODO: put some stronger constraint
+            firstBlock++;
 
         // Adjust last block
         if (score[lastBlock-1] - hout // score of block to left
@@ -299,7 +296,7 @@ static int myersCalcEditDistanceNW(Word* P, Word* M, int* score, Word** Peq, int
             P[b] = (Word)-1; // All 1s
             M[b] = (Word)0;
             score[b] = score[b-1] - hout + WORD_SIZE + calculateBlock(P[b], M[b], Peq_c[b], hout, P[b], M[b]);
-        }/* else {
+        } /*else {
             while (lastBlock > 0
                    && score[lastBlock-1] >= k - max(0, targetLength - (c + 1))
                    - max(0, queryLength - (lastBlock * WORD_SIZE)) + WORD_SIZE) {
@@ -307,7 +304,7 @@ static int myersCalcEditDistanceNW(Word* P, Word* M, int* score, Word** Peq, int
             }
             }*/
 
-        // If band stops to exist, return -1
+        // If band stops to exist finish
         if (lastBlock <= firstBlock) {
             *bestScore_ = *position_ = -1;
             return MYERS_STATUS_OK;

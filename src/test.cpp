@@ -10,17 +10,20 @@ using namespace std;
 void runRandomTests(int numTests, int mode);
 bool runTests();
 
+int calcEditDistanceSimple(const unsigned char* query, int queryLength,
+                           const unsigned char* target, int targetLength,
+                           int alphabetLength, int mode, int* score, int* position);
 
 int main() {
     srand(time(NULL));
-
-    runRandomTests(100,  MYERS_MODE_HW);
+    
+    runRandomTests(1000,  MYERS_MODE_HW);
     printf("\n");
     
-    runRandomTests(100,  MYERS_MODE_NW);
+    runRandomTests(1000,  MYERS_MODE_NW);
     printf("\n");
 
-    runRandomTests(100,  MYERS_MODE_SHW);
+    runRandomTests(1000,  MYERS_MODE_SHW);
     printf("\n");
 
     printf("Specific tests:\n");
@@ -54,8 +57,8 @@ int calcEditDistanceSimple(const unsigned char* query, int queryLength,
     for (int i = 0; i < queryLength; i++)
         C[i] = i+1;
 
-      /*for (int i = 0; i < queryLength; i++)
-        printf("%d ", C[i]);
+    /*  for (int i = 0; i < queryLength; i++)
+        printf("%3d ", C[i]);
         printf("\n");*/
 
     for (int c = 0; c < targetLength; c++) { // for each column
@@ -68,8 +71,8 @@ int calcEditDistanceSimple(const unsigned char* query, int queryLength,
                            C[r] + 1); // left
         }
         
-        /*for (int i = 0; i < queryLength; i++)
-            printf("%d ", newC[i]);
+        /*  for (int i = 0; i < queryLength; i++)
+            printf("%3d ", newC[i]);
             printf("\n");*/
 
         if (mode == MYERS_MODE_HW || mode == MYERS_MODE_SHW
@@ -299,11 +302,6 @@ bool test6() {
     int posHW = 31;
     int posNW = 419;
     int posSHW = 10;
-
-    int score, pos;
-    myersCalcEditDistance(query, queryLength, target, targetLength,
-                          alphabetLength, 100, MYERS_MODE_SHW, &score, &pos);
-    printf("MYERS SHW: %d %d\n", score, pos);
     
     bool r = executeTest(query, queryLength, target, targetLength, alphabetLength, scoreHW, posHW, MYERS_MODE_HW);
     r = r && executeTest(query, queryLength, target, targetLength, alphabetLength, scoreNW, posNW, MYERS_MODE_NW);
