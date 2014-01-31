@@ -14,7 +14,27 @@ There are 3 different modes of alignment:
 
 #### Usage
 Include myers.h in your code and compile it together with myers.cpp.  
-For examples of usage take a look at test.cpp.
+
+```
+...
+#include "myers.h"
+...
+```
+```
+...
+int alphabetLength = 9;
+int queryLength = 5;
+int targetLength = 9;
+unsigned char query[queryLength] = {0,1,2,3,4};
+unsigned char target[targetLength] = {8,5,0,1,3,4,6,7,5};
+int score, pos;
+myersCalcEditDistance(query, queryLength, target, targetLength,
+                      alphabetLength, -1, MYERS_MODE_HW, &score, &pos);
+printf("%d %d", score, pos);
+...
+```    
+
+For more examples of usage take a look at test.cpp.
 
 
 #### Running tests
