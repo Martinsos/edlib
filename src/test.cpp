@@ -14,13 +14,13 @@ bool runTests();
 int main() {
     srand(time(NULL));
 
-    runRandomTests(1000,  MYERS_MODE_HW);
+    runRandomTests(100,  MYERS_MODE_HW);
     printf("\n");
     
-    runRandomTests(1000,  MYERS_MODE_NW);
+    runRandomTests(100,  MYERS_MODE_NW);
     printf("\n");
 
-    runRandomTests(1000,  MYERS_MODE_SHW);
+    runRandomTests(100,  MYERS_MODE_SHW);
     printf("\n");
 
     printf("Specific tests:\n");
@@ -106,6 +106,7 @@ void runRandomTests(int numTests, int mode) {
     double timeSimple = 0;
     
     for (int i = 0; i < numTests; i++) {
+        bool failed = false;
         int queryLength = 10 + rand() % 2000;
         int targetLength = 100 + rand() % 2000;
         unsigned char query[queryLength];
@@ -126,9 +127,24 @@ void runRandomTests(int numTests, int mode) {
         timeSimple += clock() - start;
         
         if (score1 != score2 || pos1 != pos2) {
-            numTestsFailed++;
+            failed = true;
             printf("(%d, %d), (%d, %d)\n", score1, pos1, score2, pos2);
         }
+
+        for (int k = score2 - 1; k <= score2 + 1; k++) {
+            int score3, pos3;
+            int scoreExpected = score2 > k ? -1 : score2;
+            myersCalcEditDistance(query, queryLength, target, targetLength,
+                                  alphabetLength, k, mode, &score3, &pos3);
+            if (score3 != scoreExpected ) {
+                failed = true;
+                printf("For k = %d score was %d but it should have been %d\n",
+                       k, score3, scoreExpected);
+            }
+        }
+
+        if (failed)
+            numTestsFailed++;
     }
     
     printf(mode == MYERS_MODE_HW ? "HW: " : mode == MYERS_MODE_SHW ? "SHW: " : "NW: ");
@@ -258,11 +274,49 @@ bool test5() {
     return r;
 }
 
+bool test6() {
+    int alphabetLength = 4;
+    int queryLength = 13; // Testing for special case when queryLength == word size
+    int targetLength = 420;
+    unsigned char query[13] = {1,3,0,1,1,1,3,0,1,3,1,3,3};
+    unsigned char target[420] = {0,1,1,1,0,1,3,0,1,3,3,3,1,3,2,2,3,2,3,3,1,0,1,1,1,0,1,3,0,1,3,
+                                 3,3,1,3,2,2,3,2,3,3,1,0,1,1,1,0,1,3,0,1,3,3,3,1,3,2,2,3,2,3,3,
+                                 1,0,1,1,1,0,1,3,0,1,3,3,3,1,3,2,2,3,2,3,3,1,0,1,1,1,0,1,3,0,1,
+                                 3,3,3,1,3,2,2,3,2,3,3,1,0,1,1,1,0,1,3,0,1,3,3,3,1,3,2,2,3,2,3,
+                                 3,1,0,1,1,1,0,1,3,0,1,3,3,3,1,3,2,2,3,2,3,3,1,0,1,1,1,0,1,3,0,
+                                 1,3,3,3,1,3,2,2,3,2,3,3,1,0,1,1,1,0,1,3,0,1,3,3,3,1,3,2,2,3,2,
+                                 3,3,1,0,1,1,1,0,1,3,0,1,3,3,3,1,3,2,2,3,2,3,3,1,0,1,1,1,0,1,3,
+                                 0,1,3,3,3,1,3,2,2,3,2,3,3,1,0,1,1,1,0,1,3,0,1,3,3,3,1,3,2,2,3,
+                                 2,3,3,1,0,1,1,1,0,1,3,0,1,3,3,3,1,3,2,2,3,2,3,3,1,0,1,1,1,0,1,
+                                 3,0,1,3,3,3,1,3,2,2,3,2,3,3,1,0,1,1,1,0,1,3,0,1,3,3,3,1,3,2,2,
+                                 3,2,3,3,1,0,1,1,1,0,1,3,0,1,3,3,3,1,3,2,2,3,2,3,3,1,0,1,1,1,0,
+                                 1,3,0,1,3,3,3,1,3,2,2,3,2,3,3,1,0,1,1,1,0,1,3,0,1,3,3,3,1,3,2,
+                                 2,3,2,3,3,1,0,1,1,1,0,1,3,0,1,3,3,3,1,3,2,2,3,2,3,3,1,0,1,1,1,
+                                 0,1,3,0,1,3,3,3,1,3,2,2,3,2,3,3,1};
+    int scoreHW = 3;
+    int scoreNW = 407;
+    int scoreSHW = 4;
+    int posHW = 31;
+    int posNW = 419;
+    int posSHW = 10;
+
+    int score, pos;
+    myersCalcEditDistance(query, queryLength, target, targetLength,
+                          alphabetLength, 100, MYERS_MODE_SHW, &score, &pos);
+    printf("MYERS SHW: %d %d\n", score, pos);
+    
+    bool r = executeTest(query, queryLength, target, targetLength, alphabetLength, scoreHW, posHW, MYERS_MODE_HW);
+    r = r && executeTest(query, queryLength, target, targetLength, alphabetLength, scoreNW, posNW, MYERS_MODE_NW);
+    r = r && executeTest(query, queryLength, target, targetLength, alphabetLength, scoreSHW, posSHW, MYERS_MODE_SHW);
+    return r;
+}
+
 bool runTests() {
     bool t1 = test1();
     bool t2 = test2();
     bool t3 = test3();
     bool t4 = test4();
     bool t5 = test5();
-    return t1 && t2 && t3 && t4 && t5;
+    bool t6 = test6();
+    return t1 && t2 && t3 && t4 && t5 && t6;
 }
