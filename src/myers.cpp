@@ -228,6 +228,7 @@ static int myersCalcEditDistanceSemiGlobal(Word* P, Word* M, int* score, Word** 
                 if (bestScore == -1 || colScore < bestScore) {
                     bestScore = colScore;
                     position = c - W;
+                    k = bestScore - 1; // Change k so we will look only for better scores then the best found so far.
                 }
             }
         }
