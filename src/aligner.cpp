@@ -36,6 +36,19 @@ int main(int argc, char * const argv[]) {
     }
     //-------------------------------------------------------------------------//
 
+    int modeCode;
+    if (!strcmp(mode, "SHW"))
+        modeCode = MYERS_MODE_SHW;
+    else if (!strcmp(mode, "HW"))
+        modeCode = MYERS_MODE_HW;
+    else if (!strcmp(mode, "NW"))
+        modeCode = MYERS_MODE_NW;
+    else {
+        printf("Invalid mode!\n");
+        return 1;
+    }
+    printf("Using mode %s\n", mode);
+
     // Alphabet information, will be constructed on fly while reading sequences
     unsigned char letterIdx[128]; //!< letterIdx[c] is index of letter c in alphabet
     bool inAlphabet[128]; // inAlphabet[c] is true if c is in alphabet
@@ -68,20 +81,15 @@ int main(int argc, char * const argv[]) {
     unsigned char* target = (*targetSequences)[0].data();
     int targetLength = (*targetSequences)[0].size();
 
-    printf("Searching...\n");
+    printf("Alphabet: ");
+    for (int c = 0; c < 128; c++)
+        if (inAlphabet[c])
+            printf("%c ", c);
+    printf("\n");
+    printf("Alphabet length: %d\n", alphabetLength);
+
     // ----------------------------- MAIN CALCULATION ----------------------------- //
-    int modeCode;
-    if (!strcmp(mode, "SHW"))
-        modeCode = MYERS_MODE_SHW;
-    else if (!strcmp(mode, "HW"))
-        modeCode = MYERS_MODE_HW;
-    else if (!strcmp(mode, "NW"))
-        modeCode = MYERS_MODE_NW;
-    else {
-        printf("Invalid mode!\n");
-        return 1;
-    }
-    printf("Using mode %s\n", mode);
+    printf("\nSearching...\n");
     int* scores = new int[numQueries];
     int* pos    = new int[numQueries];
     clock_t start = clock();
@@ -97,11 +105,8 @@ int main(int argc, char * const argv[]) {
         printf("\n");
     clock_t finish = clock();
     double cpuTime = ((double)(finish-start))/CLOCKS_PER_SEC;
-    // ---------------------------------------------------------------------------- //
-    
-    
-
     printf("\nCpu time of searching: %lf\n", cpuTime);
+    // ---------------------------------------------------------------------------- //
 
     // Free allocated space
     delete querySequences;
