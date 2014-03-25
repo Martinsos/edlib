@@ -14,6 +14,13 @@ using namespace std;
 int readFastaSequences(const char* path, vector< vector<unsigned char> >* seqs,
                        unsigned char* letterIdx, bool* inAlphabet, int &alphabetLength);
 
+// For debugging
+void printSeq(const vector<unsigned char> &seq) {
+    for (int i = 0; i < seq.size(); i++)
+        printf("%d ", seq[i]);
+    printf("\n");
+}
+
 int main(int argc, char * const argv[]) {
     
     //----------------------------- PARSE COMMAND LINE ------------------------//
@@ -175,5 +182,3 @@ int readFastaSequences(const char* path, vector< vector<unsigned char> >* seqs,
     fclose(file);
     return 0;
 }
- 
-

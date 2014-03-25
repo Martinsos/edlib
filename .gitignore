@@ -12,4 +12,8 @@
 *.la
 *.a
 
+# Executables
 test
+aligner
+
+test_data
