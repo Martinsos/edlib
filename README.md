@@ -8,8 +8,11 @@ Calculates best score (edit distance) and first position of best score.
 #### Alignment modes
 There are 3 different modes of alignment:
 * NW: Global alignment (Needleman-Wunsch).
+      Appropriate for aligning two sequences of similar length. 
 * SHW: Semi-global alignment. Gap at query end is not penalized.
+       Appropriate for aligning prefix to sequence.
 * HW: Semi-global alignment. Gap at query start and gap at query end are not penalized.
+      Appropriate for aligning read to sequence.
 
 
 #### Usage
