@@ -6,6 +6,7 @@
 #include <ctime>
 #include <string>
 #include <climits>
+#include <queue>
 
 #include "myers.h"
 
@@ -24,12 +25,18 @@ void printSeq(const vector<unsigned char> &seq) {
 int main(int argc, char * const argv[]) {
     
     //----------------------------- PARSE COMMAND LINE ------------------------//
+    // If true, there will be no output.
     bool silent = false;
+    // Alignment mode.
     char mode[16] = "SHW";
+    // How many best sequences (those with smallest score) do we want.
+    // If 0, then we want them all.
+    int numBestSeqs = 0;
     int option;
-    while ((option = getopt(argc, argv, "a:s")) >= 0) {
+    while ((option = getopt(argc, argv, "a:n:s")) >= 0) { // : is not a delimiter but indicator of parameter
         switch (option) {
         case 'a': strcpy(mode, optarg); break;
+        case 'n': numBestSeqs = atoi(optarg); break;
         case 's': silent = true; break;
         }
     }
@@ -39,6 +46,9 @@ int main(int argc, char * const argv[]) {
         fprintf(stderr, "Options:\n");
         fprintf(stderr, "\t-s  If specified, there will be no score output (silent mode).\n");
         fprintf(stderr, "\t-a HW|NW|SHW  Alignment mode that will be used. [default: SHW]\n");
+        fprintf(stderr, "\t-n N  Score will be calculated only for N best sequences (best = with smallest score)."
+                        "If N = 0 then all sequences will be calculated. " 
+                        "Specifying small N can make total calculation much faster. [default: 0]\n");
         return 1;
     }
     //-------------------------------------------------------------------------//
@@ -99,17 +109,35 @@ int main(int argc, char * const argv[]) {
     printf("\nSearching...\n");
     int* scores = new int[numQueries];
     int* pos    = new int[numQueries];
+    priority_queue<int> bestScores; // Contains numBestSeqs best scores
+    int k = -1;
     clock_t start = clock();
-    if (!silent)
-        printf("Scores (score, position): \n");
+
+    printf("0/%d", numQueries);
     for (int i = 0; i < numQueries; i++) {
+        // Calculate score
         myersCalcEditDistance((*querySequences)[i].data(), (*querySequences)[i].size(), target, targetLength,
-                              alphabetLength, -1, modeCode, scores + i, pos + i);
-        if (!silent)
-            printf("(%d, %d) ", scores[i], pos[i]);
+                              alphabetLength, k, modeCode, scores + i, pos + i);
+        
+        // If we want only numBestSeqs best sequences, update best scores and adjust k to largest score.
+        if (numBestSeqs > 0) {
+            bestScores.push(scores[i]);
+            if (bestScores.size() > numBestSeqs) {
+                bestScores.pop();
+                k = bestScores.top() - 1;
+            }
+        }
+        
+        printf("\r%d/%d", i+1, numQueries);            
     }
-    if (!silent)
-        printf("\n");
+    printf("\n");
+
+    if (!silent) {
+        printf("\nScores (score, position) \n");
+        for (int i = 0; i < numQueries; i++)
+            printf("%d: (%d, %d)\n", i, scores[i], pos[i]);
+    }
+
     clock_t finish = clock();
     double cpuTime = ((double)(finish-start))/CLOCKS_PER_SEC;
     printf("\nCpu time of searching: %lf\n", cpuTime);
