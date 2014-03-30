@@ -115,7 +115,6 @@ int main(int argc, char * const argv[]) {
 
     printf("0/%d", numQueries);
     for (int i = 0; i < numQueries; i++) {
-        printf("k: %d\n", k);
         // Calculate score
         myersCalcEditDistance((*querySequences)[i].data(), (*querySequences)[i].size(), target, targetLength,
                               alphabetLength, k, modeCode, scores + i, pos + i);
@@ -125,9 +124,9 @@ int main(int argc, char * const argv[]) {
             if (scores[i] >= 0) {
                 bestScores.push(scores[i]);
                 if (bestScores.size() > numBestSeqs) {
-                    printf("Removing %d ", bestScores.top());
                     bestScores.pop();
-                    printf(" and using %d\n", bestScores.top());
+                }
+                if (bestScores.size() == numBestSeqs) {
                     k = bestScores.top() - 1;
                 }
             }
