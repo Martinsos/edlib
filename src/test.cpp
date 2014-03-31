@@ -16,19 +16,20 @@ int calcEditDistanceSimple(const unsigned char* query, int queryLength,
 
 int main() {
     srand(time(NULL));
-
+    
     printf("Testing HW...\n");
     runRandomTests(10000,  MYERS_MODE_HW);
     printf("\n");
-
+    
     printf("Testing NW...\n");
     runRandomTests(10000,  MYERS_MODE_NW);
     printf("\n");
-
+    
     printf("Testing SHW...\n");
     runRandomTests(10000,  MYERS_MODE_SHW);
     printf("\n");
-
+    
+    
     printf("Specific tests:\n");
     if (runTests())
         printf("All specific tests passed!\n");

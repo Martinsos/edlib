@@ -144,7 +144,7 @@ static inline int calculateBlock(Word Pv, Word Mv, Word Eq, const int hin,
  * Note: x and y must be non-negative and x + y must not overflow.
  */
 static inline int ceilDiv(int x, int y) {
-    return (x + y - 1) / y;
+    return x % y ? x / y + 1 : x / y;
 }
 
 static inline int min(int x, int y) {
@@ -174,7 +174,7 @@ static int myersCalcEditDistanceSemiGlobal(Word* P, Word* M, int* score, Word** 
     // Initialize P, M and score
     for (int b = 0; b < lastBlock; b++) {
         score[b] = (b+1) * WORD_SIZE;
-        P[b] = (Word)-1; // All 1s0
+        P[b] = (Word)-1; // All 1s
         M[b] = (Word)0;
     }
 
@@ -256,8 +256,7 @@ static int myersCalcEditDistanceNW(Word* P, Word* M, int* score, Word** Peq, int
     // firstBlock is 0-based index of first block in Ukkonen band.
     // lastBlock is 0-based index of block AFTER last block in Ukkonen band. <- WATCH OUT!
     int firstBlock = 0;
-    // Added + 1 below, without it about 2 of 100000 test examples fail
-    int lastBlock = min(ceilDiv(k - abs(targetLength - queryLength) + 1, WORD_SIZE), maxNumBlocks); // y in Myers
+    int lastBlock = min(maxNumBlocks, ceilDiv(min(k, (k + queryLength - targetLength) / 2) + 1, WORD_SIZE)); // y in Myers
 
     // Initialize P, M and score
     for (int b = 0; b < lastBlock; b++) {
