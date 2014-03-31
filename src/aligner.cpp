@@ -137,9 +137,19 @@ int main(int argc, char * const argv[]) {
     printf("\n");
 
     if (!silent) {
-        printf("\nScores (score, position) \n");
+        int scoreLimit = -1; // Only scores <= then scoreLimit will be printed (we consider -1 as infinity)
+        printf("\n");
+
+        if (bestScores.size() > 0) {
+            printf("%d best scores:\n", (int)bestScores.size());
+            scoreLimit = bestScores.top();
+        }
+
+        printf("Scores (score, position) \n");
         for (int i = 0; i < numQueries; i++)
-            printf("%d: (%d, %d)\n", i, scores[i], pos[i]);
+            if (scores[i] > -1 && (scoreLimit == -1 || scores[i] <= scoreLimit))
+                printf("%d: (%d, %d)\n", i, scores[i], pos[i]);
+        
     }
 
     clock_t finish = clock();
