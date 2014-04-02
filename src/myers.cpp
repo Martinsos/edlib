@@ -1,6 +1,7 @@
 #include "myers.h"
 
 #include <stdint.h>
+#include <cstdio>
 
 using namespace std;
 
@@ -256,6 +257,7 @@ static int myersCalcEditDistanceNW(Word* P, Word* M, int* score, Word** Peq, int
     // firstBlock is 0-based index of first block in Ukkonen band.
     // lastBlock is 0-based index of block AFTER last block in Ukkonen band. <- WATCH OUT!
     int firstBlock = 0;
+    // This is optimal now, by the formula I found
     int lastBlock = min(maxNumBlocks, ceilDiv(min(k, (k + queryLength - targetLength) / 2) + 1, WORD_SIZE)); // y in Myers
 
     // Initialize P, M and score
@@ -277,8 +279,9 @@ static int myersCalcEditDistanceNW(Word* P, Word* M, int* score, Word** Peq, int
         //------------------------------------------------------------------//
         
         //---------- Adjust number of blocks according to Ukkonen ----------//        
-        // Adjust first block
-          if (score[firstBlock] >= k + WORD_SIZE) // TODO: put some stronger constraint
+        // Adjust first block - this is optimal now, by the formula I found
+        while (score[firstBlock] >= k + WORD_SIZE
+               || (firstBlock + 1) * WORD_SIZE - 1 < score[firstBlock] - k - targetLength + queryLength + c)
             firstBlock++;
 
         // Adjust last block
