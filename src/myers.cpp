@@ -1,7 +1,6 @@
 #include "myers.h"
 
 #include <stdint.h>
-#include <cstdio>
 
 using namespace std;
 
@@ -248,6 +247,8 @@ static int myersCalcEditDistanceNW(Word* P, Word* M, int* score, Word** Peq, int
                                    const unsigned char* query, int queryLength,
                                    const unsigned char* target, int targetLength,
                                    int alphabetLength, int k, int* bestScore_, int* position_) {
+    targetLength += W;
+    queryLength += W;
     
     if (k < abs(targetLength - queryLength)) {
         *bestScore_ = *position_ = -1;
@@ -268,7 +269,7 @@ static int myersCalcEditDistanceNW(Word* P, Word* M, int* score, Word** Peq, int
     }
 
     for (int c = 0; c < targetLength; c++) { // for each column
-        Word* Peq_c = Peq[target[c]];
+        Word* Peq_c = c < targetLength - W ? Peq[target[c]] : Peq[alphabetLength];
 
         //----------------------- Calculate column -------------------------//
         int hout = 1;
@@ -285,12 +286,17 @@ static int myersCalcEditDistanceNW(Word* P, Word* M, int* score, Word** Peq, int
                || (firstBlock + 1) * WORD_SIZE - 1 < score[firstBlock] - k - targetLength + queryLength + c) {
             firstBlock++;
         }
+
+        // if (firstBlock == lastBlock)
+        //    printf("Ohohoho\n");
         
-        // Adjust last block
-        // While block is not out of band, calculate next block
+        //--- Adjust last block ---//
+        // While block is not beneath band, calculate next block
         while (lastBlock < maxNumBlocks
-               && !(score[lastBlock - 1] >= k + WORD_SIZE
-                    || (lastBlock * WORD_SIZE - 1 > k - score[lastBlock - 1] + 2 * WORD_SIZE - 2 - targetLength + c + queryLength))) {
+               && (firstBlock == lastBlock // If above band
+                   || !(score[lastBlock - 1] >= k + WORD_SIZE
+                        || (lastBlock * WORD_SIZE - 1 > k - score[lastBlock - 1] + 2 * WORD_SIZE - 2 - targetLength + c + queryLength)))
+               ) {
             lastBlock++;
             int b = lastBlock-1; // index of last block (one we just added)
             P[b] = (Word)-1; // All 1s
@@ -299,21 +305,24 @@ static int myersCalcEditDistanceNW(Word* P, Word* M, int* score, Word** Peq, int
             score[b] = score[b-1] - hout + WORD_SIZE + newHout;
             hout = newHout;
         }
- 
+        
         // While block is out of band, move one block up. - This is optimal now, by my formula.
         // NOT WORKING!
-        /* while (lastBlock > 0
+        /*while (lastBlock > 0
                && (score[lastBlock - 1] >= k + WORD_SIZE
                    || (lastBlock * WORD_SIZE - 1 > k - score[lastBlock - 1] + 2 * WORD_SIZE - 2 - targetLength + c + queryLength))) {
             lastBlock--;    // PROBLEM: Cini se da cesto/uvijek smanji za 1 previse!
             }*/
-
+        
+        
         while (lastBlock > 0 && score[lastBlock-1] >= k + WORD_SIZE) { // TODO: put some stronger constraint
             lastBlock--;
         }
+        //-------------------------//
 
         // If band stops to exist finish
         if (lastBlock <= firstBlock) {
+            //printf("Stopped to exist\n");
             *bestScore_ = *position_ = -1;
             return MYERS_STATUS_OK;
         }
@@ -323,7 +332,7 @@ static int myersCalcEditDistanceNW(Word* P, Word* M, int* score, Word** Peq, int
 
     if (lastBlock == maxNumBlocks) { // If last block of last column was calculated
         int bestScore = score[maxNumBlocks-1];
-        
+        /*
         for (int i = 0; i < W; i++) {
             if (P[maxNumBlocks-1] & HIGH_BIT_MASK)
                 bestScore--;
@@ -332,10 +341,10 @@ static int myersCalcEditDistanceNW(Word* P, Word* M, int* score, Word** Peq, int
             P[maxNumBlocks-1] <<= 1;
             M[maxNumBlocks-1] <<= 1;
         }
-        
+        */
         if (bestScore <= k) {
             *bestScore_ = bestScore;
-            *position_ = targetLength - 1;
+            *position_ = targetLength - 1 - W;
             return MYERS_STATUS_OK;
         }
     }
