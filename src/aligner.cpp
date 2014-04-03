@@ -114,6 +114,7 @@ int main(int argc, char * const argv[]) {
     clock_t start = clock();
 
     printf("0/%d", numQueries);
+    fflush(stdout);
     for (int i = 0; i < numQueries; i++) {
         // Calculate score
         myersCalcEditDistance((*querySequences)[i].data(), (*querySequences)[i].size(), target, targetLength,
@@ -132,7 +133,8 @@ int main(int argc, char * const argv[]) {
             }
         }
         
-        printf("\r%d/%d", i+1, numQueries);            
+        printf("\r%d/%d", i+1, numQueries);
+        fflush(stdout);
     }
     printf("\n");
 

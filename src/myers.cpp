@@ -257,7 +257,7 @@ static int myersCalcEditDistanceNW(Word* P, Word* M, int* score, Word** Peq, int
     // firstBlock is 0-based index of first block in Ukkonen band.
     // lastBlock is 0-based index of block AFTER last block in Ukkonen band. <- WATCH OUT!
     int firstBlock = 0;
-    // This is optimal now, by the formula I found
+    // This is optimal now, by my formula.
     int lastBlock = min(maxNumBlocks, ceilDiv(min(k, (k + queryLength - targetLength) / 2) + 1, WORD_SIZE)); // y in Myers
 
     // Initialize P, M and score
@@ -279,26 +279,37 @@ static int myersCalcEditDistanceNW(Word* P, Word* M, int* score, Word** Peq, int
         //------------------------------------------------------------------//
         
         //---------- Adjust number of blocks according to Ukkonen ----------//        
-        // Adjust first block - this is optimal now, by the formula I found
+        // Adjust first block - this is optimal now, by my formula.
+        // While outside of band, advance block
         while (score[firstBlock] >= k + WORD_SIZE
-               || (firstBlock + 1) * WORD_SIZE - 1 < score[firstBlock] - k - targetLength + queryLength + c)
+               || (firstBlock + 1) * WORD_SIZE - 1 < score[firstBlock] - k - targetLength + queryLength + c) {
             firstBlock++;
-
+        }
+        
         // Adjust last block
-        if (score[lastBlock-1] - hout // score of block to left
-            + max(0, targetLength - c/*column of block to left*/)
-            + max(0, queryLength - (lastBlock * WORD_SIZE) <= k)
-            && (lastBlock < maxNumBlocks)
-            && ((Peq_c[lastBlock] & (Word)1) || hout < 0)) {
-            // If score of left block is not too big, calculate one more block
+        // While block is not out of band, calculate next block
+        while (lastBlock < maxNumBlocks
+               && !(score[lastBlock - 1] >= k + WORD_SIZE
+                    || (lastBlock * WORD_SIZE - 1 > k - score[lastBlock - 1] + 2 * WORD_SIZE - 2 - targetLength + c + queryLength))) {
             lastBlock++;
             int b = lastBlock-1; // index of last block (one we just added)
             P[b] = (Word)-1; // All 1s
             M[b] = (Word)0;
-            score[b] = score[b-1] - hout + WORD_SIZE + calculateBlock(P[b], M[b], Peq_c[b], hout, P[b], M[b]);
-        } else {
-            while (lastBlock > 0 && score[lastBlock-1] >= k + WORD_SIZE) // TODO: put some stronger constraint
-                lastBlock--;
+            int newHout = calculateBlock(P[b], M[b], Peq_c[b], hout, P[b], M[b]);
+            score[b] = score[b-1] - hout + WORD_SIZE + newHout;
+            hout = newHout;
+        }
+ 
+        // While block is out of band, move one block up. - This is optimal now, by my formula.
+        // NOT WORKING!
+        /* while (lastBlock > 0
+               && (score[lastBlock - 1] >= k + WORD_SIZE
+                   || (lastBlock * WORD_SIZE - 1 > k - score[lastBlock - 1] + 2 * WORD_SIZE - 2 - targetLength + c + queryLength))) {
+            lastBlock--;    // PROBLEM: Cini se da cesto/uvijek smanji za 1 previse!
+            }*/
+
+        while (lastBlock > 0 && score[lastBlock-1] >= k + WORD_SIZE) { // TODO: put some stronger constraint
+            lastBlock--;
         }
 
         // If band stops to exist finish
