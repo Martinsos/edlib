@@ -13,8 +13,8 @@ I called them with following commands:
   SSW: `./ssw_test e_coli_536.fasta e_coli_DH1_illumina_10x1000.fasta`
 
 Time:  
-Myers(HW): 17.4s  
-SSW: 17.3s  
+Myers(HW): 17.10s  
+SSW: 20.00s  
 
 ## Protein comparison test
 ### Similar proteins
@@ -24,8 +24,8 @@ Myers: `./aligner -a NW randProt100000_1.fasta randProt100000_1_mutated.fasta`
 SSW: `./ssw_test -p randProt100000_1.fasta randProt100000_1_mutated.fasta`
 
 Time:  
-Myers(NW): 0.33s  
-SSW: 11.12s
+Myers(NW): 0.01s  
+SSW: 7.00s
 
 ### Different proteins
 I generated two very different proteins, both of length ~ 100000, and compared them with both aligners.  
@@ -34,5 +34,5 @@ Myers: `./aligner -a NW randProt100000_1.fasta randProt100000_2.fasta`
 SSW: `./ssw_test -p randProt100000_1.fasta randProt100000_2.fasta`
 
 Time:  
-Myers(NW): 3.95s  
-SSW: 11.19s
+Myers(NW): 2.50s  
+SSW: 7.00s
