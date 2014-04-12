@@ -15,11 +15,9 @@ extern "C" {
 #define MYERS_MODE_SHW 2
 
     /**
-     * Calculates edit distance of query and target 
+     * Calculates Levenshtein distance of query and target 
      * using Myers's fast bit-vector algorithm and Ukkonen's algorithm.
-     * In edit distance problem mismatch and indel have cost of 1, while match has cost of 0.
-     * Query can start anywhere and can end anywhere inside target, 
-     *  which means gaps before and after are not penalized.
+     * In Levenshtein distance mismatch and indel have cost of 1, while match has cost of 0.
      * Query and target are represented as arrays of numbers, where each number is 
      *  index of corresponding letter in alphabet. So for example if alphabet is ['A','C','T','G']
      *  and query string is "AACG" and target string is "GATTCGG" then our input query should be
