@@ -255,6 +255,8 @@ static int myersCalcEditDistanceNW(Word* P, Word* M, int* score, Word** Peq, int
         return MYERS_STATUS_OK;
     }
 
+    k = min(k, max(queryLength, targetLength));  // Upper bound for k
+
     // firstBlock is 0-based index of first block in Ukkonen band.
     // lastBlock is 0-based index of block AFTER last block in Ukkonen band. <- WATCH OUT!
     int firstBlock = 0;

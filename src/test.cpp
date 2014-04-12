@@ -18,15 +18,15 @@ int main() {
     srand(time(NULL));
     
     printf("Testing HW...\n");
-    runRandomTests(10000,  MYERS_MODE_HW);
+    runRandomTests(10000, MYERS_MODE_HW);
     printf("\n");
     
     printf("Testing NW...\n");
-    runRandomTests(10000,  MYERS_MODE_NW);
+    runRandomTests(10000, MYERS_MODE_NW);
     printf("\n");
     
     printf("Testing SHW...\n");
-    runRandomTests(10000,  MYERS_MODE_SHW);
+    runRandomTests(10000, MYERS_MODE_SHW);
     printf("\n");
     
     
