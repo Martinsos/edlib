@@ -167,12 +167,12 @@ static int myersCalcEditDistanceSemiGlobal(Word* P, Word* M, int* score, Word** 
                                            const unsigned char* target, int targetLength,
                                            int alphabetLength, int k, int mode, int* bestScore_, int* position_) {
     // firstBlock is 0-based index of first block in Ukkonen band.
-    // lastBlock is 0-based index of block AFTER last block in Ukkonen band. <- WATCH OUT!
+    // lastBlock is 0-based index of last block in Ukkonen band.
     int firstBlock = 0;
-    int lastBlock = min(ceilDiv(k + 1, WORD_SIZE), maxNumBlocks); // y in Myers
+    int lastBlock = min(ceilDiv(k + 1, WORD_SIZE), maxNumBlocks) - 1; // y in Myers
     
     // Initialize P, M and score
-    for (int b = 0; b < lastBlock; b++) {
+    for (int b = 0; b <= lastBlock; b++) {
         score[b] = (b+1) * WORD_SIZE;
         P[b] = (Word)-1; // All 1s
         M[b] = (Word)0;
@@ -186,7 +186,7 @@ static int myersCalcEditDistanceSemiGlobal(Word* P, Word* M, int* score, Word** 
 
         //----------------------- Calculate column -------------------------//
         int hout = mode == MYERS_MODE_HW ? 0 : 1; // If 0 then gap before query is not penalized
-        for (int b = firstBlock; b < lastBlock; b++) {
+        for (int b = firstBlock; b <= lastBlock; b++) {
             hout = calculateBlock(P[b], M[b], Peq_c[b], hout, P[b], M[b]);
             score[b] += hout;
         }
@@ -198,21 +198,21 @@ static int myersCalcEditDistanceSemiGlobal(Word* P, Word* M, int* score, Word** 
                 firstBlock++;
             }
         
-        if ((score[lastBlock-1] - hout <= k) && (lastBlock < maxNumBlocks)
-            && ((Peq_c[lastBlock] & (Word)1) || hout < 0)) {
+        if ((score[lastBlock] - hout <= k) && (lastBlock < maxNumBlocks - 1)
+            && ((Peq_c[lastBlock + 1] & (Word)1) || hout < 0)) {
             // If score of left block is not too big, calculate one more block
             lastBlock++;
-            int b = lastBlock-1; // index of last block (one we just added)
+            int b = lastBlock; // index of last block (one we just added)
             P[b] = (Word)-1; // All 1s
             M[b] = (Word)0;
             score[b] = score[b-1] - hout + WORD_SIZE + calculateBlock(P[b], M[b], Peq_c[b], hout, P[b], M[b]);
         } else {
-            while (lastBlock > 0 && score[lastBlock-1] >= k + WORD_SIZE)
+            while (lastBlock >= 0 && score[lastBlock] >= k + WORD_SIZE)
                 lastBlock--;
         }
         
         // If band stops to exist finish
-        if (lastBlock <= firstBlock) {
+        if (lastBlock < firstBlock) {
             *bestScore_ = bestScore;
             *position_ = position;
             return MYERS_STATUS_OK;
@@ -220,7 +220,7 @@ static int myersCalcEditDistanceSemiGlobal(Word* P, Word* M, int* score, Word** 
         //------------------------------------------------------------------//
 
         //------------------------- Update best score ----------------------//
-        if (c >= W && lastBlock == maxNumBlocks) { // We ignore scores from first W columns, they are not relevant.
+        if (c >= W && lastBlock == maxNumBlocks - 1) { // We ignore scores from first W columns, they are not relevant.
             int colScore = score[maxNumBlocks-1];
             if (colScore <= k) { // Scores > k dont have correct values (so we cannot use them), but are certainly > k. 
                 // NOTE: Score that I find in column c is actually score from column c-W
@@ -258,13 +258,13 @@ static int myersCalcEditDistanceNW(Word* P, Word* M, int* score, Word** Peq, int
     k = min(k, max(queryLength, targetLength));  // Upper bound for k
 
     // firstBlock is 0-based index of first block in Ukkonen band.
-    // lastBlock is 0-based index of block AFTER last block in Ukkonen band. <- WATCH OUT!
+    // lastBlock is 0-based index of last block in Ukkonen band.
     int firstBlock = 0;
     // This is optimal now, by my formula.
-    int lastBlock = min(maxNumBlocks, ceilDiv(min(k, (k + queryLength - targetLength) / 2) + 1, WORD_SIZE)); // y in Myers
+    int lastBlock = min(maxNumBlocks, ceilDiv(min(k, (k + queryLength - targetLength) / 2) + 1, WORD_SIZE)) - 1;
 
     // Initialize P, M and score
-    for (int b = 0; b < lastBlock; b++) {
+    for (int b = 0; b <= lastBlock; b++) {
         score[b] = (b+1) * WORD_SIZE;
         P[b] = (Word)-1; // All 1s
         M[b] = (Word)0;
@@ -275,7 +275,7 @@ static int myersCalcEditDistanceNW(Word* P, Word* M, int* score, Word** Peq, int
 
         //----------------------- Calculate column -------------------------//
         int hout = 1;
-        for (int b = firstBlock; b < lastBlock; b++) {
+        for (int b = firstBlock; b <= lastBlock; b++) {
             hout = calculateBlock(P[b], M[b], Peq_c[b], hout, P[b], M[b]);
             score[b] += hout;
         }
@@ -294,13 +294,13 @@ static int myersCalcEditDistanceNW(Word* P, Word* M, int* score, Word** Peq, int
         
         //--- Adjust last block ---//
         // While block is not beneath band, calculate next block
-        while (lastBlock < maxNumBlocks
-               && (firstBlock == lastBlock // If above band
-                   || !(score[lastBlock - 1] >= k + WORD_SIZE
-                        || (lastBlock * WORD_SIZE - 1 > k - score[lastBlock - 1] + 2 * WORD_SIZE - 2 - targetLength + c + queryLength)))
+        while (lastBlock + 1 < maxNumBlocks
+               && (firstBlock == lastBlock + 1 // If above band
+                   || !(score[lastBlock] >= k + WORD_SIZE
+                        || ((lastBlock + 1) * WORD_SIZE - 1 > k - score[lastBlock] + 2 * WORD_SIZE - 2 - targetLength + c + queryLength)))
                ) {
             lastBlock++;
-            int b = lastBlock-1; // index of last block (one we just added)
+            int b = lastBlock; // index of last block (one we just added)
             P[b] = (Word)-1; // All 1s
             M[b] = (Word)0;
             int newHout = calculateBlock(P[b], M[b], Peq_c[b], hout, P[b], M[b]);
@@ -310,20 +310,20 @@ static int myersCalcEditDistanceNW(Word* P, Word* M, int* score, Word** Peq, int
         
         // While block is out of band, move one block up. - This is optimal now, by my formula.
         // NOT WORKING!
-        /*while (lastBlock > 0
-               && (score[lastBlock - 1] >= k + WORD_SIZE
-                   || (lastBlock * WORD_SIZE - 1 > k - score[lastBlock - 1] + 2 * WORD_SIZE - 2 - targetLength + c + queryLength))) {
+        /*while (lastBlock  >= 0
+               && (score[lastBlock] >= k + WORD_SIZE
+                   || ((lastBlock + 1) * WORD_SIZE - 1 > k - score[lastBlock] + 2 * WORD_SIZE - 2 - targetLength + c + queryLength))) {
             lastBlock--;    // PROBLEM: Cini se da cesto/uvijek smanji za 1 previse!
             }*/
         
         
-        while (lastBlock > 0 && score[lastBlock-1] >= k + WORD_SIZE) { // TODO: put some stronger constraint
+        while (lastBlock >= 0 && score[lastBlock] >= k + WORD_SIZE) { // TODO: put some stronger constraint
             lastBlock--;
         }
         //-------------------------//
 
         // If band stops to exist finish
-        if (lastBlock <= firstBlock) {
+        if (lastBlock < firstBlock) {
             //printf("Stopped to exist\n");
             *bestScore_ = *position_ = -1;
             return MYERS_STATUS_OK;
@@ -332,7 +332,7 @@ static int myersCalcEditDistanceNW(Word* P, Word* M, int* score, Word** Peq, int
         
     }
 
-    if (lastBlock == maxNumBlocks) { // If last block of last column was calculated
+    if (lastBlock == maxNumBlocks - 1) { // If last block of last column was calculated
         int bestScore = score[maxNumBlocks-1];
         /*
         for (int i = 0; i < W; i++) {
