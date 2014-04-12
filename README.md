@@ -2,7 +2,7 @@
 
 C/C++ library for sequence alignment based on Myers's "Fast Bit-Vector Algorithm for Approximate String Matching Based on Dynamic Programming".  
 Implementation combines Myers's bit-vector algorithm with Ukonnen's banded algorithm.  
-Calculates best score (edit distance) and first position of best score.  
+Calculates best score (Levenshtein distance) and first position of best score.  
 
 
 #### Alignment modes
@@ -10,9 +10,10 @@ There are 3 different modes of alignment:
 * NW: Global alignment (Needleman-Wunsch).
       Appropriate for aligning two sequences of similar length. 
 * SHW: Semi-global alignment. Gap at query end is not penalized.
-       Appropriate for aligning prefix to sequence.
+       Appropriate for aligning prefix(query) to sequence(target).
 * HW: Semi-global alignment. Gap at query start and gap at query end are not penalized.
-      Appropriate for aligning read to sequence.
+      Appropriate for aligning read(query) to sequence(target)
+      (read is sequence obtained by reading part of larger sequence).
 
 
 #### Usage
