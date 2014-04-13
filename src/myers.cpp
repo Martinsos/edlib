@@ -1,8 +1,9 @@
 #include "myers.h"
 
 #include <stdint.h>
-#include <cstdio>
-#include <vector>
+#include <cstdio>   // TODO: remove this
+#include <cstdlib>
+#include <algorithm>
 
 using namespace std;
 
@@ -14,22 +15,25 @@ static const Word HIGH_BIT_MASK = ((Word)1) << (WORD_SIZE-1);
 static int myersCalcEditDistanceSemiGlobal(Word* P, Word* M, int* score, Word** Peq, int W, int maxNumBlocks,
                                            const unsigned char* query, int queryLength,
                                            const unsigned char* target, int targetLength,
-                                           int alphabetLength, int k, int mode, int* bestScore, int* position);
+                                           int alphabetLength, int k, int mode, int* bestScore, int* position,
+                                           bool findAlignment, unsigned char** alignment, int* alignmentLength);
 
 static int myersCalcEditDistanceNW(Word* P, Word* M, int* score, Word** Peq, int W, int maxNumBlocks,
                                    const unsigned char* query, int queryLength,
                                    const unsigned char* target, int targetLength,
-                                   int alphabetLength, int k, int* bestScore, int* position); 
+                                   int alphabetLength, int k, int* bestScore, int* position,
+                                   bool findAlignment, unsigned char** alignment, int* alignmentLength); 
 
 static inline int ceilDiv(int x, int y);
 
 
 
-
 int myersCalcEditDistance(const unsigned char* query, int queryLength,
                           const unsigned char* target, int targetLength,
-                          int alphabetLength, int k, int mode, int* bestScore, int* position) {
-    
+                          int alphabetLength, int k, int mode,
+                          int* bestScore, int* position, 
+                          bool findAlignment, unsigned char** alignment, int* alignmentLength) {
+    *alignment = NULL;
     /*--------------------- INITIALIZATION ------------------*/
     int maxNumBlocks = ceilDiv(queryLength, WORD_SIZE); // bmax in Myers
 
@@ -69,22 +73,26 @@ int myersCalcEditDistance(const unsigned char* query, int queryLength,
             if (mode == MYERS_MODE_HW || mode == MYERS_MODE_SHW)
                 myersCalcEditDistanceSemiGlobal(P, M, score, Peq, W, maxNumBlocks,
                                                 query, queryLength, target, targetLength,
-                                                alphabetLength, k, mode, bestScore, position);
+                                                alphabetLength, k, mode, bestScore, position, 
+                                                findAlignment, alignment, alignmentLength);
             else  // mode == MYERS_MODE_NW
                 myersCalcEditDistanceNW(P, M, score, Peq, W, maxNumBlocks,
                                         query, queryLength, target, targetLength,
-                                        alphabetLength, k, bestScore, position);
+                                        alphabetLength, k, bestScore, position,
+                                        findAlignment, alignment, alignmentLength);
             k *= 2;
         }
     } else {
         if (mode == MYERS_MODE_HW || mode == MYERS_MODE_SHW)
             myersCalcEditDistanceSemiGlobal(P, M, score, Peq, W, maxNumBlocks,
                                             query, queryLength, target, targetLength,
-                                            alphabetLength, k, mode, bestScore, position);
+                                            alphabetLength, k, mode, bestScore, position, 
+                                            findAlignment, alignment, alignmentLength);
         else  // mode == MYERS_MODE_NW
             myersCalcEditDistanceNW(P, M, score, Peq, W, maxNumBlocks,
                                     query, queryLength, target, targetLength,
-                                    alphabetLength, k, bestScore, position);
+                                    alphabetLength, k, bestScore, position,
+                                    findAlignment, alignment, alignmentLength);
     }
     /*-------------------------------------------------------*/
     
@@ -160,11 +168,6 @@ static inline int max(int x, int y) {
     return x > y ? x : y;
 }
 
-static inline int abs(int x) {
-    return x < 0 ? -1 * x : x;
-}
-
-
 
 
 // Data needed to find alignment.
@@ -194,8 +197,8 @@ struct AlignmentData {
 
 
 
-void findAlignment(int maxNumBlocks, int queryLength, int targetLength, int W, int bestScore,
-                   AlignmentData* alignData, unsigned char* alignment);
+static void obtainAlignment(int maxNumBlocks, int queryLength, int targetLength, int W, int bestScore,
+                            AlignmentData* alignData, unsigned char** alignment, int* alignmentLength);
 
 
 /**
@@ -204,7 +207,8 @@ void findAlignment(int maxNumBlocks, int queryLength, int targetLength, int W, i
 static int myersCalcEditDistanceSemiGlobal(Word* P, Word* M, int* score, Word** Peq, int W, int maxNumBlocks,
                                            const unsigned char* query, int queryLength,
                                            const unsigned char* target, int targetLength,
-                                           int alphabetLength, int k, int mode, int* bestScore_, int* position_) {
+                                           int alphabetLength, int k, int mode, int* bestScore_, int* position_,
+                                           bool findAlignment, unsigned char** alignment, int* alignmentLength) {
     // firstBlock is 0-based index of first block in Ukkonen band.
     // lastBlock is 0-based index of last block in Ukkonen band.
     int firstBlock = 0;
@@ -285,7 +289,8 @@ static int myersCalcEditDistanceSemiGlobal(Word* P, Word* M, int* score, Word** 
 static int myersCalcEditDistanceNW(Word* P, Word* M, int* score, Word** Peq, int W, int maxNumBlocks,
                                    const unsigned char* query, int queryLength,
                                    const unsigned char* target, int targetLength,
-                                   int alphabetLength, int k, int* bestScore_, int* position_) {
+                                   int alphabetLength, int k, int* bestScore_, int* position_,
+                                   bool findAlignment, unsigned char** alignment, int* alignmentLength) {
     targetLength += W;
     queryLength += W;
     
@@ -311,8 +316,9 @@ static int myersCalcEditDistanceNW(Word* P, Word* M, int* score, Word** Peq, int
     }
 
     // TODO: make this targetLength - W, and then be careful not to store anything when in padded space
-    AlignmentData* alignData = new AlignmentData(maxNumBlocks, targetLength);
-
+    AlignmentData* alignData = NULL;
+    if (findAlignment)
+        alignData = new AlignmentData(maxNumBlocks, targetLength);
 
     for (int c = 0; c < targetLength; c++) { // for each column
         Word* Peq_c = c < targetLength - W ? Peq[target[c]] : Peq[alphabetLength];
@@ -368,7 +374,7 @@ static int myersCalcEditDistanceNW(Word* P, Word* M, int* score, Word** Peq, int
         // If band stops to exist finish
         if (lastBlock < firstBlock) {
             *bestScore_ = *position_ = -1;
-            delete alignData;
+            if (alignData) delete alignData;
             return MYERS_STATUS_OK;
         }
         //------------------------------------------------------------------//
@@ -376,12 +382,14 @@ static int myersCalcEditDistanceNW(Word* P, Word* M, int* score, Word** Peq, int
 
         //---- Save column so it can be used for reconstruction ----//
         // TODO: Do not save if in padded part of target
-        for (int b = firstBlock; b <= lastBlock; b++) {
-            alignData->Ps[maxNumBlocks * c + b] = P[b];
-            alignData->Ms[maxNumBlocks * c + b] = M[b];
-            alignData->scores[maxNumBlocks * c + b] = score[b];
-            alignData->firstBlocks[c] = firstBlock;
-            alignData->lastBlocks[c] = lastBlock;
+        if (findAlignment) {
+            for (int b = firstBlock; b <= lastBlock; b++) {
+                alignData->Ps[maxNumBlocks * c + b] = P[b];
+                alignData->Ms[maxNumBlocks * c + b] = M[b];
+                alignData->scores[maxNumBlocks * c + b] = score[b];
+                alignData->firstBlocks[c] = firstBlock;
+                alignData->lastBlocks[c] = lastBlock;
+            }
         }
         //----------------------------------------------------------//
     }
@@ -393,37 +401,40 @@ static int myersCalcEditDistanceNW(Word* P, Word* M, int* score, Word** Peq, int
             *bestScore_ = bestScore;
             *position_ = targetLength - 1 - W;
 
-            unsigned char* alignment;
-            findAlignment(maxNumBlocks, queryLength - W, targetLength - W, W, bestScore,
-                          alignData, alignment);
-            delete[] alignment; // TODO: remove this
+            // TODO: move finding of alignment outside, to wrapper function?
+            if (findAlignment) {
+                obtainAlignment(maxNumBlocks, queryLength - W, targetLength - W, W, bestScore, 
+                                alignData, alignment, alignmentLength);
+            }
 
-            delete alignData;
+            if (alignData) delete alignData;
             return MYERS_STATUS_OK;
         }
     }
     
 
     *bestScore_ = *position_ = -1;
-    delete alignData;
+    if (alignData) delete alignData;
     return MYERS_STATUS_OK;
 }
 
 
 /**
  * Finds one possible alignment that gives optimal score.
- * @param maxNumBlocks [in]
- * @param queryLength [in] Normal length, without W.
- * @param targetLength [in] Normal length, without W.
- * @param W [in] Padding.
- * @param bestScore [in] Best score.
- * @param alignData [in] Data obtained during finding best score that is useful for finding alignment.
- * @param alignment [out] Alignment.
+ * @param [in] maxNumBlocks
+ * @param [in] queryLength  Normal length, without W.
+ * @param [in] targetLength  Normal length, without W.
+ * @param [in] W  Padding.
+ * @param [in] bestScore  Best score.
+ * @param [in] alignData  Data obtained during finding best score that is useful for finding alignment.
+ * @param [out] alignment  Alignment.
+ * @param [out] alignmentLength  Length of alignment.
  */
-void findAlignment(int maxNumBlocks, int queryLength, int targetLength, int W, int bestScore,
-                   AlignmentData* alignData, unsigned char* alignment) {
-    alignment = new unsigned char[queryLength + targetLength - 1]; // TODO: reallocate when done
-    int alignmentLength = 0;
+static void obtainAlignment(int maxNumBlocks, int queryLength, int targetLength, int W, int bestScore,
+                            AlignmentData* alignData, unsigned char** alignment, int* alignmentLength) {
+    // TODO: reallocate when done
+    *alignment = (unsigned char*) malloc((queryLength + targetLength - 1) * sizeof(unsigned char));
+    *alignmentLength = 0;
     int c = targetLength - 1; // index of column
     int b = maxNumBlocks - 1; // index of block in column
     int currScore = bestScore; // Score of current cell
@@ -503,7 +514,7 @@ void findAlignment(int maxNumBlocks, int queryLength, int targetLength, int W, i
                 lM <<= 1;
             }
             // Mark move
-            alignment[alignmentLength++] = 1; // TODO: enumeration?
+            (*alignment)[(*alignmentLength)++] = 1; // TODO: enumeration?
         }
         // Move left - deletion from target - insertion to query
         else if (lScore != -1 && lScore + 1 == currScore) {
@@ -521,7 +532,7 @@ void findAlignment(int maxNumBlocks, int queryLength, int targetLength, int W, i
                 thereIsLeftBlock = false;
             }
             // Mark move
-            alignment[alignmentLength++] = 2;
+            (*alignment)[(*alignmentLength)++] = 2;
         }
         // Move up left - (mis)match
         else if (ulScore != -1) {
@@ -548,11 +559,15 @@ void findAlignment(int maxNumBlocks, int queryLength, int targetLength, int W, i
                 thereIsLeftBlock = false;
             }
             // Mark move
-            alignment[alignmentLength++] = 0;
+            (*alignment)[(*alignmentLength)++] = 0;
         } else {
             // Reached end - finished!
-            return;
+            break;
         }
         //----------------------------------//
-    }         
+    }   
+
+    *alignment = (unsigned char*) realloc(*alignment, (*alignmentLength) * sizeof(unsigned char));
+    reverse(*alignment, *alignment + (*alignmentLength));
+    return;
 }

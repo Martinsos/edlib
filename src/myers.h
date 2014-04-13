@@ -36,15 +36,30 @@ extern "C" {
      *                    MYERS_MODE_NW: global (Needleman-Wunsch)
      *                    MYERS_MODE_HW: semi-global. Gaps before and after query are not penalized.
      *                    MYERS_MODE_SHW: semi-global. Gap after query is not penalized.
+     * @param [in] findAlignment  If true and if score != -1, reconstruction of alignment will be performed
+     *                            and alignment will be returned. 
+     *                            Notice: Finding aligment will increase execution time
+     *                                    and could take large amount of memory.
      * @param [out] score  Best score (smallest edit distance) or -1 if there is no score <= k.
      * @param [out] position  Zero-based position in target where query ends (position of last character).
      *                        If gap after query is penalized then it counts as part of query,
      *                        otherwise not. -1 if there is no score <= k.
+     * @param [out] alignment  Will contain alignment if findAlignment is true and score != -1.
+     *                         Otherwise it will be set NULL.
+     *                         Alignment is sequence of numbers: 0, 1, 2.
+     *                         0 stands for (mis)match.
+     *                         1 stands for insertion to target.
+     *                         2 stands for insertion to query.
+     *                         Important: Do not forget to free memory allocated for alignment!
+     *                                    Use free().
+     * @param [out] alignmentLength  Length of alignment.
      * @return Status code.
      */
     int myersCalcEditDistance(const unsigned char* query, int queryLength,
                               const unsigned char* target, int targetLength,
-                              int alphabetLength, int k, int mode, int* score, int* position);
+                              int alphabetLength, int k, int mode,
+                              int* bestScore, int* position, 
+                              bool findAlignment, unsigned char** alignment, int* alignmentLength);
 
 #ifdef __cplusplus 
 }
