@@ -15,20 +15,20 @@ int calcEditDistanceSimple(const unsigned char* query, int queryLength,
                            int alphabetLength, int mode, int* score, int* position);
 
 int main() {
-    srand(time(NULL));
-    
+    srand(100);
+    /*  
     printf("Testing HW...\n");
-    runRandomTests(10000, MYERS_MODE_HW);
+    runRandomTests(1000, MYERS_MODE_HW);
     printf("\n");
-    
+    */
     printf("Testing NW...\n");
-    runRandomTests(10000, MYERS_MODE_NW);
+    runRandomTests(1000, MYERS_MODE_NW);
     printf("\n");
-    
+    /*
     printf("Testing SHW...\n");
-    runRandomTests(10000, MYERS_MODE_SHW);
+    runRandomTests(1000, MYERS_MODE_SHW);
     printf("\n");
-    
+    */
     
     printf("Specific tests:\n");
     if (runTests())
@@ -115,7 +115,7 @@ void runRandomTests(int numTests, int mode) {
     for (int i = 0; i < numTests; i++) {
         bool failed = false;
         int queryLength = 10 + rand() % 200;
-        int targetLength = 100 + rand() % 2000;
+        int targetLength = 100 + rand() % 20000;
         unsigned char query[queryLength];
         unsigned char target[targetLength];
         fillRandomly(query, queryLength, alphabetLength);

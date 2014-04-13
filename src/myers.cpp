@@ -1,6 +1,8 @@
 #include "myers.h"
 
 #include <stdint.h>
+#include <cstdio>
+#include <vector>
 
 using namespace std;
 
@@ -13,12 +15,14 @@ static int myersCalcEditDistanceSemiGlobal(Word* P, Word* M, int* score, Word** 
                                            const unsigned char* query, int queryLength,
                                            const unsigned char* target, int targetLength,
                                            int alphabetLength, int k, int mode, int* bestScore, int* position);
+
 static int myersCalcEditDistanceNW(Word* P, Word* M, int* score, Word** Peq, int W, int maxNumBlocks,
                                    const unsigned char* query, int queryLength,
                                    const unsigned char* target, int targetLength,
                                    int alphabetLength, int k, int* bestScore, int* position); 
 
 static inline int ceilDiv(int x, int y);
+
 
 
 
@@ -101,7 +105,8 @@ int myersCalcEditDistance(const unsigned char* query, int queryLength,
 /**
  * Corresponds to Advance_Block function from Myers.
  * Calculates one word(block), which is part of a column.
- * Highest bit of word is most bottom cell of block from column.
+ * Highest bit of word (one most to the left) is most bottom cell of block from column.
+ * Pv[i] and Mv[i] define vin of cell[i]: vin = cell[i] - cell[i-1].
  * @param [in] Pv  Bitset, Pv[i] == 1 if vin is +1, otherwise Pv[i] == 0.
  * @param [in] Mv  Bitset, Mv[i] == 1 if vin is -1, otherwise Mv[i] == 0.
  * @param [in] Eq  Bitset, Eq[i] == 1 if match, 0 if mismatch.
@@ -158,6 +163,40 @@ static inline int max(int x, int y) {
 static inline int abs(int x) {
     return x < 0 ? -1 * x : x;
 }
+
+
+
+
+// Data needed to find alignment.
+struct AlignmentData {
+    Word* Ps;
+    Word* Ms;
+    int* scores;
+    int* firstBlocks;
+    int* lastBlocks;
+
+    AlignmentData(int maxNumBlocks, int targetLength) {
+         Ps     = new Word[maxNumBlocks * targetLength];
+         Ms     = new Word[maxNumBlocks * targetLength];
+         scores = new  int[maxNumBlocks * targetLength];
+         firstBlocks = new int[targetLength];
+         lastBlocks  = new int[targetLength];
+    }
+
+    ~AlignmentData() {
+        delete[] Ps;
+        delete[] Ms;
+        delete[] scores;
+        delete[] firstBlocks;
+        delete[] lastBlocks;
+    }
+};
+
+
+
+void findAlignment(int maxNumBlocks, int queryLength, int targetLength, int W, int bestScore,
+                   AlignmentData* alignData, unsigned char* alignment);
+
 
 /**
  * @param [in] mode  MYERS_MODE_HW or MYERS_MODE_SHW
@@ -263,12 +302,17 @@ static int myersCalcEditDistanceNW(Word* P, Word* M, int* score, Word** Peq, int
     // This is optimal now, by my formula.
     int lastBlock = min(maxNumBlocks, ceilDiv(min(k, (k + queryLength - targetLength) / 2) + 1, WORD_SIZE)) - 1;
 
+
     // Initialize P, M and score
     for (int b = 0; b <= lastBlock; b++) {
         score[b] = (b+1) * WORD_SIZE;
         P[b] = (Word)-1; // All 1s
         M[b] = (Word)0;
     }
+
+    // TODO: make this targetLength - W, and then be careful not to store anything when in padded space
+    AlignmentData* alignData = new AlignmentData(maxNumBlocks, targetLength);
+
 
     for (int c = 0; c < targetLength; c++) { // for each column
         Word* Peq_c = c < targetLength - W ? Peq[target[c]] : Peq[alphabetLength];
@@ -282,22 +326,21 @@ static int myersCalcEditDistanceNW(Word* P, Word* M, int* score, Word** Peq, int
         //------------------------------------------------------------------//
         
         //---------- Adjust number of blocks according to Ukkonen ----------//        
-        // Adjust first block - this is optimal now, by my formula.
+        //--- Adjust first block ---//
         // While outside of band, advance block
         while (score[firstBlock] >= k + WORD_SIZE
                || (firstBlock + 1) * WORD_SIZE - 1 < score[firstBlock] - k - targetLength + queryLength + c) {
             firstBlock++;
         }
+        //--------------------------//
 
-        // if (firstBlock == lastBlock)
-        //    printf("Ohohoho\n");
-        
         //--- Adjust last block ---//
-        // While block is not beneath band, calculate next block
-        while (lastBlock + 1 < maxNumBlocks
+        // If block is not beneath band, calculate next block. Only next because others are certainly beneath band.
+        if (lastBlock + 1 < maxNumBlocks
                && (firstBlock == lastBlock + 1 // If above band
                    || !(score[lastBlock] >= k + WORD_SIZE
-                        || ((lastBlock + 1) * WORD_SIZE - 1 > k - score[lastBlock] + 2 * WORD_SIZE - 2 - targetLength + c + queryLength)))
+                        || ((lastBlock + 1) * WORD_SIZE - 1
+                            > k - score[lastBlock] + 2 * WORD_SIZE - 2 - targetLength + c + queryLength)))
                ) {
             lastBlock++;
             int b = lastBlock; // index of last block (one we just added)
@@ -324,33 +367,192 @@ static int myersCalcEditDistanceNW(Word* P, Word* M, int* score, Word** Peq, int
 
         // If band stops to exist finish
         if (lastBlock < firstBlock) {
-            //printf("Stopped to exist\n");
             *bestScore_ = *position_ = -1;
+            delete alignData;
             return MYERS_STATUS_OK;
         }
         //------------------------------------------------------------------//
         
+
+        //---- Save column so it can be used for reconstruction ----//
+        // TODO: Do not save if in padded part of target
+        for (int b = firstBlock; b <= lastBlock; b++) {
+            alignData->Ps[maxNumBlocks * c + b] = P[b];
+            alignData->Ms[maxNumBlocks * c + b] = M[b];
+            alignData->scores[maxNumBlocks * c + b] = score[b];
+            alignData->firstBlocks[c] = firstBlock;
+            alignData->lastBlocks[c] = lastBlock;
+        }
+        //----------------------------------------------------------//
     }
+
 
     if (lastBlock == maxNumBlocks - 1) { // If last block of last column was calculated
         int bestScore = score[maxNumBlocks-1];
-        /*
-        for (int i = 0; i < W; i++) {
-            if (P[maxNumBlocks-1] & HIGH_BIT_MASK)
-                bestScore--;
-            if (M[maxNumBlocks-1] & HIGH_BIT_MASK)
-                bestScore++;
-            P[maxNumBlocks-1] <<= 1;
-            M[maxNumBlocks-1] <<= 1;
-        }
-        */
         if (bestScore <= k) {
             *bestScore_ = bestScore;
             *position_ = targetLength - 1 - W;
+
+            unsigned char* alignment;
+            findAlignment(maxNumBlocks, queryLength - W, targetLength - W, W, bestScore,
+                          alignData, alignment);
+            delete[] alignment; // TODO: remove this
+
+            delete alignData;
             return MYERS_STATUS_OK;
         }
     }
     
+
     *bestScore_ = *position_ = -1;
+    delete alignData;
     return MYERS_STATUS_OK;
+}
+
+
+/**
+ * Finds one possible alignment that gives optimal score.
+ * @param maxNumBlocks [in]
+ * @param queryLength [in] Normal length, without W.
+ * @param targetLength [in] Normal length, without W.
+ * @param W [in] Padding.
+ * @param bestScore [in] Best score.
+ * @param alignData [in] Data obtained during finding best score that is useful for finding alignment.
+ * @param alignment [out] Alignment.
+ */
+void findAlignment(int maxNumBlocks, int queryLength, int targetLength, int W, int bestScore,
+                   AlignmentData* alignData, unsigned char* alignment) {
+    alignment = new unsigned char[queryLength + targetLength - 1]; // TODO: reallocate when done
+    int alignmentLength = 0;
+    int c = targetLength - 1; // index of column
+    int b = maxNumBlocks - 1; // index of block in column
+    int currScore = bestScore; // Score of current cell
+    int lScore  = -1; // Score of left cell
+    int uScore  = -1; // Score of upper cell
+    int ulScore = -1; // Score of upper left cell
+    Word currP = alignData->Ps[c * maxNumBlocks + b]; // P of current block
+    Word currM = alignData->Ms[c * maxNumBlocks + b]; // M of current block
+    // True if block to left exists and is in band
+    bool thereIsLeftBlock = c > 0 && b >= alignData->firstBlocks[c-1] && b <= alignData->lastBlocks[c-1];
+    Word lP, lM;
+    if (thereIsLeftBlock) {
+        lP = alignData->Ps[(c - 1) * maxNumBlocks + b]; // P of block to the left
+        lM = alignData->Ms[(c - 1) * maxNumBlocks + b]; // M of block to the left
+    }
+    currP <<= W;
+    currM <<= W;
+    int blockPos = WORD_SIZE - W - 1; // 0 based index of current cell in blockPos
+    while (true) {
+        // TODO: improvement: calculate only those cells that are needed,
+        //       for example if I calculate upper cell and can move up, 
+        //       there is no need to calculate left and upper left cell
+        //---------- Calculate scores ---------//
+        if (lScore == -1 && thereIsLeftBlock) {
+            lScore = alignData->scores[(c - 1) * maxNumBlocks + b]; // score of block to the left
+            for (int i = 0; i < WORD_SIZE - blockPos - 1; i++) {
+                if (lP & HIGH_BIT_MASK) lScore--;
+                if (lM & HIGH_BIT_MASK) lScore++;
+                lP <<= 1;
+                lM <<= 1;
+            }
+        }
+        if (ulScore == -1) {
+            if (lScore != -1) {
+                ulScore = lScore;
+                if (lP & HIGH_BIT_MASK) ulScore--;
+                if (lM & HIGH_BIT_MASK) ulScore++;
+            } 
+            else if (c > 0 && b-1 >= alignData->firstBlocks[c-1] && b-1 <= alignData->lastBlocks[c-1]) {
+                // This is the case when upper left cell is last cell in block,
+                // and block to left is not in band so lScore is -1.
+                ulScore = alignData->scores[(c - 1) * maxNumBlocks + b - 1];
+            }
+        }
+        if (uScore == -1) {
+            uScore = currScore;
+            if (currP & HIGH_BIT_MASK) uScore--;
+            if (currM & HIGH_BIT_MASK) uScore++;
+            currP <<= 1;
+            currM <<= 1;
+        }
+        //-------------------------------------//
+
+        // TODO: should I check if there is upper block?
+
+        //-------------- Move --------------//
+        // Move up - insertion to target - deletion from query
+        if (uScore != -1 && uScore + 1 == currScore) {
+            currScore = uScore;
+            lScore = ulScore;
+            uScore = ulScore = -1;
+            if (blockPos == 0) { // If entering new (upper) block
+                blockPos = WORD_SIZE - 1;
+                b--;
+                currP = alignData->Ps[c * maxNumBlocks + b];
+                currM = alignData->Ms[c * maxNumBlocks + b];
+                if (c > 0 && b >= alignData->firstBlocks[c-1] && b <= alignData->lastBlocks[c-1]) {
+                    thereIsLeftBlock = true;
+                    lP = alignData->Ps[(c - 1) * maxNumBlocks + b]; // TODO: improve this, too many operations
+                    lM = alignData->Ms[(c - 1) * maxNumBlocks + b];
+                } else {
+                    thereIsLeftBlock = false;
+                }
+            } else {
+                blockPos--;
+                lP <<= 1;
+                lM <<= 1;
+            }
+            // Mark move
+            alignment[alignmentLength++] = 1; // TODO: enumeration?
+        }
+        // Move left - deletion from target - insertion to query
+        else if (lScore != -1 && lScore + 1 == currScore) {
+            currScore = lScore;
+            uScore = ulScore;
+            lScore = ulScore = -1;
+            c--;
+            currP = lP;
+            currM = lM;
+            if (c > 0 && b >= alignData->firstBlocks[c-1] && b <= alignData->lastBlocks[c-1]) {
+                thereIsLeftBlock = true;
+                lP = alignData->Ps[(c - 1) * maxNumBlocks + b];
+                lM = alignData->Ms[(c - 1) * maxNumBlocks + b];
+            } else {
+                thereIsLeftBlock = false;
+            }
+            // Mark move
+            alignment[alignmentLength++] = 2;
+        }
+        // Move up left - (mis)match
+        else if (ulScore != -1) {
+            currScore = ulScore;
+            uScore = lScore = ulScore = -1;
+            c--;
+            if (blockPos == 0) { // If entering upper left block
+                blockPos = WORD_SIZE - 1;
+                b--;
+                currP = alignData->Ps[c * maxNumBlocks + b];
+                currM = alignData->Ms[c * maxNumBlocks + b];
+            } else { // If entering left block
+                blockPos--;
+                currP = lP;
+                currM = lM;
+                currP <<= 1;
+                currM <<= 1;
+            }
+            if (c > 0 && b >= alignData->firstBlocks[c-1] && b <= alignData->lastBlocks[c-1]) {
+                thereIsLeftBlock = true;
+                lP = alignData->Ps[(c - 1) * maxNumBlocks + b];
+                lM = alignData->Ms[(c - 1) * maxNumBlocks + b];
+            } else {
+                thereIsLeftBlock = false;
+            }
+            // Mark move
+            alignment[alignmentLength++] = 0;
+        } else {
+            // Reached end - finished!
+            return;
+        }
+        //----------------------------------//
+    }         
 }
