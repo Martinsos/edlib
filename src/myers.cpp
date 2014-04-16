@@ -497,16 +497,23 @@ static void obtainAlignment(int maxNumBlocks, int queryLength, int targetLength,
             lScore = ulScore;
             uScore = ulScore = -1;
             if (blockPos == 0) { // If entering new (upper) block
-                blockPos = WORD_SIZE - 1;
-                b--;
-                currP = alignData->Ps[c * maxNumBlocks + b];
-                currM = alignData->Ms[c * maxNumBlocks + b];
-                if (c > 0 && b >= alignData->firstBlocks[c-1] && b <= alignData->lastBlocks[c-1]) {
-                    thereIsLeftBlock = true;
-                    lP = alignData->Ps[(c - 1) * maxNumBlocks + b]; // TODO: improve this, too many operations
-                    lM = alignData->Ms[(c - 1) * maxNumBlocks + b];
+                if (b == 0) { // If there are no cells above (only boundary cells)
+                    (*alignment)[(*alignmentLength)++] = 1; // Move up
+                    for (int i = 0; i < c + 1; i++) // Move left until end
+                        (*alignment)[(*alignmentLength)++] = 2;
+                    break;
                 } else {
-                    thereIsLeftBlock = false;
+                    blockPos = WORD_SIZE - 1;
+                    b--;
+                    currP = alignData->Ps[c * maxNumBlocks + b];
+                    currM = alignData->Ms[c * maxNumBlocks + b];
+                    if (c > 0 && b >= alignData->firstBlocks[c-1] && b <= alignData->lastBlocks[c-1]) {
+                        thereIsLeftBlock = true;
+                        lP = alignData->Ps[(c - 1) * maxNumBlocks + b]; // TODO: improve this, too many operations
+                        lM = alignData->Ms[(c - 1) * maxNumBlocks + b];
+                    } else {
+                        thereIsLeftBlock = false;
+                    }
                 }
             } else {
                 blockPos--;
@@ -522,6 +529,13 @@ static void obtainAlignment(int maxNumBlocks, int queryLength, int targetLength,
             uScore = ulScore;
             lScore = ulScore = -1;
             c--;
+            if (c == -1) { // If there are no cells to the left (only boundary cells)
+                (*alignment)[(*alignmentLength)++] = 2; // Move left
+                int numUp = b * WORD_SIZE + blockPos + 1;
+                for (int i = 0; i < numUp; i++) // Move up until end
+                    (*alignment)[(*alignmentLength)++] = 1;
+                break;
+            }
             currP = lP;
             currM = lM;
             if (c > 0 && b >= alignData->firstBlocks[c-1] && b <= alignData->lastBlocks[c-1]) {
@@ -529,7 +543,13 @@ static void obtainAlignment(int maxNumBlocks, int queryLength, int targetLength,
                 lP = alignData->Ps[(c - 1) * maxNumBlocks + b];
                 lM = alignData->Ms[(c - 1) * maxNumBlocks + b];
             } else {
-                thereIsLeftBlock = false;
+                if (c == 0) { // If there are no cells to the left (only boundary cells)
+                    thereIsLeftBlock = true;
+                    lScore = b * WORD_SIZE + blockPos + 1;
+                    ulScore = lScore - 1;
+                } else {
+                    thereIsLeftBlock = false;
+                }
             }
             // Mark move
             (*alignment)[(*alignmentLength)++] = 2;
@@ -539,7 +559,20 @@ static void obtainAlignment(int maxNumBlocks, int queryLength, int targetLength,
             currScore = ulScore;
             uScore = lScore = ulScore = -1;
             c--;
+            if (c == -1) { // If there are no cells to the left (only boundary cells)
+                (*alignment)[(*alignmentLength)++] = 0; // Move left
+                int numUp = b * WORD_SIZE + blockPos;
+                for (int i = 0; i < numUp; i++) // Move up until end
+                    (*alignment)[(*alignmentLength)++] = 1;
+                break;
+            }
             if (blockPos == 0) { // If entering upper left block
+                if (b == 0) { // If there are no more cells above (only boundary cells)
+                    (*alignment)[(*alignmentLength)++] = 0; // Move up left
+                    for (int i = 0; i < c + 1; i++) // Move left until end
+                        (*alignment)[(*alignmentLength)++] = 2;
+                    break;
+                }
                 blockPos = WORD_SIZE - 1;
                 b--;
                 currP = alignData->Ps[c * maxNumBlocks + b];
@@ -551,12 +584,19 @@ static void obtainAlignment(int maxNumBlocks, int queryLength, int targetLength,
                 currP <<= 1;
                 currM <<= 1;
             }
+            // Set new left block
             if (c > 0 && b >= alignData->firstBlocks[c-1] && b <= alignData->lastBlocks[c-1]) {
                 thereIsLeftBlock = true;
                 lP = alignData->Ps[(c - 1) * maxNumBlocks + b];
                 lM = alignData->Ms[(c - 1) * maxNumBlocks + b];
             } else {
-                thereIsLeftBlock = false;
+                if (c == 0) { // If there are no cells to the left (only boundary cells)
+                    thereIsLeftBlock = true;
+                    lScore = b * WORD_SIZE + blockPos + 1;
+                    ulScore = lScore - 1;
+                } else {
+                    thereIsLeftBlock = false;
+                }
             }
             // Mark move
             (*alignment)[(*alignmentLength)++] = 0;
