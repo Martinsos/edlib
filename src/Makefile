@@ -17,5 +17,9 @@ aligner: myers.o aligner.cpp
 myers.o: myers.cpp myers.h
 	$(CC) $(CFLAGS) -c myers.cpp
 
+# etags are used in emacs
+etags:
+	etags *.cpp *.h
+
 clean:
 	rm *.o test
