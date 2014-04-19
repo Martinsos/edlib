@@ -476,6 +476,11 @@ static void obtainAlignment(int maxNumBlocks, int queryLength, int targetLength,
     currP <<= W;
     currM <<= W;
     int blockPos = WORD_SIZE - W - 1; // 0 based index of current cell in blockPos
+    if (c == 0) {
+         thereIsLeftBlock = true;
+         lScore = b * WORD_SIZE + blockPos + 1;
+         ulScore = lScore - 1;
+    }
     while (true) {
         // TODO: improvement: calculate only those cells that are needed,
         //       for example if I calculate upper cell and can move up, 

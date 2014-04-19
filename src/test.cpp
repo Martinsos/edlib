@@ -14,38 +14,37 @@ int calcEditDistanceSimple(const unsigned char* query, int queryLength,
                            const unsigned char* target, int targetLength,
                            int alphabetLength, int mode, int* score, int* position);
 
-bool checkAlignment(unsigned char* query, int queryLength,
-                    unsigned char* target, int targetLength,
+bool checkAlignment(const unsigned char* query, int queryLength,
+                    const unsigned char* target, int targetLength,
                     int score, int pos, int mode,
                     unsigned char* alignment, int alignmentLength);
 
 int main() {
-    srand(time(NULL));
+    srand(1);
 
     printf("Testing HW with alignment...\n");
     runRandomTests(1000, MYERS_MODE_HW, true);
     printf("\n");
 
     printf("Testing HW...\n");
-    runRandomTests(1000, MYERS_MODE_HW, false);
+    runRandomTests(10000, MYERS_MODE_HW, false);
     printf("\n");
-    
+
     printf("Testing NW with alignment...\n");
     runRandomTests(1000, MYERS_MODE_NW, true);
     printf("\n");
 
     printf("Testing NW...\n");
-    runRandomTests(1000, MYERS_MODE_NW, false);
+    runRandomTests(10000, MYERS_MODE_NW, false);
     printf("\n");
     
-    printf("Testing SHW...\n");
-    runRandomTests(1000, MYERS_MODE_SHW, false);
-    printf("\n");
-
     printf("Testing SHW with alignment...\n");
     runRandomTests(1000, MYERS_MODE_SHW, true);
     printf("\n");
     
+    printf("Testing SHW...\n");
+    runRandomTests(10000, MYERS_MODE_SHW, false);
+    printf("\n");
     
     printf("Specific tests:\n");
     if (runTests())
@@ -131,8 +130,8 @@ void runRandomTests(int numTests, int mode, bool findAlignment) {
     
     for (int i = 0; i < numTests; i++) {
         bool failed = false;
-        int queryLength = 10 + rand() % 20;
-        int targetLength = 100 + rand() % 2000;
+        int queryLength = 10 + rand() % 200;
+        int targetLength = 100 + rand() % 20000;
         unsigned char query[queryLength];
         unsigned char target[targetLength];
         fillRandomly(query, queryLength, alphabetLength);
@@ -162,7 +161,7 @@ void runRandomTests(int numTests, int mode, bool findAlignment) {
             for (int i = 0; i < alignmentLength; i++)
                 printf("%d", alignment[i]);
             printf("\n");
-            */
+            printf("%d, %d\n", score1, pos1);*/
             if (!checkAlignment(query, queryLength, target, targetLength,
                                 score1, pos1, mode, alignment, alignmentLength)) {
                 failed = true;
@@ -226,22 +225,30 @@ bool executeTest(const unsigned char* query, int queryLength,
                  int alphabetLength, int score, int pos, int mode) {
     int score1; int pos1;
     unsigned char* alignment; int alignmentLength;
+    bool pass = true;
     myersCalcEditDistance(query, queryLength, target, targetLength,
                           alphabetLength, -1, mode, &score1, &pos1,
-                          false, &alignment, &alignmentLength);
-    if (alignment) free(alignment);
+                          true, &alignment, &alignmentLength);
 
     int score2; int pos2;
     calcEditDistanceSimple(query, queryLength, target, targetLength,
                            alphabetLength, mode, &score2, &pos2);
 
-    bool pass = score1 == score2 && score2 == score && pos1 == pos2 && pos2 == pos;
+    if (!(score1 == score2 && score2 == score && pos1 == pos2 && pos2 == pos)) {
+        pass = false;
+    }
 
     printf(mode == MYERS_MODE_HW ? "HW: " : mode == MYERS_MODE_SHW ? "SHW: " : "NW: ");
     printf("Myers -> (%d, %d), simple -> (%d, %d), correct -> (%d, %d)",
            score1, pos1, score2, pos2, score, pos);
+    if (!checkAlignment(query, queryLength, target, targetLength,
+                        score1, pos1, mode, alignment, alignmentLength)) {
+        pass = false;
+        printf("Alignment is not correct\n");
+    }
     printf(pass ? "\x1B[32m OK \x1B[0m\n" : "\x1B[31m FAIL \x1B[0m\n");
     
+    if (alignment) free(alignment);
     return pass;
 }
 
@@ -385,8 +392,8 @@ bool runTests() {
 /**
  * Checks if alignment is correct.
  */
-bool checkAlignment(unsigned char* query, int queryLength,
-                    unsigned char* target, int targetLength,
+bool checkAlignment(const unsigned char* query, int queryLength,
+                    const unsigned char* target, int targetLength,
                     int score, int pos, int mode,
                     unsigned char* alignment, int alignmentLength) {
     int alignScore = 0;
