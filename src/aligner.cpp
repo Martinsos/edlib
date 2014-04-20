@@ -13,7 +13,7 @@
 using namespace std;
 
 int readFastaSequences(const char* path, vector< vector<unsigned char> >* seqs,
-                       unsigned char* letterIdx, bool* inAlphabet, int &alphabetLength);
+                       unsigned char* letterIdx, char* idxToLetter, bool* inAlphabet, int &alphabetLength);
 
 // For debugging
 void printSeq(const vector<unsigned char> &seq) {
@@ -28,16 +28,18 @@ int main(int argc, char * const argv[]) {
     // If true, there will be no output.
     bool silent = false;
     // Alignment mode.
-    char mode[16] = "SHW";
+    char mode[16] = "NW";
     // How many best sequences (those with smallest score) do we want.
     // If 0, then we want them all.
     int numBestSeqs = 0;
+    bool findAlignment = false;
     int option;
-    while ((option = getopt(argc, argv, "a:n:s")) >= 0) { // : is not a delimiter but indicator of parameter
+    while ((option = getopt(argc, argv, "a:n:sc")) >= 0) { // : is not a delimiter but indicator of parameter
         switch (option) {
         case 'a': strcpy(mode, optarg); break;
         case 'n': numBestSeqs = atoi(optarg); break;
         case 's': silent = true; break;
+        case 'c': findAlignment = true; break;
         }
     }
     if (optind + 2 != argc) {
@@ -45,13 +47,15 @@ int main(int argc, char * const argv[]) {
         fprintf(stderr, "Usage: aligner [options...] <queries.fasta> <target.fasta>\n");        
         fprintf(stderr, "Options:\n");
         fprintf(stderr, "\t-s  If specified, there will be no score output (silent mode).\n");
-        fprintf(stderr, "\t-a HW|NW|SHW  Alignment mode that will be used. [default: SHW]\n");
+        fprintf(stderr, "\t-a HW|NW|SHW  Alignment mode that will be used. [default: NW]\n");
         fprintf(stderr, "\t-n N  Score will be calculated only for N best sequences (best = with smallest score)."
                         "If N = 0 then all sequences will be calculated. " 
                         "Specifying small N can make total calculation much faster. [default: 0]\n");
+        fprintf(stderr, "\t-c If specified, alignment will be found and printed.\n");
         return 1;
     }
     //-------------------------------------------------------------------------//
+
 
     int modeCode;
     if (!strcmp(mode, "SHW"))
@@ -66,8 +70,10 @@ int main(int argc, char * const argv[]) {
     }
     printf("Using mode %s\n", mode);
 
+
     // Alphabet information, will be constructed on fly while reading sequences
     unsigned char letterIdx[128]; //!< letterIdx[c] is index of letter c in alphabet
+    char idxToLetter[128]; //!< numToLetter[i] is letter that has index i in alphabet
     bool inAlphabet[128]; // inAlphabet[c] is true if c is in alphabet
     for (int i = 0; i < 128; i++) {
         inAlphabet[i] = false;
@@ -79,7 +85,8 @@ int main(int argc, char * const argv[]) {
     char* queriesFilepath = argv[optind];
     vector< vector<unsigned char> >* querySequences = new vector< vector<unsigned char> >();
     printf("Reading queries fasta file...\n");
-    readResult = readFastaSequences(queriesFilepath, querySequences, letterIdx, inAlphabet, alphabetLength);
+    readResult = readFastaSequences(queriesFilepath, querySequences, letterIdx, idxToLetter,
+                                    inAlphabet, alphabetLength);
     if (readResult) {
         printf("Error: There is no file with name %s\n", queriesFilepath);
         return 1;
@@ -90,7 +97,8 @@ int main(int argc, char * const argv[]) {
     char* targetFilepath = argv[optind+1];    
     vector< vector<unsigned char> >* targetSequences = new vector< vector<unsigned char> >();
     printf("Reading target fasta file...\n");
-    readResult = readFastaSequences(targetFilepath, targetSequences, letterIdx, inAlphabet, alphabetLength);
+    readResult = readFastaSequences(targetFilepath, targetSequences, letterIdx, idxToLetter,
+                                    inAlphabet, alphabetLength);
     if (readResult) {
         printf("Error: There is no file with name %s\n", targetFilepath);
         return 1;
@@ -105,20 +113,27 @@ int main(int argc, char * const argv[]) {
     printf("\n");
     printf("Alphabet length: %d\n", alphabetLength);
 
+
     // ----------------------------- MAIN CALCULATION ----------------------------- //
     printf("\nSearching...\n");
     int* scores = new int[numQueries];
     int* pos    = new int[numQueries];
     priority_queue<int> bestScores; // Contains numBestSeqs best scores
     int k = -1;
+    unsigned char* alignment = NULL; int alignmentLength;
     clock_t start = clock();
 
-    printf("0/%d", numQueries);
-    fflush(stdout);
+    if (silent) {
+        printf("0/%d", numQueries);
+        fflush(stdout);
+    }
     for (int i = 0; i < numQueries; i++) {
+        unsigned char* query = (*querySequences)[i].data();
+        int queryLength = (*querySequences)[i].size();
         // Calculate score
-        myersCalcEditDistance((*querySequences)[i].data(), (*querySequences)[i].size(), target, targetLength,
-                              alphabetLength, k, modeCode, scores + i, pos + i);
+        myersCalcEditDistance(query, queryLength, target, targetLength,
+                              alphabetLength, k, modeCode, scores + i, pos + i,
+                              findAlignment, &alignment, &alignmentLength);
         
         // If we want only numBestSeqs best sequences, update best scores and adjust k to largest score.
         if (numBestSeqs > 0) {
@@ -133,8 +148,51 @@ int main(int argc, char * const argv[]) {
             }
         }
         
-        printf("\r%d/%d", i+1, numQueries);
-        fflush(stdout);
+        if (silent) {
+            printf("\r%d/%d", i+1, numQueries);
+            fflush(stdout);
+        } else {
+            // Print alignment if it was found
+            if (alignment) {
+                printf("\n");
+                printf("%d: query length = %d, target length = %d\n", i, queryLength, targetLength);
+                int tIdx = 0;
+                int qIdx = 0;
+                int targetLettersToSkip = 0;
+                if (modeCode == MYERS_MODE_HW) {
+                    for (int j = 0; j < alignmentLength && alignment[j] == 2; j++) {
+                        targetLettersToSkip++;
+                        tIdx++;
+                    }
+                }
+                for (int start = targetLettersToSkip; start < alignmentLength; start += 50) {
+                    // target
+                    printf("T: ");
+                    int startTIdx = tIdx;
+                    for (int j = start; j < start + 50 && j < alignmentLength; j++) {
+                        if (alignment[j] == 1)
+                            printf("_");
+                        else
+                            printf("%c", idxToLetter[target[tIdx++]]);
+                    }
+                    printf(" (%d - %d)\n", startTIdx, tIdx - 1);
+                    // query
+                    printf("Q: ");
+                    int startQIdx = qIdx;
+                    for (int j = start; j < start + 50 && j < alignmentLength; j++) {
+                        if (alignment[j] == 2)
+                            printf("_");
+                        else
+                            printf("%c", idxToLetter[query[qIdx++]]);
+                    }
+                    printf(" (%d - %d)\n", startQIdx, qIdx - 1);
+                    printf("\n");
+                }
+            }
+        }
+
+        if (alignment)
+            free(alignment);
     }
     printf("\n");
 
@@ -181,7 +239,7 @@ int main(int argc, char * const argv[]) {
  * @return 0 if all ok, positive number otherwise.
  */
 int readFastaSequences(const char* path, vector< vector<unsigned char> >* seqs,
-                       unsigned char* letterIdx, bool* inAlphabet, int &alphabetLength) {
+                       unsigned char* letterIdx, char* idxToLetter, bool* inAlphabet, int &alphabetLength) {
     seqs->clear();
     
     FILE* file = fopen(path, "r");
@@ -215,6 +273,7 @@ int readFastaSequences(const char* path, vector< vector<unsigned char> >* seqs,
                     if (!inAlphabet[c]) { // I construct alphabet on fly
                         inAlphabet[c] = true;
                         letterIdx[c] = alphabetLength;
+                        idxToLetter[alphabetLength] = c;
                         alphabetLength++;
                     }
                     seqs->back().push_back(letterIdx[c]);

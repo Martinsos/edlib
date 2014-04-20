@@ -42,7 +42,7 @@ extern "C" {
      *                                    and could take large amount of memory.
      * @param [out] score  Best score (smallest edit distance) or -1 if there is no score <= k.
      * @param [out] position  Zero-based position in target where query ends (position of last character).
-     *                        If gap after query is penalized then it counts as part of query,
+     *                        If gap after query is penalized then it counts as part of query (NW),
      *                        otherwise not. -1 if there is no score <= k.
      * @param [out] alignment  Will contain alignment if findAlignment is true and score != -1.
      *                         Otherwise it will be set NULL.
@@ -50,6 +50,10 @@ extern "C" {
      *                         0 stands for (mis)match.
      *                         1 stands for insertion to target.
      *                         2 stands for insertion to query.
+     *                         Alignment aligns query to target from begining of query till end of query.
+     *                         If gap after query is penalized (NW) then it counts as part of query, otherwise not.
+     *                         In other words, alignment ends at @param position in target.
+     *                         If position is not end of target, then insertions to query are implicit.
      *                         Important: Do not forget to free memory allocated for alignment!
      *                                    Use free().
      * @param [out] alignmentLength  Length of alignment.
