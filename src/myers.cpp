@@ -362,6 +362,10 @@ static int myersCalcEditDistanceNW(Word* P, Word* M, int* score, Word** Peq, int
             score[b] += hout;
         }
         //------------------------------------------------------------------//
+
+        // Update k. I do it only on end of column because it would slow calculation too much otherwise.
+        k = min(k, score[lastBlock] + max(targetLength - c - 1,
+                                          queryLength - ((1 + lastBlock) * WORD_SIZE - 1) - 1));
         
         //---------- Adjust number of blocks according to Ukkonen ----------//        
         //--- Adjust first block ---//
@@ -423,7 +427,6 @@ static int myersCalcEditDistanceNW(Word* P, Word* M, int* score, Word** Peq, int
         }
         //----------------------------------------------------------//
     }
-
 
     if (lastBlock == maxNumBlocks - 1) { // If last block of last column was calculated
         int bestScore = score[maxNumBlocks-1];
