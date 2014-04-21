@@ -34,5 +34,5 @@ Myers: `./aligner -a NW randProt100000_1.fasta randProt100000_2.fasta`
 SSW: `./ssw_test -p randProt100000_1.fasta randProt100000_2.fasta`
 
 Time:  
-Myers(NW): 2.50s  
+Myers(NW): 2.04s  
 SSW: 7.00s
