@@ -238,7 +238,7 @@ bool executeTest(const unsigned char* query, int queryLength,
         pass = false;
     }
 
-    printf(mode == MYERS_MODE_HW ? "HW: " : mode == MYERS_MODE_SHW ? "SHW: " : "NW: ");
+    printf(mode == MYERS_MODE_HW ? "HW:  " : mode == MYERS_MODE_SHW ? "SHW: " : "NW:  ");
     printf("Myers -> (%d, %d), simple -> (%d, %d), correct -> (%d, %d)",
            score1, pos1, score2, pos2, score, pos);
     if (!checkAlignment(query, queryLength, target, targetLength,

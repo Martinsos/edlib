@@ -9,7 +9,8 @@ using namespace std;
 
 typedef uint64_t Word;
 static const int WORD_SIZE = sizeof(Word) * 8; // Size of Word in bits
-static const Word HIGH_BIT_MASK = ((Word)1) << (WORD_SIZE-1);
+static const Word WORD_1 = (Word)1;
+static const Word HIGH_BIT_MASK = WORD_1 << (WORD_SIZE - 1);
 
 // Data needed to find alignment.
 struct AlignmentData {
@@ -47,7 +48,7 @@ static int myersCalcEditDistanceNW(Word* P, Word* M, int* score, Word** Peq, int
                                    const unsigned char* query, int queryLength,
                                    const unsigned char* target, int targetLength,
                                    int alphabetLength, int k, int* bestScore, int* position,
-                                   bool findAlignment, AlignmentData** alignData); 
+                                   bool findAlignment, AlignmentData** alignData);
 
 static void obtainAlignment(int maxNumBlocks, int queryLength, int targetLength, int W, int bestScore,
                             int position, AlignmentData* alignData, 
@@ -164,27 +165,35 @@ int myersCalcEditDistance(const unsigned char* query, int queryLength,
  */
 static inline int calculateBlock(Word Pv, Word Mv, Word Eq, const int hin,
                                  Word &PvOut, Word &MvOut) {
+    // hin can be 1, -1 or 0.
+    // 1  -> 00...01
+    // 0  -> 00...00
+    // -1 -> 11...10 if 1-complement, 11...11 if 2-complement (It is 2-complement on most machines!)
+
+    Word hinIsNeg = (Word)(hin >> 2) & WORD_1; // 00...001 if hin is -1, 00...000 if 0 or 1
+
     Word Xv = Eq | Mv;
-    if (hin < 0)
-        Eq |= (Word)1;
+    //if (hin < 0) Eq |= (Word)1;
+    Eq |= hinIsNeg;
     Word Xh = (((Eq & Pv) + Pv) ^ Pv) | Eq;
 
     Word Ph = Mv | ~(Xh | Pv);
     Word Mh = Pv & Xh;
 
     int hout = 0;
-    if (Ph & HIGH_BIT_MASK)
-        hout = 1;
-    else if (Mh & HIGH_BIT_MASK)
-        hout = -1;
+    //if (Ph & HIGH_BIT_MASK) hout = 1;
+    hout = (Ph & HIGH_BIT_MASK) >> (WORD_SIZE - 1);
+    //if (Mh & HIGH_BIT_MASK) hout = -1;
+    hout -= (Mh & HIGH_BIT_MASK) >> (WORD_SIZE - 1);
 
     Ph <<= 1;
     Mh <<= 1;
 
-    if (hin < 0)
-        Mh |= (Word)1;
-    else if (hin > 0)
-        Ph |= (Word)1;
+    //if (hin < 0) Mh |= (Word)1;
+    Mh |= hinIsNeg;
+    //if (hin > 0) Ph |= (Word)1;
+    Ph |= (Word)((hin + 1) >> 1);
+
     PvOut = Mh | ~(Xv | Ph);
     MvOut = Ph & Xv;
 
