@@ -1,7 +1,6 @@
 #include "myers.h"
 
 #include <stdint.h>
-#include <cstdio>   // TODO: remove this
 #include <cstdlib>
 #include <algorithm>
 
@@ -98,12 +97,14 @@ int myersCalcEditDistance(const unsigned char* query, int queryLength,
 
     
     /*------------------ MAIN CALCULATION -------------------*/
+    // TODO: Store alignment data only after k is determined? That could make things faster
     *bestScore = -1;
     *position = -1;
     AlignmentData* alignData = NULL;
     if (k < 0) { // If valid k is not given, auto-adjust k until solution is found.
         k = WORD_SIZE; // Gives better results then smaller k
         while (*bestScore == -1) {
+            if (alignData) delete alignData;
             if (mode == MYERS_MODE_HW || mode == MYERS_MODE_SHW)
                 myersCalcEditDistanceSemiGlobal(P, M, score, Peq, W, maxNumBlocks,
                                                 query, queryLength, target, targetLength,
@@ -117,6 +118,7 @@ int myersCalcEditDistance(const unsigned char* query, int queryLength,
             k *= 2;
         }
     } else {
+        if (alignData) delete alignData;
         if (mode == MYERS_MODE_HW || mode == MYERS_MODE_SHW)
             myersCalcEditDistanceSemiGlobal(P, M, score, Peq, W, maxNumBlocks,
                                             query, queryLength, target, targetLength,
@@ -379,8 +381,9 @@ static int myersCalcEditDistanceNW(Word* P, Word* M, int* score, Word** Peq, int
         //---------- Adjust number of blocks according to Ukkonen ----------//        
         //--- Adjust first block ---//
         // While outside of band, advance block
-        while (score[firstBlock] >= k + WORD_SIZE
-               || (firstBlock + 1) * WORD_SIZE - 1 < score[firstBlock] - k - targetLength + queryLength + c) {
+        while (firstBlock < maxNumBlocks &&
+               (score[firstBlock] >= k + WORD_SIZE
+                || (firstBlock + 1) * WORD_SIZE - 1 < score[firstBlock] - k - targetLength + queryLength + c)) {
             firstBlock++;
         }
         //--------------------------//

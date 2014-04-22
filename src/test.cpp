@@ -37,7 +37,7 @@ int main() {
     printf("Testing NW...\n");
     runRandomTests(1000, MYERS_MODE_NW, false);
     printf("\n");
-      
+    
     printf("Testing SHW with alignment...\n");
     runRandomTests(1000, MYERS_MODE_SHW, true);
     printf("\n");
@@ -124,7 +124,7 @@ void fillRandomly(unsigned char* seq, int seqLength, int alphabetLength) {
 void runRandomTests(int numTests, int mode, bool findAlignment) {
     int alphabetLength = 10;
     int numTestsFailed = 0;
-    clock_t start, finish;
+    clock_t start;
     double timeMyers = 0;
     double timeSimple = 0;
     

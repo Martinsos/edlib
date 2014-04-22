@@ -15,6 +15,11 @@ using namespace std;
 int readFastaSequences(const char* path, vector< vector<unsigned char> >* seqs,
                        unsigned char* letterIdx, char* idxToLetter, bool* inAlphabet, int &alphabetLength);
 
+void printAlignment(const unsigned char* query, const int queryLength,
+                    const unsigned char* target, const int targetLength,
+                    const unsigned char* alignment, const int alignmentLength,
+                    const int modeCode, const char* idxToLetter);
+
 // For debugging
 void printSeq(const vector<unsigned char> &seq) {
     for (int i = 0; i < seq.size(); i++)
@@ -89,6 +94,7 @@ int main(int argc, char * const argv[]) {
                                     inAlphabet, alphabetLength);
     if (readResult) {
         printf("Error: There is no file with name %s\n", queriesFilepath);
+        delete querySequences;
         return 1;
     }
     int numQueries = querySequences->size();
@@ -101,6 +107,8 @@ int main(int argc, char * const argv[]) {
                                     inAlphabet, alphabetLength);
     if (readResult) {
         printf("Error: There is no file with name %s\n", targetFilepath);
+        delete querySequences;
+        delete targetSequences;
         return 1;
     }
     unsigned char* target = (*targetSequences)[0].data();
@@ -123,7 +131,7 @@ int main(int argc, char * const argv[]) {
     unsigned char* alignment = NULL; int alignmentLength;
     clock_t start = clock();
 
-    if (silent) {
+    if (!findAlignment) {
         printf("0/%d", numQueries);
         fflush(stdout);
     }
@@ -148,46 +156,15 @@ int main(int argc, char * const argv[]) {
             }
         }
         
-        if (silent) {
+        if (!findAlignment) {
             printf("\r%d/%d", i+1, numQueries);
             fflush(stdout);
         } else {
             // Print alignment if it was found
             if (alignment) {
                 printf("\n");
-                printf("%d: query length = %d, target length = %d\n", i, queryLength, targetLength);
-                int tIdx = 0;
-                int qIdx = 0;
-                int targetLettersToSkip = 0;
-                if (modeCode == MYERS_MODE_HW) {
-                    for (int j = 0; j < alignmentLength && alignment[j] == 2; j++) {
-                        targetLettersToSkip++;
-                        tIdx++;
-                    }
-                }
-                for (int start = targetLettersToSkip; start < alignmentLength; start += 50) {
-                    // target
-                    printf("T: ");
-                    int startTIdx = tIdx;
-                    for (int j = start; j < start + 50 && j < alignmentLength; j++) {
-                        if (alignment[j] == 1)
-                            printf("_");
-                        else
-                            printf("%c", idxToLetter[target[tIdx++]]);
-                    }
-                    printf(" (%d - %d)\n", startTIdx, tIdx - 1);
-                    // query
-                    printf("Q: ");
-                    int startQIdx = qIdx;
-                    for (int j = start; j < start + 50 && j < alignmentLength; j++) {
-                        if (alignment[j] == 2)
-                            printf("_");
-                        else
-                            printf("%c", idxToLetter[query[qIdx++]]);
-                    }
-                    printf(" (%d - %d)\n", startQIdx, qIdx - 1);
-                    printf("\n");
-                }
+                printAlignment(query, queryLength, target, targetLength,
+                               alignment, alignmentLength, modeCode, idxToLetter);
             }
         }
 
@@ -284,4 +261,44 @@ int readFastaSequences(const char* path, vector< vector<unsigned char> >* seqs,
 
     fclose(file);
     return 0;
+}
+
+
+void printAlignment(const unsigned char* query, const int queryLength,
+                    const unsigned char* target, const int targetLength,
+                    const unsigned char* alignment, const int alignmentLength,
+                    const int modeCode, const char* idxToLetter) {
+    printf("query length = %d, target length = %d\n", queryLength, targetLength);
+    int tIdx = 0;
+    int qIdx = 0;
+    int targetLettersToSkip = 0;
+    if (modeCode == MYERS_MODE_HW) {
+        for (int j = 0; j < alignmentLength && alignment[j] == 2; j++) {
+            targetLettersToSkip++;
+            tIdx++;
+        }
+    }
+    for (int start = targetLettersToSkip; start < alignmentLength; start += 50) {
+        // target
+        printf("T: ");
+        int startTIdx = tIdx;
+        for (int j = start; j < start + 50 && j < alignmentLength; j++) {
+            if (alignment[j] == 1)
+                printf("_");
+            else
+                printf("%c", idxToLetter[target[tIdx++]]);
+        }
+        printf(" (%d - %d)\n", startTIdx, tIdx - 1);
+        // query
+        printf("Q: ");
+        int startQIdx = qIdx;
+        for (int j = start; j < start + 50 && j < alignmentLength; j++) {
+            if (alignment[j] == 2)
+                printf("_");
+            else
+                printf("%c", idxToLetter[query[qIdx++]]);
+        }
+        printf(" (%d - %d)\n", startQIdx, qIdx - 1);
+        printf("\n");
+    }
 }
