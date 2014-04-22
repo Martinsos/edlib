@@ -13,7 +13,7 @@ I called them with following commands:
   SSW: `./ssw_test e_coli_536.fasta e_coli_DH1_illumina_10x1000.fasta`
 
 Time:  
-Myers(HW): 17.10s  
+Myers(HW): 12.00s  
 SSW: 20.00s  
 
 ## Protein comparison test
@@ -34,5 +34,5 @@ Myers: `./aligner -a NW randProt100000_1.fasta randProt100000_2.fasta`
 SSW: `./ssw_test -p randProt100000_1.fasta randProt100000_2.fasta`
 
 Time:  
-Myers(NW): 2.00s  
+Myers(NW): 1.56s
 SSW: 7.00s
