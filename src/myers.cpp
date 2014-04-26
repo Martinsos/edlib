@@ -2,6 +2,7 @@
 
 #include <stdint.h>
 #include <cstdlib>
+#include <cstring>
 #include <algorithm>
 
 using namespace std;
@@ -37,13 +38,15 @@ struct AlignmentData {
 };
 
 
-static int myersCalcEditDistanceSemiGlobal(Word* P, Word* M, int* score, Word* Peq, int W, int maxNumBlocks,
+static int myersCalcEditDistanceSemiGlobal(Word* P, Word* M, int* score, Word* Peq, bool* PeqCalculated,
+                                           int W, int maxNumBlocks,
                                            const unsigned char* query, int queryLength,
                                            const unsigned char* target, int targetLength,
                                            int alphabetLength, int k, int mode, int* bestScore, int* position,
                                            bool findAlignment, AlignmentData** alignData);
 
-static int myersCalcEditDistanceNW(Word* P, Word* M, int* score, Word* Peq, int W, int maxNumBlocks,
+static int myersCalcEditDistanceNW(Word* P, Word* M, int* score, Word* Peq, bool* PeqCalculated,
+                                   int W, int maxNumBlocks,
                                    const unsigned char* query, int queryLength,
                                    const unsigned char* target, int targetLength,
                                    int alphabetLength, int k, int* bestScore, int* position,
@@ -72,26 +75,12 @@ int myersCalcEditDistance(const unsigned char* query, int queryLength,
     Word* P = new Word[maxNumBlocks]; // Contains Pvin for each block (column is divided into blocks)
     Word* M = new Word[maxNumBlocks]; // Contains Mvin for each block
     int* score = new int[maxNumBlocks]; // Contains score for each block
-    Word* Peq = new Word[(alphabetLength + 1) * maxNumBlocks]; // [alphabetLength+1][maxNumBlocks]. Last symbol is wildcard.
+    int PeqSize = (alphabetLength + 1) * maxNumBlocks;
+    Word* Peq = new Word[PeqSize]; // [alphabetLength+1][maxNumBlocks]. Last symbol is wildcard.
+    bool* PeqCalculated = new bool[PeqSize];
+    memset(PeqCalculated, 0, PeqSize * sizeof(bool));
     
     int W = maxNumBlocks * WORD_SIZE - queryLength; // number of redundant cells in last level blocks
-
-    // Build Peq (1 is match, 0 is mismatch). NOTE: last column is wildcard(symbol that matches anything) with just 1s
-    for (int symbol = 0; symbol <= alphabetLength; symbol++) {
-        for (int b = 0; b < maxNumBlocks; b++) {
-            if (symbol < alphabetLength) {
-                Peq[symbol * maxNumBlocks + b] = 0;
-                for (int r = (b+1) * WORD_SIZE - 1; r >= b * WORD_SIZE; r--) {
-                    Peq[symbol * maxNumBlocks + b] <<= 1;
-                    // NOTE: We pretend like query is padded at the end with W wildcard symbols
-                    if (r >= queryLength || query[r] == symbol)
-                        Peq[symbol * maxNumBlocks + b] += 1;
-                }
-            } else { // Last symbol is wildcard, so it is all 1s
-                Peq[symbol * maxNumBlocks + b] = (Word)-1;
-            }
-        }
-    }
     /*-------------------------------------------------------*/
 
     
@@ -105,12 +94,12 @@ int myersCalcEditDistance(const unsigned char* query, int queryLength,
         while (*bestScore == -1) {
             if (alignData) delete alignData;
             if (mode == MYERS_MODE_HW || mode == MYERS_MODE_SHW)
-                myersCalcEditDistanceSemiGlobal(P, M, score, Peq, W, maxNumBlocks,
+                myersCalcEditDistanceSemiGlobal(P, M, score, Peq, PeqCalculated, W, maxNumBlocks,
                                                 query, queryLength, target, targetLength,
                                                 alphabetLength, k, mode, bestScore, position, 
                                                 findAlignment, &alignData);
             else  // mode == MYERS_MODE_NW
-                myersCalcEditDistanceNW(P, M, score, Peq, W, maxNumBlocks,
+                myersCalcEditDistanceNW(P, M, score, Peq, PeqCalculated, W, maxNumBlocks,
                                         query, queryLength, target, targetLength,
                                         alphabetLength, k, bestScore, position,
                                         findAlignment, &alignData);
@@ -119,12 +108,12 @@ int myersCalcEditDistance(const unsigned char* query, int queryLength,
     } else {
         if (alignData) delete alignData;
         if (mode == MYERS_MODE_HW || mode == MYERS_MODE_SHW)
-            myersCalcEditDistanceSemiGlobal(P, M, score, Peq, W, maxNumBlocks,
+            myersCalcEditDistanceSemiGlobal(P, M, score, Peq, PeqCalculated, W, maxNumBlocks,
                                             query, queryLength, target, targetLength,
                                             alphabetLength, k, mode, bestScore, position, 
                                             findAlignment, &alignData);
         else  // mode == MYERS_MODE_NW
-            myersCalcEditDistanceNW(P, M, score, Peq, W, maxNumBlocks,
+            myersCalcEditDistanceNW(P, M, score, Peq, PeqCalculated, W, maxNumBlocks,
                                     query, queryLength, target, targetLength,
                                     alphabetLength, k, bestScore, position,
                                     findAlignment, &alignData);
@@ -142,6 +131,7 @@ int myersCalcEditDistance(const unsigned char* query, int queryLength,
     delete[] M;
     delete[] score;
     delete[] Peq;
+    delete[] PeqCalculated;
     //-------------------//
 
     return MYERS_STATUS_OK;
@@ -167,7 +157,7 @@ static inline int calculateBlock(Word Pv, Word Mv, Word Eq, const int hin,
     // hin can be 1, -1 or 0.
     // 1  -> 00...01
     // 0  -> 00...00
-    // -1 -> 11...10 if 1-complement, 11...11 if 2-complement (It is 2-complement on most machines!)
+    // -1 -> 11...11
 
     Word hinIsNeg = (Word)(hin >> 2) & WORD_1; // 00...001 if hin is -1, 00...000 if 0 or 1
 
@@ -215,13 +205,37 @@ static inline int max(int x, int y) {
     return x > y ? x : y;
 }
 
+static inline Word getBlockPeq(Word* Peq,  bool* PeqCalculated, int b, int c, int PeqColStartIdx,
+                               const unsigned char* target, const unsigned char* query,
+                               int queryLength, int alphabetLength) {
+    Word* Peq_c = Peq + PeqColStartIdx;
+    // Calculate Peq_c[b] if not calculated already.
+    if (!PeqCalculated[PeqColStartIdx + b]) {
+        // (1 is match, 0 is mismatch).
+        // NOTE: last column is wildcard(symbol that matches anything) with just 1s
+        if (target[c] < alphabetLength) {
+            Peq_c[b] = 0;
+            for (int r = (b+1) * WORD_SIZE - 1; r >= b * WORD_SIZE; r--) {
+                Peq_c[b] <<= 1;
+                // NOTE: We pretend like query is padded at the end with W wildcard symbols
+                if (r >= queryLength || query[r] == target[c])
+                    Peq_c[b] |= 1;
+            }
+        } else { // Last symbol is wildcard, so it is all 1s
+            Peq_c[b] = (Word)-1;
+        }
+        PeqCalculated[PeqColStartIdx + b] = true;
+    }
+    return Peq_c[b];
+}
 
 
 
 /**
  * @param [in] mode  MYERS_MODE_HW or MYERS_MODE_SHW
  */
-static int myersCalcEditDistanceSemiGlobal(Word* P, Word* M, int* score, Word* Peq, int W, int maxNumBlocks,
+static int myersCalcEditDistanceSemiGlobal(Word* P, Word* M, int* score, Word* Peq,  bool* PeqCalculated,
+                                           int W, int maxNumBlocks,
                                            const unsigned char* query, int queryLength,
                                            const unsigned char* target, int targetLength,
                                            int alphabetLength, int k, int mode, int* bestScore_, int* position_,
@@ -247,13 +261,17 @@ static int myersCalcEditDistanceSemiGlobal(Word* P, Word* M, int* score, Word* P
     int bestScore = -1;
     int position = -1;
     for (int c = 0; c < targetLength + W; c++) { // for each column
-        // We pretend like target is padded at end with W wildcard symbols 
-        Word* Peq_c = c < targetLength ? Peq + target[c] * maxNumBlocks : Peq + alphabetLength * maxNumBlocks;
+        // Index of cell in Peq that is start(first cell) of column c
+        // Notice: we pretend like target is padded at end with W wildcard symbols
+        int PeqColStartIdx = c < targetLength ? target[c] * maxNumBlocks : alphabetLength * maxNumBlocks;
 
         //----------------------- Calculate column -------------------------//
         int hout = mode == MYERS_MODE_HW ? 0 : 1; // If 0 then gap before query is not penalized
         for (int b = firstBlock; b <= lastBlock; b++) {
-            hout = calculateBlock(P[b], M[b], Peq_c[b], hout, P[b], M[b]);
+            Word currPeq = getBlockPeq(Peq, PeqCalculated, b, c, PeqColStartIdx,
+                                      target, query, queryLength, alphabetLength);
+            // Main calculation
+            hout = calculateBlock(P[b], M[b], currPeq, hout, P[b], M[b]);
             score[b] += hout;
         }
         //------------------------------------------------------------------//
@@ -264,18 +282,22 @@ static int myersCalcEditDistanceSemiGlobal(Word* P, Word* M, int* score, Word* P
                 firstBlock++;
             }
         
-        if ((score[lastBlock] - hout <= k) && (lastBlock < maxNumBlocks - 1)
-            && ((Peq_c[lastBlock + 1] & (Word)1) || hout < 0)) {
-            // If score of left block is not too big, calculate one more block
-            lastBlock++;
-            int b = lastBlock; // index of last block (one we just added)
-            P[b] = (Word)-1; // All 1s
-            M[b] = (Word)0;
-            score[b] = score[b-1] - hout + WORD_SIZE + calculateBlock(P[b], M[b], Peq_c[b], hout, P[b], M[b]);
-        } else {
-            while (lastBlock >= 0 && score[lastBlock] >= k + WORD_SIZE)
-                lastBlock--;
+        if ((score[lastBlock] - hout <= k) && (lastBlock < maxNumBlocks - 1)) {
+            Word nextPeq = getBlockPeq(Peq, PeqCalculated, lastBlock + 1, c, PeqColStartIdx,
+                                         target, query, queryLength, alphabetLength);
+            if ((nextPeq & (Word)1) || hout < 0) {
+                // If score of left block is not too big, calculate one more block
+                lastBlock++;
+                int b = lastBlock; // index of last block (one we just added)
+                P[b] = (Word)-1; // All 1s
+                M[b] = (Word)0;
+                score[b] = score[b-1] - hout + WORD_SIZE
+                    + calculateBlock(P[b], M[b], nextPeq, hout, P[b], M[b]);
+            }
         }
+        
+        while (lastBlock >= 0 && score[lastBlock] >= k + WORD_SIZE)
+            lastBlock--;
 
         // If band stops to exist finish
         if (lastBlock < firstBlock) {
@@ -325,7 +347,8 @@ static int myersCalcEditDistanceSemiGlobal(Word* P, Word* M, int* score, Word* P
  *                   I it is allocated with new, so free it with delete.
  *                   Data is generated only if findAlignment is true.
  */
-static int myersCalcEditDistanceNW(Word* P, Word* M, int* score, Word* Peq, int W, int maxNumBlocks,
+static int myersCalcEditDistanceNW(Word* P, Word* M, int* score, Word* Peq, bool* PeqCalculated,
+                                   int W, int maxNumBlocks,
                                    const unsigned char* query, int queryLength,
                                    const unsigned char* target, int targetLength,
                                    int alphabetLength, int k, int* bestScore_, int* position_,
@@ -361,12 +384,16 @@ static int myersCalcEditDistanceNW(Word* P, Word* M, int* score, Word* Peq, int 
         *alignData = NULL;
 
     for (int c = 0; c < targetLength; c++) { // for each column
-        Word* Peq_c = c < targetLength - W ? Peq + target[c] * maxNumBlocks : Peq + alphabetLength * maxNumBlocks;
+        // Fetch Peq column. Notice: we pretend like target is padded at end with W wildcard symbols
+        int PeqColStartIdx = c < targetLength - W ? target[c] * maxNumBlocks : alphabetLength * maxNumBlocks;
 
         //----------------------- Calculate column -------------------------//
         int hout = 1;
         for (int b = firstBlock; b <= lastBlock; b++) {
-            hout = calculateBlock(P[b], M[b], Peq_c[b], hout, P[b], M[b]);
+            Word currPeq = getBlockPeq(Peq, PeqCalculated, b, c, PeqColStartIdx,
+                                       target, query, queryLength - W, alphabetLength);
+            // Main calculation
+            hout = calculateBlock(P[b], M[b], currPeq, hout, P[b], M[b]);
             score[b] += hout;
         }
         //------------------------------------------------------------------//
@@ -397,7 +424,9 @@ static int myersCalcEditDistanceNW(Word* P, Word* M, int* score, Word* Peq, int 
             int b = lastBlock; // index of last block (one we just added)
             P[b] = (Word)-1; // All 1s
             M[b] = (Word)0;
-            int newHout = calculateBlock(P[b], M[b], Peq_c[b], hout, P[b], M[b]);
+            Word currPeq = getBlockPeq(Peq, PeqCalculated, b, c, PeqColStartIdx,
+                                       target, query, queryLength - W, alphabetLength);
+            int newHout = calculateBlock(P[b], M[b], currPeq, hout, P[b], M[b]);
             score[b] = score[b-1] - hout + WORD_SIZE + newHout;
             hout = newHout;
         }
