@@ -100,23 +100,13 @@ int myersCalcEditDistance(const unsigned char* query, int queryLength,
     *bestScore = -1;
     *position = -1;
     AlignmentData* alignData = NULL;
+    bool dynamicK = false;
     if (k < 0) { // If valid k is not given, auto-adjust k until solution is found.
+        dynamicK = true;
         k = WORD_SIZE; // Gives better results then smaller k
-        while (*bestScore == -1) {
-            if (alignData) delete alignData;
-            if (mode == MYERS_MODE_HW || mode == MYERS_MODE_SHW)
-                myersCalcEditDistanceSemiGlobal(P, M, score, Peq, W, maxNumBlocks,
-                                                query, queryLength, target, targetLength,
-                                                alphabetLength, k, mode, bestScore, position, 
-                                                findAlignment, &alignData);
-            else  // mode == MYERS_MODE_NW
-                myersCalcEditDistanceNW(P, M, score, Peq, W, maxNumBlocks,
-                                        query, queryLength, target, targetLength,
-                                        alphabetLength, k, bestScore, position,
-                                        findAlignment, &alignData);
-            k *= 2;
-        }
-    } else {
+    }
+
+    do {
         if (alignData) delete alignData;
         if (mode == MYERS_MODE_HW || mode == MYERS_MODE_SHW)
             myersCalcEditDistanceSemiGlobal(P, M, score, Peq, W, maxNumBlocks,
@@ -128,13 +118,16 @@ int myersCalcEditDistance(const unsigned char* query, int queryLength,
                                     query, queryLength, target, targetLength,
                                     alphabetLength, k, bestScore, position,
                                     findAlignment, &alignData);
-    }
+        k *= 2;
+    } while(dynamicK && *bestScore == -1);
+
     // Find alignment using alignment data that was produced during main calculation.
     if (*bestScore >= 0 && findAlignment) {
         obtainAlignment(maxNumBlocks, queryLength, targetLength, W, *bestScore, 
                         *position, alignData, alignment, alignmentLength);
     }
     /*-------------------------------------------------------*/
+
     
     //--- Free memory ---//
     if (alignData) delete alignData;

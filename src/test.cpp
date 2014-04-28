@@ -23,27 +23,27 @@ int main() {
     srand(1);
     
     printf("Testing HW with alignment...\n");
-    runRandomTests(1000, MYERS_MODE_HW, true);
+    runRandomTests(100, MYERS_MODE_HW, true);
     printf("\n");
 
     printf("Testing HW...\n");
-    runRandomTests(1000, MYERS_MODE_HW, false);
+    runRandomTests(100, MYERS_MODE_HW, false);
     printf("\n");
     
     printf("Testing NW with alignment...\n");
-    runRandomTests(1000, MYERS_MODE_NW, true);
+    runRandomTests(100, MYERS_MODE_NW, true);
     printf("\n");
 
     printf("Testing NW...\n");
-    runRandomTests(1000, MYERS_MODE_NW, false);
+    runRandomTests(100, MYERS_MODE_NW, false);
     printf("\n");
     
     printf("Testing SHW with alignment...\n");
-    runRandomTests(1000, MYERS_MODE_SHW, true);
+    runRandomTests(100, MYERS_MODE_SHW, true);
     printf("\n");
     
     printf("Testing SHW...\n");
-    runRandomTests(1000, MYERS_MODE_SHW, false);
+    runRandomTests(100, MYERS_MODE_SHW, false);
     printf("\n");
     
     printf("Specific tests:\n");
