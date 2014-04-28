@@ -51,9 +51,8 @@ extern "C" {
      *                         1 stands for insertion to target.
      *                         2 stands for insertion to query.
      *                         Alignment aligns query to target from begining of query till end of query.
-     *                         If gap after query is penalized (NW) then it counts as part of query, otherwise not.
-     *                         In other words, alignment ends at @param position in target.
-     *                         If position is not end of target, then insertions to query are implicit.
+     *                         Alignment ends at @param position in target.
+     *                         If gaps are not penalized, they are not in alignment.
      *                         Important: Do not forget to free memory allocated for alignment!
      *                                    Use free().
      * @param [out] alignmentLength  Length of alignment.

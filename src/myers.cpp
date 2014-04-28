@@ -3,6 +3,7 @@
 #include <stdint.h>
 #include <cstdlib>
 #include <algorithm>
+#include <cstdio>
 
 using namespace std;
 
@@ -40,8 +41,7 @@ struct AlignmentData {
 static int myersCalcEditDistanceSemiGlobal(Word* P, Word* M, int* score, Word* Peq, int W, int maxNumBlocks,
                                            const unsigned char* query, int queryLength,
                                            const unsigned char* target, int targetLength,
-                                           int alphabetLength, int k, int mode, int* bestScore, int* position,
-                                           bool findAlignment, AlignmentData** alignData);
+                                           int alphabetLength, int k, int mode, int* bestScore, int* position);
 
 static int myersCalcEditDistanceNW(Word* P, Word* M, int* score, Word* Peq, int W, int maxNumBlocks,
                                    const unsigned char* query, int queryLength,
@@ -54,6 +54,10 @@ static void obtainAlignment(int maxNumBlocks, int queryLength, int targetLength,
                             unsigned char** alignment, int* alignmentLength);
 
 static inline int ceilDiv(int x, int y);
+
+static inline unsigned char* createReverseCopy(const unsigned char* seq, int length);
+
+static inline Word* buildPeq(int alphabetLength, const unsigned char* query, int queryLength);
 
 
 
@@ -68,30 +72,12 @@ int myersCalcEditDistance(const unsigned char* query, int queryLength,
     *alignment = NULL;
     /*--------------------- INITIALIZATION ------------------*/
     int maxNumBlocks = ceilDiv(queryLength, WORD_SIZE); // bmax in Myers
+    int W = maxNumBlocks * WORD_SIZE - queryLength; // number of redundant cells in last level blocks
 
     Word* P = new Word[maxNumBlocks]; // Contains Pvin for each block (column is divided into blocks)
     Word* M = new Word[maxNumBlocks]; // Contains Mvin for each block
     int* score = new int[maxNumBlocks]; // Contains score for each block
-    Word* Peq = new Word[(alphabetLength + 1) * maxNumBlocks]; // [alphabetLength+1][maxNumBlocks]. Last symbol is wildcard.
-    
-    int W = maxNumBlocks * WORD_SIZE - queryLength; // number of redundant cells in last level blocks
-
-    // Build Peq (1 is match, 0 is mismatch). NOTE: last column is wildcard(symbol that matches anything) with just 1s
-    for (int symbol = 0; symbol <= alphabetLength; symbol++) {
-        for (int b = 0; b < maxNumBlocks; b++) {
-            if (symbol < alphabetLength) {
-                Peq[symbol * maxNumBlocks + b] = 0;
-                for (int r = (b+1) * WORD_SIZE - 1; r >= b * WORD_SIZE; r--) {
-                    Peq[symbol * maxNumBlocks + b] <<= 1;
-                    // NOTE: We pretend like query is padded at the end with W wildcard symbols
-                    if (r >= queryLength || query[r] == symbol)
-                        Peq[symbol * maxNumBlocks + b] += 1;
-                }
-            } else { // Last symbol is wildcard, so it is all 1s
-                Peq[symbol * maxNumBlocks + b] = (Word)-1;
-            }
-        }
-    }
+    Word* Peq = buildPeq(alphabetLength, query, queryLength);
     /*-------------------------------------------------------*/
 
     
@@ -111,8 +97,7 @@ int myersCalcEditDistance(const unsigned char* query, int queryLength,
         if (mode == MYERS_MODE_HW || mode == MYERS_MODE_SHW)
             myersCalcEditDistanceSemiGlobal(P, M, score, Peq, W, maxNumBlocks,
                                             query, queryLength, target, targetLength,
-                                            alphabetLength, k, mode, bestScore, position, 
-                                            findAlignment, &alignData);
+                                            alphabetLength, k, mode, bestScore, position);
         else  // mode == MYERS_MODE_NW
             myersCalcEditDistanceNW(P, M, score, Peq, W, maxNumBlocks,
                                     query, queryLength, target, targetLength,
@@ -120,11 +105,40 @@ int myersCalcEditDistance(const unsigned char* query, int queryLength,
                                     findAlignment, &alignData);
         k *= 2;
     } while(dynamicK && *bestScore == -1);
-
-    // Find alignment using alignment data that was produced during main calculation.
-    if (*bestScore >= 0 && findAlignment) {
-        obtainAlignment(maxNumBlocks, queryLength, targetLength, W, *bestScore, 
-                        *position, alignData, alignment, alignmentLength);
+    
+    // Finding alignment -> all comes down to finding alignment for NW
+    if (findAlignment && *bestScore >= 0) {
+        if (mode != MYERS_MODE_NW) {
+            int targetStart;
+            int targetEnd = *position;
+            if (mode == MYERS_MODE_HW) { // If HW, I need to find target start
+                const unsigned char* rTarget = createReverseCopy(target, *position + 1);
+                const unsigned char* rQuery  = createReverseCopy(query, queryLength);
+                Word* rPeq = buildPeq(alphabetLength, rQuery, queryLength); // Peq for reversed query
+                int bestScoreSHW, positionSHW;
+                myersCalcEditDistanceSemiGlobal(P, M, score, rPeq, W, maxNumBlocks,
+                                                rQuery, queryLength, rTarget, *position + 1,
+                                                alphabetLength, *bestScore, MYERS_MODE_SHW,
+                                                &bestScoreSHW, &positionSHW);
+                targetStart = targetEnd - positionSHW;
+                delete[] rTarget;
+                delete[] rQuery;
+                delete[] rPeq;
+            }
+            if (mode == MYERS_MODE_SHW) {
+                targetStart = 0;
+            }
+            int alnBestScore, alnPosition;
+            myersCalcEditDistanceNW(P, M, score, Peq, W, maxNumBlocks,
+                                    query, queryLength, target + targetStart, targetEnd - targetStart + 1,
+                                    alphabetLength, *bestScore, &alnBestScore, &alnPosition,
+                                    true, &alignData);
+            obtainAlignment(maxNumBlocks, queryLength, targetEnd - targetStart + 1, W, alnBestScore, 
+                            alnPosition, alignData, alignment, alignmentLength);
+        } else {
+            obtainAlignment(maxNumBlocks, queryLength, targetLength, W, *bestScore, 
+                            *position, alignData, alignment, alignmentLength);
+        }
     }
     /*-------------------------------------------------------*/
 
@@ -138,6 +152,51 @@ int myersCalcEditDistance(const unsigned char* query, int queryLength,
     //-------------------//
 
     return MYERS_STATUS_OK;
+}
+
+
+/**
+ * Build Peq table for given query and alphabet.
+ * Peq is table of dimensions alphabetLength+1 x maxNumBlocks.
+ * Bit i of Peq[s * maxNumBlocks + b] is 1 if i-th symbol from block b of query equals symbol s, otherwise it is 0.
+ * NOTICE: free returned array with delete[]!
+ */
+static inline Word* buildPeq(int alphabetLength, const unsigned char* query, int queryLength) {
+    int maxNumBlocks = ceilDiv(queryLength, WORD_SIZE);
+    int W = maxNumBlocks * WORD_SIZE - queryLength; // number of redundant cells in last level blocks
+    // table of dimensions alphabetLength+1 x maxNumBlocks. Last symbol is wildcard.
+    Word* Peq = new Word[(alphabetLength + 1) * maxNumBlocks];
+
+    // Build Peq (1 is match, 0 is mismatch). NOTE: last column is wildcard(symbol that matches anything) with just 1s
+    for (int symbol = 0; symbol <= alphabetLength; symbol++) {
+        for (int b = 0; b < maxNumBlocks; b++) {
+            if (symbol < alphabetLength) {
+                Peq[symbol * maxNumBlocks + b] = 0;
+                for (int r = (b+1) * WORD_SIZE - 1; r >= b * WORD_SIZE; r--) {
+                    Peq[symbol * maxNumBlocks + b] <<= 1;
+                    // NOTE: We pretend like query is padded at the end with W wildcard symbols
+                    if (r >= queryLength || query[r] == symbol)
+                        Peq[symbol * maxNumBlocks + b] += 1;
+                }
+            } else { // Last symbol is wildcard, so it is all 1s
+                Peq[symbol * maxNumBlocks + b] = (Word)-1;
+            }
+        }
+    }
+
+    return Peq;
+}
+
+
+/**
+ * Returns new sequence that is reverse of given sequence.
+ */
+static inline unsigned char* createReverseCopy(const unsigned char* seq, int length) {
+    unsigned char* rSeq = new unsigned char[length];
+    for (int i = 0; i < length; i++) {
+        rSeq[i] = seq[length - i - 1];
+    }
+    return rSeq;
 }
 
 
@@ -217,8 +276,7 @@ static inline int max(int x, int y) {
 static int myersCalcEditDistanceSemiGlobal(Word* P, Word* M, int* score, Word* Peq, int W, int maxNumBlocks,
                                            const unsigned char* query, int queryLength,
                                            const unsigned char* target, int targetLength,
-                                           int alphabetLength, int k, int mode, int* bestScore_, int* position_,
-                                           bool findAlignment, AlignmentData** alignData) {
+                                           int alphabetLength, int k, int mode, int* bestScore_, int* position_) {
     // firstBlock is 0-based index of first block in Ukkonen band.
     // lastBlock is 0-based index of last block in Ukkonen band.
     int firstBlock = 0;
@@ -230,12 +288,6 @@ static int myersCalcEditDistanceSemiGlobal(Word* P, Word* M, int* score, Word* P
         P[b] = (Word)-1; // All 1s
         M[b] = (Word)0;
     }
-
-    // If we want to find alignment, we have to store needed data.
-    if (findAlignment)
-        *alignData = new AlignmentData(maxNumBlocks, targetLength);
-    else
-        *alignData = NULL;
 
     int bestScore = -1;
     int position = -1;
@@ -277,18 +329,6 @@ static int myersCalcEditDistanceSemiGlobal(Word* P, Word* M, int* score, Word* P
             return MYERS_STATUS_OK;
         }
         //------------------------------------------------------------------//
-
-        //---- Save column so it can be used for reconstruction ----//
-        if (findAlignment && c < targetLength) {
-            for (int b = firstBlock; b <= lastBlock; b++) {
-                (*alignData)->Ps[maxNumBlocks * c + b] = P[b];
-                (*alignData)->Ms[maxNumBlocks * c + b] = M[b];
-                (*alignData)->scores[maxNumBlocks * c + b] = score[b];
-                (*alignData)->firstBlocks[c] = firstBlock;
-                (*alignData)->lastBlocks[c] = lastBlock;
-            }
-        }
-        //----------------------------------------------------------//
 
         //------------------------- Update best score ----------------------//
         if (c >= W && lastBlock == maxNumBlocks - 1) { // We ignore scores from first W columns, they are not relevant.

@@ -21,9 +21,9 @@ bool checkAlignment(const unsigned char* query, int queryLength,
 
 int main() {
     srand(1);
-    
+    /*
     printf("Testing HW with alignment...\n");
-    runRandomTests(100, MYERS_MODE_HW, true);
+    runRandomTests(10000, MYERS_MODE_HW, true);
     printf("\n");
 
     printf("Testing HW...\n");
@@ -31,7 +31,7 @@ int main() {
     printf("\n");
     
     printf("Testing NW with alignment...\n");
-    runRandomTests(100, MYERS_MODE_NW, true);
+    runRandomTests(10000, MYERS_MODE_NW, true);
     printf("\n");
 
     printf("Testing NW...\n");
@@ -39,13 +39,13 @@ int main() {
     printf("\n");
     
     printf("Testing SHW with alignment...\n");
-    runRandomTests(100, MYERS_MODE_SHW, true);
+    runRandomTests(10000, MYERS_MODE_SHW, true);
     printf("\n");
     
     printf("Testing SHW...\n");
     runRandomTests(100, MYERS_MODE_SHW, false);
     printf("\n");
-    
+    */
     printf("Specific tests:\n");
     if (runTests())
         printf("All specific tests passed!\n");
