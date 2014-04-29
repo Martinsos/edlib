@@ -18,7 +18,7 @@ int readFastaSequences(const char* path, vector< vector<unsigned char> >* seqs,
 void printAlignment(const unsigned char* query, const int queryLength,
                     const unsigned char* target, const int targetLength,
                     const unsigned char* alignment, const int alignmentLength,
-                    const int modeCode, const char* idxToLetter);
+                    const int position, const int modeCode, const char* idxToLetter);
 
 // For debugging
 void printSeq(const vector<unsigned char> &seq) {
@@ -39,10 +39,12 @@ int main(int argc, char * const argv[]) {
     int numBestSeqs = 0;
     bool findAlignment = false;
     int option;
-    while ((option = getopt(argc, argv, "a:n:sc")) >= 0) { // : is not a delimiter but indicator of parameter
+    int kArg = -1;
+    while ((option = getopt(argc, argv, "a:n:k:sc")) >= 0) { // : is not a delimiter but indicator of parameter
         switch (option) {
         case 'a': strcpy(mode, optarg); break;
         case 'n': numBestSeqs = atoi(optarg); break;
+        case 'k': kArg = atoi(optarg); break;
         case 's': silent = true; break;
         case 'c': findAlignment = true; break;
         }
@@ -54,9 +56,11 @@ int main(int argc, char * const argv[]) {
         fprintf(stderr, "\t-s  If specified, there will be no score output (silent mode).\n");
         fprintf(stderr, "\t-a HW|NW|SHW  Alignment mode that will be used. [default: NW]\n");
         fprintf(stderr, "\t-n N  Score will be calculated only for N best sequences (best = with smallest score)."
-                        "If N = 0 then all sequences will be calculated. " 
-                        "Specifying small N can make total calculation much faster. [default: 0]\n");
+                " If N = 0 then all sequences will be calculated." 
+                " Specifying small N can make total calculation much faster. [default: 0]\n");
         fprintf(stderr, "\t-c If specified, alignment will be found and printed.\n");
+        fprintf(stderr, "\t-k K  Sequences with score > K will be discarded."
+                " Smaller k, faster calculation.");
         return 1;
     }
     //-------------------------------------------------------------------------//
@@ -127,7 +131,7 @@ int main(int argc, char * const argv[]) {
     int* scores = new int[numQueries];
     int* pos    = new int[numQueries];
     priority_queue<int> bestScores; // Contains numBestSeqs best scores
-    int k = -1;
+    int k = kArg;
     unsigned char* alignment = NULL; int alignmentLength;
     clock_t start = clock();
 
@@ -152,6 +156,8 @@ int main(int argc, char * const argv[]) {
                 }
                 if (bestScores.size() == numBestSeqs) {
                     k = bestScores.top() - 1;
+                    if (kArg >= 0 && kArg < k)
+                        k = kArg;
                 }
             }
         }
@@ -164,7 +170,8 @@ int main(int argc, char * const argv[]) {
             if (alignment) {
                 printf("\n");
                 printAlignment(query, queryLength, target, targetLength,
-                               alignment, alignmentLength, modeCode, idxToLetter);
+                               alignment, alignmentLength,
+                               pos[i], modeCode, idxToLetter);
             }
         }
 
@@ -267,28 +274,31 @@ int readFastaSequences(const char* path, vector< vector<unsigned char> >* seqs,
 void printAlignment(const unsigned char* query, const int queryLength,
                     const unsigned char* target, const int targetLength,
                     const unsigned char* alignment, const int alignmentLength,
-                    const int modeCode, const char* idxToLetter) {
+                    const int position, const int modeCode, const char* idxToLetter) {
     printf("query length = %d, target length = %d\n", queryLength, targetLength);
-    int tIdx = 0;
-    int qIdx = 0;
-    int targetLettersToSkip = 0;
+    int tIdx = -1;
+    int qIdx = -1;
     if (modeCode == MYERS_MODE_HW) {
-        for (int j = 0; j < alignmentLength && alignment[j] == 2; j++) {
-            targetLettersToSkip++;
-            tIdx++;
+        tIdx = position;
+        for (int i = 0; i < alignmentLength; i++) {
+            if (alignment[i] != 1)
+                tIdx--;
         }
     }
-    for (int start = targetLettersToSkip; start < alignmentLength; start += 50) {
+    printf("%d\n", alignment[0]);
+    for (int start = 0; start < alignmentLength; start += 50) {
         // target
         printf("T: ");
-        int startTIdx = tIdx;
+        int startTIdx;
         for (int j = start; j < start + 50 && j < alignmentLength; j++) {
             if (alignment[j] == 1)
                 printf("_");
             else
-                printf("%c", idxToLetter[target[tIdx++]]);
+                printf("%c", idxToLetter[target[++tIdx]]);
+            if (j == start)
+                startTIdx = tIdx;
         }
-        printf(" (%d - %d)\n", startTIdx, tIdx - 1);
+        printf(" (%d - %d)\n", max(startTIdx, 0), tIdx);
         // query
         printf("Q: ");
         int startQIdx = qIdx;
@@ -296,9 +306,11 @@ void printAlignment(const unsigned char* query, const int queryLength,
             if (alignment[j] == 2)
                 printf("_");
             else
-                printf("%c", idxToLetter[query[qIdx++]]);
+                printf("%c", idxToLetter[query[++qIdx]]);
+            if (j == start)
+                startQIdx = qIdx;
         }
-        printf(" (%d - %d)\n", startQIdx, qIdx - 1);
+        printf(" (%d - %d)\n", max(startQIdx, 0), qIdx);
         printf("\n");
     }
 }
