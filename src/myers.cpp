@@ -408,24 +408,13 @@ static int myersCalcEditDistanceNW(Word* P, Word* M, int* score, Word* Peq, int 
         k = min(k, score[lastBlock] + max(targetLength - c - 1,
                                           queryLength - ((1 + lastBlock) * WORD_SIZE - 1) - 1));
         
-        //---------- Adjust number of blocks according to Ukkonen ----------//        
-        //--- Adjust first block ---//
-        // While outside of band, advance block
-        while (firstBlock < maxNumBlocks &&
-               (score[firstBlock] >= k + WORD_SIZE
-                || (firstBlock + 1) * WORD_SIZE - 1 < score[firstBlock] - k - targetLength + queryLength + c)) {
-            firstBlock++;
-        }
-        //--------------------------//
-
+        //---------- Adjust number of blocks according to Ukkonen ----------//
         //--- Adjust last block ---//
         // If block is not beneath band, calculate next block. Only next because others are certainly beneath band.
         if (lastBlock + 1 < maxNumBlocks
-               && (firstBlock == lastBlock + 1 // If above band
-                   || !(score[lastBlock] >= k + WORD_SIZE
-                        || ((lastBlock + 1) * WORD_SIZE - 1
-                            > k - score[lastBlock] + 2 * WORD_SIZE - 2 - targetLength + c + queryLength)))
-               ) {
+            && !(//score[lastBlock] >= k + WORD_SIZE ||  // NOTICE: this condition could be satisfied if above block also!
+                 ((lastBlock + 1) * WORD_SIZE - 1
+                  > k - score[lastBlock] + 2 * WORD_SIZE - 2 - targetLength + c + queryLength))) {
             lastBlock++;
             int b = lastBlock; // index of last block (one we just added)
             P[b] = (Word)-1; // All 1s
@@ -444,10 +433,19 @@ static int myersCalcEditDistanceNW(Word* P, Word* M, int* score, Word* Peq, int 
             }*/
         
         
-        while (lastBlock >= 0 && score[lastBlock] >= k + WORD_SIZE) { // TODO: put some stronger constraint
+        while (lastBlock >= firstBlock && score[lastBlock] >= k + WORD_SIZE) { // TODO: put some stronger constraint
             lastBlock--;
         }
         //-------------------------//
+
+        //--- Adjust first block ---//
+        // While outside of band, advance block
+        while (firstBlock <= lastBlock &&
+               (score[firstBlock] >= k + WORD_SIZE
+                || (firstBlock + 1) * WORD_SIZE - 1 < score[firstBlock] - k - targetLength + queryLength + c)) {
+            firstBlock++;
+        }
+        //--------------------------//
 
         // If band stops to exist finish
         if (lastBlock < firstBlock) {
