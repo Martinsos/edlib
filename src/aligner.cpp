@@ -10,6 +10,8 @@
 
 #include "myers.h"
 
+#include "SimpleEditDistance.h"
+
 using namespace std;
 
 int readFastaSequences(const char* path, vector< vector<unsigned char> >* seqs,
@@ -40,13 +42,17 @@ int main(int argc, char * const argv[]) {
     bool findAlignment = false;
     int option;
     int kArg = -1;
-    while ((option = getopt(argc, argv, "a:n:k:sc")) >= 0) { // : is not a delimiter but indicator of parameter
+    // If true, simple implementation of edit distance algorithm is used instead of myers.
+    // This is for testing purposes.
+    bool useSimple = false;
+    while ((option = getopt(argc, argv, "a:n:k:sct")) >= 0) { // : is not a delimiter but indicator of parameter
         switch (option) {
         case 'a': strcpy(mode, optarg); break;
         case 'n': numBestSeqs = atoi(optarg); break;
         case 'k': kArg = atoi(optarg); break;
         case 's': silent = true; break;
         case 'c': findAlignment = true; break;
+        case 't': useSimple = true; break;
         }
     }
     if (optind + 2 != argc) {
@@ -61,6 +67,7 @@ int main(int argc, char * const argv[]) {
         fprintf(stderr, "\t-c If specified, alignment will be found and printed.\n");
         fprintf(stderr, "\t-k K  Sequences with score > K will be discarded."
                 " Smaller k, faster calculation.");
+        fprintf(stderr, "\t-t If specified, simple algorithm is used instead of myers. To be used for testing.\n");
         return 1;
     }
     //-------------------------------------------------------------------------//
@@ -143,9 +150,15 @@ int main(int argc, char * const argv[]) {
         unsigned char* query = (*querySequences)[i].data();
         int queryLength = (*querySequences)[i].size();
         // Calculate score
-        myersCalcEditDistance(query, queryLength, target, targetLength,
-                              alphabetLength, k, modeCode, scores + i, pos + i,
-                              findAlignment, &alignment, &alignmentLength);
+        if (useSimple) {
+            // Just for testing
+            calcEditDistanceSimple(query, queryLength, target, targetLength,
+                                   alphabetLength, modeCode, scores + i, pos + i);
+        } else {
+            myersCalcEditDistance(query, queryLength, target, targetLength,
+                                  alphabetLength, k, modeCode, scores + i, pos + i,
+                                  findAlignment, &alignment, &alignmentLength);
+        }
         
         // If we want only numBestSeqs best sequences, update best scores and adjust k to largest score.
         if (numBestSeqs > 0) {
@@ -285,7 +298,6 @@ void printAlignment(const unsigned char* query, const int queryLength,
                 tIdx--;
         }
     }
-    printf("%d\n", alignment[0]);
     for (int start = 0; start < alignmentLength; start += 50) {
         // target
         printf("T: ");
