@@ -72,8 +72,6 @@ int main(int argc, char * const argv[]) {
     }
     //-------------------------------------------------------------------------//
 
-    printf("\n");
-
     int modeCode;
     if (!strcmp(mode, "SHW"))
         modeCode = MYERS_MODE_SHW;
