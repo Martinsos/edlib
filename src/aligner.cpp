@@ -57,9 +57,9 @@ int main(int argc, char * const argv[]) {
     }
     if (optind + 2 != argc) {
         fprintf(stderr, "\n");
-        fprintf(stderr, "Usage: aligner [options...] <queries.fasta> <target.fasta>\n");        
+        fprintf(stderr, "Usage: aligner [options...] <queries.fasta> <target.fasta>\n");
         fprintf(stderr, "Options:\n");
-        fprintf(stderr, "\t-s  If specified, there will be no score output (silent mode).\n");
+        fprintf(stderr, "\t-s  If specified, there will be no score or alignment output (silent mode).\n");
         fprintf(stderr, "\t-a HW|NW|SHW  Alignment mode that will be used. [default: NW]\n");
         fprintf(stderr, "\t-n N  Score will be calculated only for N best sequences (best = with smallest score)."
                 " If N = 0 then all sequences will be calculated." 
@@ -72,6 +72,7 @@ int main(int argc, char * const argv[]) {
     }
     //-------------------------------------------------------------------------//
 
+    printf("\n");
 
     int modeCode;
     if (!strcmp(mode, "SHW"))
@@ -130,7 +131,6 @@ int main(int argc, char * const argv[]) {
         if (inAlphabet[c])
             printf("%c ", c);
     printf("\n");
-    printf("Alphabet length: %d\n", alphabetLength);
 
 
     // ----------------------------- MAIN CALCULATION ----------------------------- //
@@ -142,7 +142,7 @@ int main(int argc, char * const argv[]) {
     unsigned char* alignment = NULL; int alignmentLength;
     clock_t start = clock();
 
-    if (!findAlignment) {
+    if (!findAlignment || silent) {
         printf("0/%d", numQueries);
         fflush(stdout);
     }
@@ -175,7 +175,7 @@ int main(int argc, char * const argv[]) {
             }
         }
         
-        if (!findAlignment) {
+        if (!findAlignment || silent) {
             printf("\r%d/%d", i+1, numQueries);
             fflush(stdout);
         } else {
@@ -213,6 +213,8 @@ int main(int argc, char * const argv[]) {
     double cpuTime = ((double)(finish-start))/CLOCKS_PER_SEC;
     printf("\nCpu time of searching: %lf\n", cpuTime);
     // ---------------------------------------------------------------------------- //
+
+    printf("\n");
 
     // Free allocated space
     delete querySequences;
