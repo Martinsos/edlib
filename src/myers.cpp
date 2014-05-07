@@ -291,12 +291,13 @@ static int myersCalcEditDistanceSemiGlobal(Word* P, Word* M, int* score, Word* P
 
     int bestScore = -1;
     int position = -1;
+    int startHout = mode == MYERS_MODE_HW ? 0 : 1; // If 0 then gap before query is not penalized;
     for (int c = 0; c < targetLength + W; c++) { // for each column
         // We pretend like target is padded at end with W wildcard symbols 
         Word* Peq_c = c < targetLength ? Peq + target[c] * maxNumBlocks : Peq + alphabetLength * maxNumBlocks;
 
         //----------------------- Calculate column -------------------------//
-        int hout = mode == MYERS_MODE_HW ? 0 : 1; // If 0 then gap before query is not penalized
+        int hout = startHout;
         for (int b = firstBlock; b <= lastBlock; b++) {
             hout = calculateBlock(P[b], M[b], Peq_c[b], hout, P[b], M[b]);
             score[b] += hout;
@@ -309,8 +310,8 @@ static int myersCalcEditDistanceSemiGlobal(Word* P, Word* M, int* score, Word* P
                 firstBlock++;
             }
         
-        if ((score[lastBlock] - hout <= k) && (lastBlock < maxNumBlocks - 1)
-            && ((Peq_c[lastBlock + 1] & (Word)1) || hout < 0)) {
+        if ((lastBlock < maxNumBlocks - 1) && (score[lastBlock] - hout <= k)
+            && ((Peq_c[lastBlock + 1] & WORD_1) || hout < 0)) {
             // If score of left block is not too big, calculate one more block
             lastBlock++;
             int b = lastBlock; // index of last block (one we just added)
