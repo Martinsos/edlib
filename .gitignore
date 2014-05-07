@@ -12,6 +12,8 @@
 *.la
 *.a
 
+callgrind.out.*
+
 # Executables
 test
 aligner
