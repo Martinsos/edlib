@@ -292,9 +292,8 @@ static int myersCalcEditDistanceSemiGlobal(Word* P, Word* M, int* score, Word* P
     int bestScore = -1;
     int position = -1;
     int startHout = mode == MYERS_MODE_HW ? 0 : 1; // If 0 then gap before query is not penalized;
-    for (int c = 0; c < targetLength + W; c++) { // for each column
-        // We pretend like target is padded at end with W wildcard symbols 
-        Word* Peq_c = c < targetLength ? Peq + target[c] * maxNumBlocks : Peq + alphabetLength * maxNumBlocks;
+    for (int c = 0; c < targetLength; c++) { // for each column
+        Word* Peq_c = Peq + target[c] * maxNumBlocks;
 
         //----------------------- Calculate column -------------------------//
         int hout = startHout;
@@ -332,7 +331,7 @@ static int myersCalcEditDistanceSemiGlobal(Word* P, Word* M, int* score, Word* P
         //------------------------------------------------------------------//
 
         //------------------------- Update best score ----------------------//
-        if (c >= W && lastBlock == maxNumBlocks - 1) { // We ignore scores from first W columns, they are not relevant.
+        if (lastBlock == maxNumBlocks - 1) {
             int colScore = score[maxNumBlocks-1];
             if (colScore <= k) { // Scores > k dont have correct values (so we cannot use them), but are certainly > k. 
                 // NOTE: Score that I find in column c is actually score from column c-W
@@ -344,6 +343,24 @@ static int myersCalcEditDistanceSemiGlobal(Word* P, Word* M, int* score, Word* P
             }
         }
         //------------------------------------------------------------------//
+    }
+
+    // Obtain results for last W columns from last column.
+    if (lastBlock == maxNumBlocks - 1) {
+        int colScore = score[lastBlock];
+        Word P_ = P[lastBlock];
+        Word M_ = M[lastBlock];
+        for (int i = W - 1; i >= 0; i--) {
+            if (P_ & HIGH_BIT_MASK) colScore--;
+            if (M_ & HIGH_BIT_MASK) colScore++;
+            P_ <<= 1;
+            M_ <<= 1;
+            if (colScore <= k && (bestScore == -1 || colScore < bestScore)) {
+                bestScore = colScore;
+                position = targetLength - 1 - i;
+                k = bestScore - 1;
+            }
+        }
     }
 
     *bestScore_ = bestScore;
