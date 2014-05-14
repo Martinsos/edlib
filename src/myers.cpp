@@ -275,10 +275,10 @@ static inline int max(int x, int y) {
 /**
  * @param [in] mode  MYERS_MODE_HW or MYERS_MODE_SHW
  */
-static int myersCalcEditDistanceSemiGlobal(Block* blocks, Word* Peq, int W, int maxNumBlocks,
-                                           const unsigned char* query, int queryLength,
-                                           const unsigned char* target, int targetLength,
-                                           int alphabetLength, int k, int mode, int* bestScore_, int* position_) {
+static int myersCalcEditDistanceSemiGlobal(Block* const blocks, Word* const Peq, const int W, const int maxNumBlocks,
+                                           const unsigned char* const query,  const int queryLength,
+                                           const unsigned char* const target, const int targetLength,
+                                           const int alphabetLength, int k, const int mode, int* bestScore_, int* position_) {
     // firstBlock is 0-based index of first block in Ukkonen band.
     // lastBlock is 0-based index of last block in Ukkonen band.
     int firstBlock = 0;
@@ -286,43 +286,47 @@ static int myersCalcEditDistanceSemiGlobal(Block* blocks, Word* Peq, int W, int 
     
     // Initialize P, M and score
     for (int b = 0; b <= lastBlock; b++) {
-        blocks[b].score = (b+1) * WORD_SIZE;
-        blocks[b].P = (Word)-1; // All 1s
-        blocks[b].M = (Word)0;
+        Block* bl = blocks + b;
+        bl->score = (b + 1) * WORD_SIZE;
+        bl->P = (Word)-1; // All 1s
+        bl->M = (Word)0;
     }
 
     int bestScore = -1;
     int position = -1;
-    int startHout = mode == MYERS_MODE_HW ? 0 : 1; // If 0 then gap before query is not penalized;
+    const int startHout = mode == MYERS_MODE_HW ? 0 : 1; // If 0 then gap before query is not penalized;
+    Block* bl; // Current block
+    const unsigned char* targetChar = target;
     for (int c = 0; c < targetLength; c++) { // for each column
-        Word* Peq_c = Peq + target[c] * maxNumBlocks;
+        Word* const Peq_c = Peq + (*targetChar) * maxNumBlocks;
 
         //----------------------- Calculate column -------------------------//
         int hout = startHout;
+        bl = blocks + firstBlock - 1;
         for (int b = firstBlock; b <= lastBlock; b++) {
-            hout = calculateBlock(blocks[b].P, blocks[b].M, Peq_c[b], hout, blocks[b].P, blocks[b].M);
-            blocks[b].score += hout;
+            bl++;
+            hout = calculateBlock(bl->P, bl->M, Peq_c[b], hout, bl->P, bl->M);
+            bl->score += hout;
         }
         //------------------------------------------------------------------//
 
         //---------- Adjust number of blocks according to Ukkonen ----------//
         if (mode != MYERS_MODE_HW)
-            if (blocks[firstBlock].score >= k + WORD_SIZE) {
+            if (blocks[firstBlock].score >= k + WORD_SIZE) {   // TODO: Why if, not while?
                 firstBlock++;
             }
         
-        if ((lastBlock < maxNumBlocks - 1) && (blocks[lastBlock].score - hout <= k)
+        if ((lastBlock < maxNumBlocks - 1) && (bl->score - hout <= k) // bl is pointing to last block
             && ((Peq_c[lastBlock + 1] & WORD_1) || hout < 0)) {
             // If score of left block is not too big, calculate one more block
-            lastBlock++;
-            int b = lastBlock; // index of last block (one we just added)
-            Block* bl = blocks + b;
+            lastBlock++; bl++;
             bl->P = (Word)-1; // All 1s
             bl->M = (Word)0;
-            bl->score = blocks[b-1].score - hout + WORD_SIZE + calculateBlock(bl->P, bl->M, Peq_c[b], hout, bl->P, bl->M);
+            bl->score = (bl - 1)->score - hout + WORD_SIZE + calculateBlock(bl->P, bl->M, Peq_c[lastBlock], hout, bl->P, bl->M);
         } else {
-            while (lastBlock >= 0 && blocks[lastBlock].score >= k + WORD_SIZE)
-                lastBlock--;
+            while (lastBlock >= 0 && bl->score >= k + WORD_SIZE) {
+                lastBlock--; bl--;
+            }
         }
 
         // If band stops to exist finish
@@ -335,7 +339,7 @@ static int myersCalcEditDistanceSemiGlobal(Block* blocks, Word* Peq, int W, int 
 
         //------------------------- Update best score ----------------------//
         if (lastBlock == maxNumBlocks - 1) {
-            int colScore = blocks[maxNumBlocks - 1].score;
+            int colScore = bl->score;
             if (colScore <= k) { // Scores > k dont have correct values (so we cannot use them), but are certainly > k. 
                 // NOTE: Score that I find in column c is actually score from column c-W
                 if (bestScore == -1 || colScore < bestScore) {
@@ -346,11 +350,13 @@ static int myersCalcEditDistanceSemiGlobal(Block* blocks, Word* Peq, int W, int 
             }
         }
         //------------------------------------------------------------------//
+
+        targetChar++;
     }
+
 
     // Obtain results for last W columns from last column.
     if (lastBlock == maxNumBlocks - 1) {
-        Block* bl = blocks + lastBlock;
         int colScore = bl->score;
         Word P_ = bl->P;
         Word M_ = bl->M;
