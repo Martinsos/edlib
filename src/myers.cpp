@@ -283,31 +283,34 @@ static int myersCalcEditDistanceSemiGlobal(Block* const blocks, Word* const Peq,
     // lastBlock is 0-based index of last block in Ukkonen band.
     int firstBlock = 0;
     int lastBlock = min(ceilDiv(k + 1, WORD_SIZE), maxNumBlocks) - 1; // y in Myers
+    Block *bl; // Current block
     
     // Initialize P, M and score
+    bl = blocks;
     for (int b = 0; b <= lastBlock; b++) {
-        Block* bl = blocks + b;
         bl->score = (b + 1) * WORD_SIZE;
         bl->P = (Word)-1; // All 1s
         bl->M = (Word)0;
+        bl++;
     }
 
     int bestScore = -1;
     int position = -1;
     const int startHout = mode == MYERS_MODE_HW ? 0 : 1; // If 0 then gap before query is not penalized;
-    Block* bl; // Current block
     const unsigned char* targetChar = target;
     for (int c = 0; c < targetLength; c++) { // for each column
-        Word* const Peq_c = Peq + (*targetChar) * maxNumBlocks;
+        const Word* Peq_c = Peq + (*targetChar) * maxNumBlocks;
 
         //----------------------- Calculate column -------------------------//
         int hout = startHout;
-        bl = blocks + firstBlock - 1;
+        bl = blocks + firstBlock;
+        Peq_c += firstBlock;
         for (int b = firstBlock; b <= lastBlock; b++) {
-            bl++;
-            hout = calculateBlock(bl->P, bl->M, Peq_c[b], hout, bl->P, bl->M);
+            hout = calculateBlock(bl->P, bl->M, *Peq_c, hout, bl->P, bl->M);
             bl->score += hout;
+            bl++; Peq_c++;
         }
+        bl--; Peq_c--;
         //------------------------------------------------------------------//
 
         //---------- Adjust number of blocks according to Ukkonen ----------//
@@ -317,15 +320,15 @@ static int myersCalcEditDistanceSemiGlobal(Block* const blocks, Word* const Peq,
             }
         
         if ((lastBlock < maxNumBlocks - 1) && (bl->score - hout <= k) // bl is pointing to last block
-            && ((Peq_c[lastBlock + 1] & WORD_1) || hout < 0)) {
+            && ((*(Peq_c + 1) & WORD_1) || hout < 0)) { // Peq_c is pointing to last block
             // If score of left block is not too big, calculate one more block
-            lastBlock++; bl++;
+            lastBlock++; bl++; Peq_c++;
             bl->P = (Word)-1; // All 1s
             bl->M = (Word)0;
-            bl->score = (bl - 1)->score - hout + WORD_SIZE + calculateBlock(bl->P, bl->M, Peq_c[lastBlock], hout, bl->P, bl->M);
+            bl->score = (bl - 1)->score - hout + WORD_SIZE + calculateBlock(bl->P, bl->M, *Peq_c, hout, bl->P, bl->M);
         } else {
             while (lastBlock >= 0 && bl->score >= k + WORD_SIZE) {
-                lastBlock--; bl--;
+                lastBlock--; bl--; Peq_c--;
             }
         }
 
