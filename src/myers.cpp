@@ -444,14 +444,15 @@ static int myersCalcEditDistanceNW(Block* blocks, Word* Peq, int W, int maxNumBl
     int firstBlock = 0;
     // This is optimal now, by my formula.
     int lastBlock = min(maxNumBlocks, ceilDiv(min(k, (k + queryLength - targetLength) / 2) + 1, WORD_SIZE)) - 1;
-
+    Block* bl; // Current block
 
     // Initialize P, M and score
+    bl = blocks;
     for (int b = 0; b <= lastBlock; b++) {
-        Block* bl = blocks + b;
         bl->score = (b + 1) * WORD_SIZE;
         bl->P = (Word)-1; // All 1s
         bl->M = (Word)0;
+        bl++;
     }
 
     // If we want to find alignment, we have to store needed data.
@@ -460,21 +461,25 @@ static int myersCalcEditDistanceNW(Block* blocks, Word* Peq, int W, int maxNumBl
     else
         *alignData = NULL;
 
+    const unsigned char* targetChar = target;
     for (int c = 0; c < targetLength; c++) { // for each column
-        Word* Peq_c = Peq + target[c] * maxNumBlocks;
+        Word* Peq_c = Peq + *targetChar * maxNumBlocks;
 
         //----------------------- Calculate column -------------------------//
         int hout = 1;
+        bl = blocks + firstBlock;
         for (int b = firstBlock; b <= lastBlock; b++) {
-            Block* bl = blocks + b;
             hout = calculateBlock(bl->P, bl->M, Peq_c[b], hout, bl->P, bl->M);
             bl->score += hout;
+            bl++;
         }
+        bl--;
         //------------------------------------------------------------------//
+        // bl now points to last block
 
         // Update k. I do it only on end of column because it would slow calculation too much otherwise.
         // NOTICE: I add W when in last block because it is actually result from W cells to the left and W cells up.
-        k = min(k, blocks[lastBlock].score
+        k = min(k, bl->score
                 + max(targetLength - c - 1, queryLength - ((1 + lastBlock) * WORD_SIZE - 1) - 1)
                 + (lastBlock == maxNumBlocks - 1 ? W : 0));
         
@@ -484,23 +489,22 @@ static int myersCalcEditDistanceNW(Block* blocks, Word* Peq, int W, int maxNumBl
         if (lastBlock + 1 < maxNumBlocks
             && !(//score[lastBlock] >= k + WORD_SIZE ||  // NOTICE: this condition could be satisfied if above block also!
                  ((lastBlock + 1) * WORD_SIZE - 1
-                  > k - blocks[lastBlock].score + 2 * WORD_SIZE - 2 - targetLength + c + queryLength))) {
-            lastBlock++;
-            Block* bl = blocks + lastBlock;
+                  > k - bl->score + 2 * WORD_SIZE - 2 - targetLength + c + queryLength))) {
+            lastBlock++; bl++;
             bl->P = (Word)-1; // All 1s
             bl->M = (Word)0;
             int newHout = calculateBlock(bl->P, bl->M, Peq_c[lastBlock], hout, bl->P, bl->M);
-            bl->score = blocks[lastBlock - 1].score - hout + WORD_SIZE + newHout;
+            bl->score = (bl - 1)->score - hout + WORD_SIZE + newHout;
             hout = newHout;
         }
 
         // While block is out of band, move one block up. - This is optimal now, by my formula.
         // NOTICE: I added + W, and now it works! This has to be added because query is padded with W cells.
         while (lastBlock >= 0
-               && (blocks[lastBlock].score >= k + WORD_SIZE
+               && (bl->score >= k + WORD_SIZE
                    || ((lastBlock + 1) * WORD_SIZE - 1 > 
-                       k - blocks[lastBlock].score + 2 * WORD_SIZE - 2 - targetLength + c + queryLength + W))) {
-            lastBlock--;
+                       k - bl->score + 2 * WORD_SIZE - 2 - targetLength + c + queryLength + W))) {
+            lastBlock--; bl--;
         }
         //-------------------------//
 
@@ -523,7 +527,7 @@ static int myersCalcEditDistanceNW(Block* blocks, Word* Peq, int W, int maxNumBl
 
         //---- Save column so it can be used for reconstruction ----//
         if (findAlignment && c < targetLength) {
-            Block* bl = blocks + firstBlock;
+            bl = blocks + firstBlock;
             for (int b = firstBlock; b <= lastBlock; b++) {
                 (*alignData)->Ps[maxNumBlocks * c + b] = bl->P;
                 (*alignData)->Ms[maxNumBlocks * c + b] = bl->M;
@@ -534,11 +538,13 @@ static int myersCalcEditDistanceNW(Block* blocks, Word* Peq, int W, int maxNumBl
             }
         }
         //----------------------------------------------------------//
+
+        targetChar++;
     }
 
     if (lastBlock == maxNumBlocks - 1) { // If last block of last column was calculated
         // Obtain best score from block -> it is complicated because query is padded with W cells
-        Block* bl = blocks + lastBlock;
+        bl = blocks + lastBlock;
         int bestScore = bl->score;
         Word mask = HIGH_BIT_MASK;
         for (int i = 0; i < W; i++) {
