@@ -285,6 +285,10 @@ static int myersCalcEditDistanceSemiGlobal(Block* const blocks, Word* const Peq,
     int lastBlock = min(ceilDiv(k + 1, WORD_SIZE), maxNumBlocks) - 1; // y in Myers
     Block *bl; // Current block
     
+    // Each STRONG_REDUCE_NUM column is reduced in more expensive way.
+    // This gives speed up of about 2 times for small k.
+    const int STRONG_REDUCE_NUM = 2048;
+    
     // Initialize P, M and score
     bl = blocks;
     for (int b = 0; b <= lastBlock; b++) {
@@ -314,11 +318,29 @@ static int myersCalcEditDistanceSemiGlobal(Block* const blocks, Word* const Peq,
         //------------------------------------------------------------------//
 
         //---------- Adjust number of blocks according to Ukkonen ----------//
-        if (mode != MYERS_MODE_HW)
-            if (blocks[firstBlock].score >= k + WORD_SIZE) {   // TODO: Why if, not while?
+        if (mode != MYERS_MODE_HW) {
+            while (firstBlock < maxNumBlocks && blocks[firstBlock].score >= k + WORD_SIZE) {
                 firstBlock++;
             }
-        
+            if (c % STRONG_REDUCE_NUM == 0) { // Do strong reduction every some blocks
+                while (firstBlock < maxNumBlocks) {
+                    // If all cells > k, remove block
+                    int score = blocks[firstBlock].score;
+                    Word P = blocks[firstBlock].P;
+                    Word M = blocks[firstBlock].M;
+                    Word mask = HIGH_BIT_MASK;
+                    for (int i = 0; i < WORD_SIZE - 1; i++) {
+                        if (score <= k) break;
+                        if (P & mask) score--;
+                        if (M & mask) score++;
+                        mask >>= 1;
+                    }
+                    if (score <= k) break;
+                    firstBlock++;
+                }
+            }
+        }
+
         if ((lastBlock < maxNumBlocks - 1) && (bl->score - hout <= k) // bl is pointing to last block
             && ((*(Peq_c + 1) & WORD_1) || hout < 0)) { // Peq_c is pointing to last block
             // If score of left block is not too big, calculate one more block
@@ -328,6 +350,23 @@ static int myersCalcEditDistanceSemiGlobal(Block* const blocks, Word* const Peq,
             bl->score = (bl - 1)->score - hout + WORD_SIZE + calculateBlock(bl->P, bl->M, *Peq_c, hout, bl->P, bl->M);
         } else {
             while (lastBlock >= 0 && bl->score >= k + WORD_SIZE) {
+                lastBlock--; bl--; Peq_c--;
+            }
+        }
+
+        // Every some columns, do some expensive but also more efficient block reducing -> this is important!
+        if (c % STRONG_REDUCE_NUM == 0) {
+            while (lastBlock >= 0) {
+                // If all cells > k, remove block
+                int score = bl->score;
+                Word mask = HIGH_BIT_MASK;
+                for (int i = 0; i < WORD_SIZE - 1; i++) {
+                    if (score <= k) break;
+                    if (bl->P & mask) score--;
+                    if (bl->M & mask) score++;
+                    mask >>= 1;
+                }
+                if (score <= k) break;
                 lastBlock--; bl--; Peq_c--;
             }
         }
@@ -361,13 +400,11 @@ static int myersCalcEditDistanceSemiGlobal(Block* const blocks, Word* const Peq,
     // Obtain results for last W columns from last column.
     if (lastBlock == maxNumBlocks - 1) {
         int colScore = bl->score;
-        Word P_ = bl->P;
-        Word M_ = bl->M;
+        Word mask = HIGH_BIT_MASK;
         for (int i = W - 1; i >= 0; i--) {
-            if (P_ & HIGH_BIT_MASK) colScore--;
-            if (M_ & HIGH_BIT_MASK) colScore++;
-            P_ <<= 1;
-            M_ <<= 1;
+            if (bl->P & mask) colScore--;
+            if (bl->M & mask) colScore++;
+            mask >>= 1;
             if (colScore <= k && (bestScore == -1 || colScore < bestScore)) {
                 bestScore = colScore;
                 position = targetLength - 1 - i;
@@ -503,13 +540,11 @@ static int myersCalcEditDistanceNW(Block* blocks, Word* Peq, int W, int maxNumBl
         // Obtain best score from block -> it is complicated because query is padded with W cells
         Block* bl = blocks + lastBlock;
         int bestScore = bl->score;
-        Word P_ = bl->P;
-        Word M_ = bl->M;
+        Word mask = HIGH_BIT_MASK;
         for (int i = 0; i < W; i++) {
-            if (P_ & HIGH_BIT_MASK) bestScore--;
-            if (M_ & HIGH_BIT_MASK) bestScore++;
-            P_ <<= 1;
-            M_ <<= 1;
+            if (bl->P & mask) bestScore--;
+            if (bl->M & mask) bestScore++;
+            mask >>= 1;
         }
 
         if (bestScore <= k) {
