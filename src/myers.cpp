@@ -432,6 +432,9 @@ static int myersCalcEditDistanceNW(Block* blocks, Word* Peq, int W, int maxNumBl
                                    int alphabetLength, int k, int* bestScore_, int* position_,
                                    bool findAlignment, AlignmentData** alignData) {
 
+    // Each STRONG_REDUCE_NUM column is reduced in more expensive way.
+    const int STRONG_REDUCE_NUM = 2048;
+
     if (k < abs(targetLength - queryLength)) {
         *bestScore_ = *position_ = -1;
         return MYERS_STATUS_OK;
@@ -515,7 +518,45 @@ static int myersCalcEditDistanceNW(Block* blocks, Word* Peq, int W, int maxNumBl
                 || (firstBlock + 1) * WORD_SIZE - 1 < blocks[firstBlock].score - k - targetLength + queryLength + c)) {
             firstBlock++;
         }
-        //--------------------------//
+        //--------------------------/
+
+        /*
+        if (c % STRONG_REDUCE_NUM == 0) { // Every some columns do more expensive but more efficient reduction
+             //-------- NESTO OVDJE NE RADI --------//
+
+             while (lastBlock >= 0) {
+                // If all cells outside of band, remove block
+                int score = bl->score;
+                Word mask = HIGH_BIT_MASK;
+                int r = (lastBlock + 1) * WORD_SIZE - 1;
+                for (int i = 0; i < WORD_SIZE - 1; i++) {
+                    if (score <= k && r <= k - score - targetLength + c + queryLength + W) break;
+                    if (bl->P & mask) score--;
+                    if (bl->M & mask) score++;
+                    mask >>= 1;
+                    r--;
+                }
+                if (score <= k && r <= k - score - targetLength + c + queryLength + W) break;
+                lastBlock--; bl--;
+            }
+
+            while (firstBlock < maxNumBlocks) {
+                // If all cells outside of band, remove block
+                int score = blocks[firstBlock].score;
+                Word mask = HIGH_BIT_MASK;
+                int r = (firstBlock + 1) * WORD_SIZE - 1;
+                for (int i = 0; i < WORD_SIZE - 1; i++) {
+                    if (score <= k && r >= score - k - targetLength + c + queryLength) break;
+                    if (blocks[firstBlock].P & mask) score--;
+                    if (blocks[firstBlock].M & mask) score++;
+                    mask >>= 1;
+                    r--;
+                }
+                if (score <= k && r >= score - k - targetLength + c + queryLength) break;
+                firstBlock++;
+            }
+        }
+        */
 
         // If band stops to exist finish
         if (lastBlock < firstBlock) {
