@@ -2,6 +2,7 @@
 #define SIMPLE_EDIT_DISTANCE_H
 
 #include <cstdio>
+#include "myers.h"
 
 #ifdef __cplusplus 
 extern "C" {
@@ -26,16 +27,18 @@ int calcEditDistanceSimple(const unsigned char* query, int queryLength,
     int pos = -1;
 
     // set first column (column zero)
-    for (int i = 0; i < queryLength; i++)
-        C[i] = i+1;
+    for (int i = 0; i < queryLength; i++) {
+        C[i] = mode == MYERS_MODE_OV ? 0 : i + 1;
+    }
     /*
     for (int i = 0; i < queryLength; i++)
         printf("%3d ", C[i]);
     printf("\n");
     */
     for (int c = 0; c < targetLength; c++) { // for each column
-        newC[0] = min3((mode == MYERS_MODE_HW ? 0 : c + 1) + 1, // up
-                       (mode == MYERS_MODE_HW ? 0 : c) + (target[c] == query[0] ? 0 : 1), // up left
+        newC[0] = min3((mode == MYERS_MODE_HW || mode == MYERS_MODE_OV ? 0 : c + 1) + 1, // up
+                       (mode == MYERS_MODE_HW || mode == MYERS_MODE_OV ? 0 : c) 
+                       + (target[c] == query[0] ? 0 : 1), // up left
                        C[0] + 1); // left
         for (int r = 1; r < queryLength; r++) {
             newC[r] = min3(newC[r-1] + 1, // up
@@ -47,12 +50,21 @@ int calcEditDistanceSimple(const unsigned char* query, int queryLength,
             printf("%3d ", newC[i]);
             printf("\n");*/
 
-        if (mode == MYERS_MODE_HW || mode == MYERS_MODE_SHW
-            || c == targetLength - 1) // For NW check only last column
+        if (mode != MYERS_MODE_NW || c == targetLength - 1) { // For NW check only last column
             if (bestScore == -1 || newC[queryLength-1] < bestScore) {
                 bestScore = newC[queryLength-1];
                 pos = c;
             }
+        }
+        // If mode is OV, check whole last column
+        if (mode == MYERS_MODE_OV && c == targetLength - 1) {
+            for (int r = 0; r < targetLength - 1; r++) {
+                if (bestScore == -1 || newC[r] < bestScore) {
+                    bestScore = newC[r];
+                    pos = c; // TODO: also return end position of query?
+                }
+            }
+        }
         
         int *tmp = C;
         C = newC;

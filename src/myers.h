@@ -10,9 +10,10 @@ extern "C" {
 #define MYERS_STATUS_OK 0
 
 // Alignment modes
-#define MYERS_MODE_HW 0
-#define MYERS_MODE_NW 1
+#define MYERS_MODE_HW  0
+#define MYERS_MODE_NW  1
 #define MYERS_MODE_SHW 2
+#define MYERS_MODE_OV  3
 
     /**
      * Calculates Levenshtein distance of query and target 
@@ -36,6 +37,7 @@ extern "C" {
      *                    MYERS_MODE_NW: global (Needleman-Wunsch)
      *                    MYERS_MODE_HW: semi-global. Gaps before and after query are not penalized.
      *                    MYERS_MODE_SHW: semi-global. Gap after query is not penalized.
+     *                    MYERS_MODE_OV: semi-global. Gaps before and after query and target are not penalized.
      * @param [in] findAlignment  If true and if score != -1, reconstruction of alignment will be performed
      *                            and alignment will be returned. 
      *                            Notice: Finding aligment will increase execution time

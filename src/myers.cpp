@@ -273,7 +273,7 @@ static inline int max(int x, int y) {
 
 
 /**
- * @param [in] mode  MYERS_MODE_HW or MYERS_MODE_SHW
+ * @param [in] mode  MYERS_MODE_HW or MYERS_MODE_SHW or MYERS_MODE_OV
  */
 static int myersCalcEditDistanceSemiGlobal(Block* const blocks, Word* const Peq, const int W, const int maxNumBlocks,
                                            const unsigned char* const query,  const int queryLength,
@@ -433,7 +433,7 @@ static int myersCalcEditDistanceNW(Block* blocks, Word* Peq, int W, int maxNumBl
                                    bool findAlignment, AlignmentData** alignData) {
 
     // Each STRONG_REDUCE_NUM column is reduced in more expensive way.
-    const int STRONG_REDUCE_NUM = 2048;
+    const int STRONG_REDUCE_NUM = 2048; // TODO: Choose this number dinamically (based on query and target lengths?), so it does not affect speed of computation
 
     if (k < abs(targetLength - queryLength)) {
         *bestScore_ = *position_ = -1;
@@ -520,23 +520,21 @@ static int myersCalcEditDistanceNW(Block* blocks, Word* Peq, int W, int maxNumBl
         }
         //--------------------------/
 
-        /*
+        
         if (c % STRONG_REDUCE_NUM == 0) { // Every some columns do more expensive but more efficient reduction
-             //-------- NESTO OVDJE NE RADI --------//
-
-             while (lastBlock >= 0) {
+            while (lastBlock >= 0) {
                 // If all cells outside of band, remove block
                 int score = bl->score;
                 Word mask = HIGH_BIT_MASK;
                 int r = (lastBlock + 1) * WORD_SIZE - 1;
                 for (int i = 0; i < WORD_SIZE - 1; i++) {
-                    if (score <= k && r <= k - score - targetLength + c + queryLength + W) break;
+                    if (score <= k && r <= k - score - targetLength + c + queryLength + W + 1) break; // TODO: Does not work if do not put +1! Why???
                     if (bl->P & mask) score--;
                     if (bl->M & mask) score++;
                     mask >>= 1;
                     r--;
                 }
-                if (score <= k && r <= k - score - targetLength + c + queryLength + W) break;
+                if (score <= k && r <= k - score - targetLength + c + queryLength + W + 1) break; // TODO: Same as above
                 lastBlock--; bl--;
             }
 
@@ -556,7 +554,7 @@ static int myersCalcEditDistanceNW(Block* blocks, Word* Peq, int W, int maxNumBl
                 firstBlock++;
             }
         }
-        */
+        
 
         // If band stops to exist finish
         if (lastBlock < firstBlock) {
