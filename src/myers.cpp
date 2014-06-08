@@ -6,15 +6,30 @@
 #include <cstdio>
 
 extern "C" {
-#include <immintrin.h> // SSE(AVX)
+#include <immintrin.h> // SSE (AVX)
 }
 
 using namespace std;
 
+#undef __SSE4_1__
+
+#ifdef __SSE4_1__
+typedef __m128i  Word;
+static const int WORD_SIZE = 128;
+static const Word WORD_1 = _mm_set_epi32(0, 0, 0, 1);
+static const Word WORD_0 = _mm_setzero_si128();
+static const Word WORD_ALL_1 = _mm_set_epi32(-1, -1, -1, -1);
+static const Word HIGH_BIT_MASK = _mm_set_epi32(1 << 31, 0, 0, 0);
+#define TEST_ANY_BITS_SET(word, mask) (!_mm_test_all_zeros(word, mask))
+#else
 typedef uint64_t Word;
 static const int WORD_SIZE = sizeof(Word) * 8; // Size of Word in bits
-static const Word WORD_1 = (Word)1;
-static const Word HIGH_BIT_MASK = WORD_1 << (WORD_SIZE - 1);  // 100..00
+static const Word WORD_1 = (Word)1; // 00..01
+static const Word WORD_0 = (Word)0; // 00..00
+static const Word WORD_ALL_1 = (Word)-1; // 11..11
+static const Word HIGH_BIT_MASK = WORD_1 << (WORD_SIZE - 1);  // 10..00
+#define TEST_ANY_BITS_SET(word, mask) (word & mask) // Return 0 if not even one bit from mask is set in word, otherwise return some value != 0.
+#endif
 
 
 // Data needed to find alignment.
@@ -177,6 +192,26 @@ static inline Word* buildPeq(int alphabetLength, const unsigned char* query, int
     // Build Peq (1 is match, 0 is mismatch). NOTE: last column is wildcard(symbol that matches anything) with just 1s
     for (int symbol = 0; symbol <= alphabetLength; symbol++) {
         for (int b = 0; b < maxNumBlocks; b++) {
+#ifdef __SSE4_1__
+            // One cell(block) in Peq is represented with consecutive 64bit words (segments).
+            // I have to do it this way because largest word I have is 64bit, while SSE register can be 128, 256, ...
+            // Then I load this array of segments into one single SSE register.
+            uint64_t PeqSegs[WORD_SIZE / 64] __attribute__((aligned(16)));
+            if (symbol < alphabetLength) {
+                for (int seg = 0; seg < WORD_SIZE / 64; seg++) { // build segment by segment
+                    PeqSegs[seg] = 0;
+                    for (int r = b * WORD_SIZE + (seg + 1) * 64 - 1; r >= b * WORD_SIZE + seg * 64; r--) {
+                        PeqSegs[seg] <<= 1;
+                        // NOTE: We pretend like query is padded at the end with W wildcard symbols
+                        if (r >= queryLength || query[r] == symbol)
+                            PeqSegs[seg] += 1;
+                    }
+                }
+                Peq[symbol * maxNumBlocks + b] = _mm_load_si128((Word const*) PeqSegs);
+            } else { // Last symbol is wildcard, so it is all 1s
+                Peq[symbol * maxNumBlocks + b] = WORD_ALL_1;
+            }
+#else
             if (symbol < alphabetLength) {
                 Peq[symbol * maxNumBlocks + b] = 0;
                 for (int r = (b+1) * WORD_SIZE - 1; r >= b * WORD_SIZE; r--) {
@@ -188,6 +223,7 @@ static inline Word* buildPeq(int alphabetLength, const unsigned char* query, int
             } else { // Last symbol is wildcard, so it is all 1s
                 Peq[symbol * maxNumBlocks + b] = (Word)-1;
             }
+#endif
         }
     }
 
@@ -227,7 +263,29 @@ static inline int calculateBlock(Word Pv, Word Mv, Word Eq, const int hin,
     // 1  -> 00...01
     // 0  -> 00...00
     // -1 -> 11...11 (2-complement)
+#ifdef __SSE4_1__
+    Word Xv = Eq | Mv;
+    if (hin < 0) Eq |= WORD_1;
+    Word Xh = (((Eq & Pv) + Pv) ^ Pv) | Eq;
 
+    Word Ph = Mv | ~(Xh | Pv);
+    Word Mh = Pv & Xh;
+
+    int hout = 0;
+    if (TEST_ANY_BITS_SET(Ph, HIGH_BIT_MASK)) hout = 1;
+    if (TEST_ANY_BITS_SET(Mh, HIGH_BIT_MASK)) hout = -1;
+
+    Ph <<= 1;
+    Mh <<= 1;
+
+    if (hin < 0) Mh |= WORD_1;
+    if (hin > 0) Ph |= WORD_1;
+    
+    PvOut = Mh | ~(Xv | Ph);
+    MvOut = Ph & Xv;
+
+    return hout;
+#else
     Word hinIsNeg = (Word)(hin >> 2) & WORD_1; // 00...001 if hin is -1, 00...000 if 0 or 1
 
     Word Xv = Eq | Mv;
@@ -256,6 +314,7 @@ static inline int calculateBlock(Word Pv, Word Mv, Word Eq, const int hin,
     MvOut = Ph & Xv;
 
     return hout;
+#endif
 }
 
 /**
@@ -298,8 +357,8 @@ static int myersCalcEditDistanceSemiGlobal(Block* const blocks, Word* const Peq,
     bl = blocks;
     for (int b = 0; b <= lastBlock; b++) {
         bl->score = (b + 1) * WORD_SIZE;
-        bl->P = (Word)-1; // All 1s
-        bl->M = (Word)0;
+        bl->P = WORD_ALL_1;
+        bl->M = WORD_0;
         bl++;
     }
 
@@ -336,8 +395,13 @@ static int myersCalcEditDistanceSemiGlobal(Block* const blocks, Word* const Peq,
                     Word mask = HIGH_BIT_MASK;
                     for (int i = 0; i < WORD_SIZE - 1; i++) {
                         if (score <= k) break;
+#ifdef __SSE4_1__
+                        if (TEST_ANY_BITS_SET(P, mask)) score--;
+                        if (TEST_ANY_BITS_SET(M, mask)) score++;
+#else
                         if (P & mask) score--;
                         if (M & mask) score++;
+#endif
                         mask >>= 1;
                     }
                     if (score <= k) break;
@@ -347,11 +411,11 @@ static int myersCalcEditDistanceSemiGlobal(Block* const blocks, Word* const Peq,
         }
 
         if ((lastBlock < maxNumBlocks - 1) && (bl->score - hout <= k) // bl is pointing to last block
-            && ((*(Peq_c + 1) & WORD_1) || hout < 0)) { // Peq_c is pointing to last block
+            && (TEST_ANY_BITS_SET(*(Peq_c + 1), WORD_1) || hout < 0)) { // Peq_c is pointing to last block
             // If score of left block is not too big, calculate one more block
             lastBlock++; bl++; Peq_c++;
-            bl->P = (Word)-1; // All 1s
-            bl->M = (Word)0;
+            bl->P = WORD_ALL_1;
+            bl->M = WORD_0;
             bl->score = (bl - 1)->score - hout + WORD_SIZE + calculateBlock(bl->P, bl->M, *Peq_c, hout, bl->P, bl->M);
         } else {
             while (lastBlock >= 0 && bl->score >= k + WORD_SIZE) {
@@ -367,8 +431,8 @@ static int myersCalcEditDistanceSemiGlobal(Block* const blocks, Word* const Peq,
                 Word mask = HIGH_BIT_MASK;
                 for (int i = 0; i < WORD_SIZE - 1; i++) {
                     if (score <= k) break;
-                    if (bl->P & mask) score--;
-                    if (bl->M & mask) score++;
+                    if (TEST_ANY_BITS_SET(bl->P, mask)) score--;
+                    if (TEST_ANY_BITS_SET(bl->M, mask)) score++;
                     mask >>= 1;
                 }
                 if (score <= k) break;
@@ -407,8 +471,8 @@ static int myersCalcEditDistanceSemiGlobal(Block* const blocks, Word* const Peq,
         int colScore = bl->score;
         Word mask = HIGH_BIT_MASK;
         for (int i = W - 1; i >= 0; i--) {
-            if (bl->P & mask) colScore--;
-            if (bl->M & mask) colScore++;
+            if (TEST_ANY_BITS_SET(bl->P, mask)) colScore--;
+            if (TEST_ANY_BITS_SET(bl->M, mask)) colScore++;
             mask >>= 1;
             if (colScore <= k && (bestScore == -1 || colScore < bestScore)) {
                 bestScore = colScore;
@@ -458,8 +522,8 @@ static int myersCalcEditDistanceNW(Block* blocks, Word* Peq, int W, int maxNumBl
     bl = blocks;
     for (int b = 0; b <= lastBlock; b++) {
         bl->score = (b + 1) * WORD_SIZE;
-        bl->P = (Word)-1; // All 1s
-        bl->M = (Word)0;
+        bl->P = WORD_ALL_1;
+        bl->M = WORD_0;
         bl++;
     }
 
@@ -499,8 +563,8 @@ static int myersCalcEditDistanceNW(Block* blocks, Word* Peq, int W, int maxNumBl
                  ((lastBlock + 1) * WORD_SIZE - 1
                   > k - bl->score + 2 * WORD_SIZE - 2 - targetLength + c + queryLength))) {
             lastBlock++; bl++;
-            bl->P = (Word)-1; // All 1s
-            bl->M = (Word)0;
+            bl->P = WORD_ALL_1;
+            bl->M = WORD_0;
             int newHout = calculateBlock(bl->P, bl->M, Peq_c[lastBlock], hout, bl->P, bl->M);
             bl->score = (bl - 1)->score - hout + WORD_SIZE + newHout;
             hout = newHout;
@@ -535,8 +599,8 @@ static int myersCalcEditDistanceNW(Block* blocks, Word* Peq, int W, int maxNumBl
                 int r = (lastBlock + 1) * WORD_SIZE - 1;
                 for (int i = 0; i < WORD_SIZE - 1; i++) {
                     if (score <= k && r <= k - score - targetLength + c + queryLength + W + 1) break; // TODO: Does not work if do not put +1! Why???
-                    if (bl->P & mask) score--;
-                    if (bl->M & mask) score++;
+                    if (TEST_ANY_BITS_SET(bl->P, mask)) score--;
+                    if (TEST_ANY_BITS_SET(bl->M, mask)) score++;
                     mask >>= 1;
                     r--;
                 }
@@ -551,8 +615,8 @@ static int myersCalcEditDistanceNW(Block* blocks, Word* Peq, int W, int maxNumBl
                 int r = (firstBlock + 1) * WORD_SIZE - 1;
                 for (int i = 0; i < WORD_SIZE - 1; i++) {
                     if (score <= k && r >= score - k - targetLength + c + queryLength) break;
-                    if (blocks[firstBlock].P & mask) score--;
-                    if (blocks[firstBlock].M & mask) score++;
+                    if (TEST_ANY_BITS_SET(blocks[firstBlock].P, mask)) score--;
+                    if (TEST_ANY_BITS_SET(blocks[firstBlock].M, mask)) score++;
                     mask >>= 1;
                     r--;
                 }
@@ -593,8 +657,8 @@ static int myersCalcEditDistanceNW(Block* blocks, Word* Peq, int W, int maxNumBl
         int bestScore = bl->score;
         Word mask = HIGH_BIT_MASK;
         for (int i = 0; i < W; i++) {
-            if (bl->P & mask) bestScore--;
-            if (bl->M & mask) bestScore++;
+            if (TEST_ANY_BITS_SET(bl->P, mask)) bestScore--;
+            if (TEST_ANY_BITS_SET(bl->M, mask)) bestScore++;
             mask >>= 1;
         }
 
@@ -659,8 +723,8 @@ static void obtainAlignment(int maxNumBlocks, int queryLength, int targetLength,
         if (lScore == -1 && thereIsLeftBlock) {
             lScore = alignData->scores[(c - 1) * maxNumBlocks + b]; // score of block to the left
             for (int i = 0; i < WORD_SIZE - blockPos - 1; i++) {
-                if (lP & HIGH_BIT_MASK) lScore--;
-                if (lM & HIGH_BIT_MASK) lScore++;
+                if (TEST_ANY_BITS_SET(lP, HIGH_BIT_MASK)) lScore--;
+                if (TEST_ANY_BITS_SET(lM, HIGH_BIT_MASK)) lScore++;
                 lP <<= 1;
                 lM <<= 1;
             }
@@ -668,8 +732,8 @@ static void obtainAlignment(int maxNumBlocks, int queryLength, int targetLength,
         if (ulScore == -1) {
             if (lScore != -1) {
                 ulScore = lScore;
-                if (lP & HIGH_BIT_MASK) ulScore--;
-                if (lM & HIGH_BIT_MASK) ulScore++;
+                if (TEST_ANY_BITS_SET(lP, HIGH_BIT_MASK)) ulScore--;
+                if (TEST_ANY_BITS_SET(lM, HIGH_BIT_MASK)) ulScore++;
             } 
             else if (c > 0 && b-1 >= alignData->firstBlocks[c-1] && b-1 <= alignData->lastBlocks[c-1]) {
                 // This is the case when upper left cell is last cell in block,
@@ -679,8 +743,8 @@ static void obtainAlignment(int maxNumBlocks, int queryLength, int targetLength,
         }
         if (uScore == -1) {
             uScore = currScore;
-            if (currP & HIGH_BIT_MASK) uScore--;
-            if (currM & HIGH_BIT_MASK) uScore++;
+            if (TEST_ANY_BITS_SET(currP, HIGH_BIT_MASK)) uScore--;
+            if (TEST_ANY_BITS_SET(currM, HIGH_BIT_MASK)) uScore++;
             currP <<= 1;
             currM <<= 1;
         }
