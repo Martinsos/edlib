@@ -1,5 +1,6 @@
 CC = g++
-CFLAGS = -O3
+# -march=native will compile for correct sse
+CFLAGS = -march=native -O3
 
 DEBUG ?= 0
 ifeq ($(DEBUG), 1)

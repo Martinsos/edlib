@@ -5,12 +5,17 @@
 #include <algorithm>
 #include <cstdio>
 
+extern "C" {
+#include <immintrin.h> // SSE(AVX)
+}
+
 using namespace std;
 
 typedef uint64_t Word;
 static const int WORD_SIZE = sizeof(Word) * 8; // Size of Word in bits
 static const Word WORD_1 = (Word)1;
 static const Word HIGH_BIT_MASK = WORD_1 << (WORD_SIZE - 1);  // 100..00
+
 
 // Data needed to find alignment.
 struct AlignmentData {
