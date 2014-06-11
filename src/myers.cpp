@@ -11,7 +11,7 @@ extern "C" {
 
 using namespace std;
 
-#undef __SSE4_1__
+//#undef __SSE4_1__
 
 #ifdef __SSE4_1__
 typedef __m128i  Word;
@@ -21,6 +21,22 @@ static const Word WORD_0 = _mm_setzero_si128();
 static const Word WORD_ALL_1 = _mm_set_epi32(-1, -1, -1, -1);
 static const Word HIGH_BIT_MASK = _mm_set_epi32(1 << 31, 0, 0, 0);
 #define TEST_ANY_BITS_SET(word, mask) (!_mm_test_all_zeros(word, mask))
+static const Word SHIFT_LEFT_MASK = _mm_set_epi32(0, 0, 1 << 31, 0);
+// Shift whole SSE register for one bit to the left
+static inline __m128i mmShiftLeft(__m128i mm) {
+    // I use mask to detect which 64bit words start with 1. These 1s are lost durin normal shift.
+    // Therefore I shift this 1s to be the last bit in 64 bit word,
+    // then shift all words to the left for one word and than `or` it with shifted mm.
+    // That way I moved those overlfowing 1s to where they should be after shift.
+    __m128i overflowBits = _mm_slli_si128(_mm_srli_epi64(mm & SHIFT_LEFT_MASK, 63), 8); // 8 is for 8 bytes
+    return _mm_slli_epi64(mm, 1) | overflowBits;
+}
+static const Word SHIFT_RIGHT_MASK = _mm_set_epi32(0, 1, 0, 0);
+// Shift whole SSE register for one bit to the right
+static inline __m128i mmShiftRight(__m128i mm) {
+    __m128i overflowBits = _mm_srli_si128(_mm_slli_epi64(mm & SHIFT_RIGHT_MASK, 63), 8); // 8 is for 8 bytes
+    return _mm_srli_epi64(mm, 1) | overflowBits;
+}
 #else
 typedef uint64_t Word;
 static const int WORD_SIZE = sizeof(Word) * 8; // Size of Word in bits
@@ -64,6 +80,30 @@ struct Block {
 };
 
 
+// For debugging
+// Print number as bits.
+template<class T>
+void print_bits(T x) {
+    char result[sizeof(T) * 8];
+    for (int i = sizeof(T) * 8 - 1; i >= 0; i--) {
+        result[i] = (1 & x) ? '1' : '0';
+        x >>= 1;
+    };
+    for (int i = 0; i < sizeof(T) * 8; i++) {
+        printf("%c", result[i]);
+    }
+}
+
+// For debugging
+void print_mm128i(__m128i mm) {
+    uint64_t unpacked[2] __attribute__((aligned(16)));
+    _mm_store_si128((__m128i*)unpacked, mm);
+    for (int i = 1; i >= 0; i--) {
+        print_bits(unpacked[i]);
+    }
+}
+
+
 static int myersCalcEditDistanceSemiGlobal(Block* blocks, Word* Peq, int W, int maxNumBlocks,
                                            const unsigned char* query, int queryLength,
                                            const unsigned char* target, int targetLength,
@@ -95,6 +135,30 @@ int myersCalcEditDistance(const unsigned char* query, int queryLength,
                           int alphabetLength, int k, int mode,
                           int* bestScore, int* position, 
                           bool findAlignment, unsigned char** alignment, int* alignmentLength) {
+    print_mm128i(WORD_1); printf("\n");
+    print_mm128i(WORD_1 << 1); printf("\n");
+    print_mm128i(_mm_set_epi32(9, 5, 3, 1)); printf("\n");
+    print_mm128i(_mm_set_epi32(9, 5, 3, 1) >> 1); printf("\n");
+    print_mm128i(WORD_0); printf("\n");
+    print_mm128i(WORD_0 << 1); printf("\n");
+    print_mm128i(WORD_0 >> 1); printf("\n");
+    print_mm128i(WORD_ALL_1); printf("\n");
+    print_mm128i(WORD_ALL_1 << 1); printf("\n");
+    print_mm128i(WORD_ALL_1 >> 1); printf("\n");
+    print_mm128i(HIGH_BIT_MASK); printf("\n");
+    print_mm128i(HIGH_BIT_MASK << 1); printf("\n");
+    print_mm128i(HIGH_BIT_MASK >> 1); printf("\n");
+    print_mm128i(WORD_ALL_1 + WORD_1); printf("\n");
+    print_mm128i(_mm_set_epi32(0, 0, 1 << 31, 0)); printf("\n");
+    print_mm128i(_mm_set_epi32(0, 0, 1 << 31, 0) << 1); printf("\n");
+    print_mm128i(mmShiftLeft(_mm_set_epi32(0, 0, 1 << 31, 0))); printf("\n");
+    print_mm128i(_mm_set_epi32(0, 1, 0, 0)); printf("\n");
+    print_mm128i(_mm_set_epi32(0, 1, 0, 0) >> 1); printf("\n");
+    print_mm128i(mmShiftRight(_mm_set_epi32(0, 1, 0, 0))); printf("\n");
+    print_mm128i(mmShiftRight(_mm_set_epi32(-1, -1, 1 << 31, 0))); printf("\n");
+
+    
+
     *alignment = NULL;
     /*--------------------- INITIALIZATION ------------------*/
     int maxNumBlocks = ceilDiv(queryLength, WORD_SIZE); // bmax in Myers
@@ -184,21 +248,26 @@ int myersCalcEditDistance(const unsigned char* query, int queryLength,
  * NOTICE: free returned array with delete[]!
  */
 static inline Word* buildPeq(int alphabetLength, const unsigned char* query, int queryLength) {
+    printf("Building Peq\n");
     int maxNumBlocks = ceilDiv(queryLength, WORD_SIZE);
     int W = maxNumBlocks * WORD_SIZE - queryLength; // number of redundant cells in last level blocks
     // table of dimensions alphabetLength+1 x maxNumBlocks. Last symbol is wildcard.
     Word* Peq = new Word[(alphabetLength + 1) * maxNumBlocks];
 
+#ifdef __SSE4_1__
+    const int numSegs = WORD_SIZE / 64;
+#endif
+
     // Build Peq (1 is match, 0 is mismatch). NOTE: last column is wildcard(symbol that matches anything) with just 1s
     for (int symbol = 0; symbol <= alphabetLength; symbol++) {
         for (int b = 0; b < maxNumBlocks; b++) {
 #ifdef __SSE4_1__
-            // One cell(block) in Peq is represented with consecutive 64bit words (segments).
-            // I have to do it this way because largest word I have is 64bit, while SSE register can be 128, 256, ...
-            // Then I load this array of segments into one single SSE register.
-            uint64_t PeqSegs[WORD_SIZE / 64] __attribute__((aligned(16)));
             if (symbol < alphabetLength) {
-                for (int seg = 0; seg < WORD_SIZE / 64; seg++) { // build segment by segment
+                // One cell(block) in Peq is represented with consecutive 64bit words (segments).
+                // I have to do it this way because largest word I have is 64bit, while SSE register can be 128, 256, ...
+                // Then I load this array of segments into one single SSE register.
+                uint64_t PeqSegs[numSegs] __attribute__((aligned(16)));
+                for (int seg = 0; seg < numSegs; seg++) { // build segment by segment
                     PeqSegs[seg] = 0;
                     for (int r = b * WORD_SIZE + (seg + 1) * 64 - 1; r >= b * WORD_SIZE + seg * 64; r--) {
                         PeqSegs[seg] <<= 1;
@@ -211,6 +280,7 @@ static inline Word* buildPeq(int alphabetLength, const unsigned char* query, int
             } else { // Last symbol is wildcard, so it is all 1s
                 Peq[symbol * maxNumBlocks + b] = WORD_ALL_1;
             }
+            print_mm128i(Peq[symbol * maxNumBlocks + b]); printf("\n");
 #else
             if (symbol < alphabetLength) {
                 Peq[symbol * maxNumBlocks + b] = 0;
@@ -221,12 +291,13 @@ static inline Word* buildPeq(int alphabetLength, const unsigned char* query, int
                         Peq[symbol * maxNumBlocks + b] += 1;
                 }
             } else { // Last symbol is wildcard, so it is all 1s
-                Peq[symbol * maxNumBlocks + b] = (Word)-1;
+                Peq[symbol * maxNumBlocks + b] = WORD_ALL_1;
             }
+            print_uint64_t(Peq[symbol * maxNumBlocks + b]); printf("\n");
 #endif
         }
     }
-
+    printf("Finished building Peq\n");
     return Peq;
 }
 
