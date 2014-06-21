@@ -1,8 +1,9 @@
 # EDLIB
 
-C/C++ library for sequence alignment using edit distance based on Myers's ["Fast Bit-Vector Algorithm for Approximate String Matching Based on Dynamic Programming"](http://www.gersteinlab.org/courses/452/09-spring/pdf/Myers.pdf).  
+EDLIB is C/C++ library for sequence alignment using edit distance based on Myers's ["Fast Bit-Vector Algorithm for Approximate String Matching Based on Dynamic Programming"](http://www.gersteinlab.org/courses/452/09-spring/pdf/Myers.pdf).  
 Implementation combines Myers's bit-vector algorithm with banded approach.  
-Calculates best score (Levenshtein distance) and first position of best score.  
+Calculates best score (Levenshtein distance) and first position of best score.
+It can also return alignment path.
 
 
 #### Alignment modes
@@ -31,10 +32,14 @@ int queryLength = 5;
 int targetLength = 9;
 unsigned char query[5] = {0,1,2,3,4};
 unsigned char target[9] = {8,5,0,1,3,4,6,7,5};
-int score, pos;
+int score, pos, alignmentLength;
+unsigned char* alignment;
 myersCalcEditDistance(query, queryLength, target, targetLength,
-                      alphabetLength, -1, MYERS_MODE_HW, &score, &pos);
-printf("%d %d", score, pos);
+                      alphabetLength, -1, MYERS_MODE_HW, &score, &pos,
+                      true, &alignment, &alignmentLength);
+printf("%d %d\n", score, pos);
+for (int i = 0; i < alignmentLength; i++)
+      printf("%d", alignment[i]);
 ...
 ```    
 
