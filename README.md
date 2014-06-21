@@ -1,7 +1,7 @@
-# Myers
+# EDLIB
 
-C/C++ library for sequence alignment based on Myers's ["Fast Bit-Vector Algorithm for Approximate String Matching Based on Dynamic Programming"](http://www.gersteinlab.org/courses/452/09-spring/pdf/Myers.pdf).  
-Implementation combines Myers's bit-vector algorithm with Ukonnen's banded algorithm.  
+C/C++ library for sequence alignment using edit distance based on Myers's ["Fast Bit-Vector Algorithm for Approximate String Matching Based on Dynamic Programming"](http://www.gersteinlab.org/courses/452/09-spring/pdf/Myers.pdf).  
+Implementation combines Myers's bit-vector algorithm with banded approach.  
 Calculates best score (Levenshtein distance) and first position of best score.  
 
 
