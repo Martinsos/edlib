@@ -45,10 +45,23 @@ for (int i = 0; i < alignmentLength; i++)
 
 For more examples of usage take a look at test.cpp.
 
-
 #### Running tests
 In order to run tests, do following:
 
     cd src
     make
     ./test
+    
+    
+## Aligner
+
+In order to compile and use simple aligner that uses EDLIB run makefile in src:
+
+    cd src
+    make aligner
+    
+Type `./aligner` for help.
+
+Example of usage:
+    ./aligner -c ../test_data/query.fasta ../test_data/target.fasta
+

@@ -18,6 +18,6 @@ callgrind.out.*
 test
 aligner
 
-test_data
+local_tests
 
 TAGS
