@@ -66,7 +66,7 @@ int main(int argc, char * const argv[]) {
                 " Specifying small N can make total calculation much faster. [default: 0]\n");
         fprintf(stderr, "\t-c If specified, alignment will be found and printed.\n");
         fprintf(stderr, "\t-k K  Sequences with score > K will be discarded."
-                " Smaller k, faster calculation.");
+                " Smaller k, faster calculation.\n");
         fprintf(stderr, "\t-t If specified, simple algorithm is used instead of myers. To be used for testing.\n");
         return 1;
     }
@@ -83,7 +83,7 @@ int main(int argc, char * const argv[]) {
         printf("Invalid mode!\n");
         return 1;
     }
-    printf("Using mode %s\n", mode);
+    printf("Using %s alignment mode.\n", mode);
 
 
     // Alphabet information, will be constructed on fly while reading sequences
@@ -99,7 +99,7 @@ int main(int argc, char * const argv[]) {
     // Read queries
     char* queriesFilepath = argv[optind];
     vector< vector<unsigned char> >* querySequences = new vector< vector<unsigned char> >();
-    printf("Reading queries fasta file...\n");
+    printf("Reading queries...\n");
     readResult = readFastaSequences(queriesFilepath, querySequences, letterIdx, idxToLetter,
                                     inAlphabet, alphabetLength);
     if (readResult) {
@@ -108,6 +108,11 @@ int main(int argc, char * const argv[]) {
         return 1;
     }
     int numQueries = querySequences->size();
+    int queriesTotalLength = 0;
+    for (int i = 0; i < numQueries; i++) {
+        queriesTotalLength += (*querySequences)[i].size();
+    }
+    printf("Read %d queries, %d residues total.\n", numQueries, queriesTotalLength);
 
     // Read target
     char* targetFilepath = argv[optind+1];    
@@ -123,6 +128,7 @@ int main(int argc, char * const argv[]) {
     }
     unsigned char* target = (*targetSequences)[0].data();
     int targetLength = (*targetSequences)[0].size();
+    printf("Read target, %d residues.\n", targetLength);
 
     printf("Alphabet: ");
     for (int c = 0; c < 128; c++)
@@ -132,7 +138,7 @@ int main(int argc, char * const argv[]) {
 
 
     // ----------------------------- MAIN CALCULATION ----------------------------- //
-    printf("\nSearching...\n");
+    printf("\nComparing queries to target...\n");
     int* scores = new int[numQueries];
     int* pos    = new int[numQueries];
     priority_queue<int> bestScores; // Contains numBestSeqs best scores
@@ -180,6 +186,7 @@ int main(int argc, char * const argv[]) {
             // Print alignment if it was found
             if (alignment) {
                 printf("\n");
+                printf("Query #%d (%d residues): score = %d\n", i, queryLength, scores[i]);
                 printAlignment(query, queryLength, target, targetLength,
                                alignment, alignmentLength,
                                pos[i], modeCode, idxToLetter);
@@ -191,19 +198,21 @@ int main(int argc, char * const argv[]) {
     }
     printf("\n");
 
-    if (!silent) {
+    if (!silent && !findAlignment) {
         int scoreLimit = -1; // Only scores <= then scoreLimit will be printed (we consider -1 as infinity)
         printf("\n");
 
         if (bestScores.size() > 0) {
             printf("%d best scores:\n", (int)bestScores.size());
             scoreLimit = bestScores.top();
+        } else {
+            printf("Scores:\n");
         }
 
-        printf("Scores (score, position) \n");
+        printf("<query number>: <score>, <end_position_in_target>\n");
         for (int i = 0; i < numQueries; i++)
             if (scores[i] > -1 && (scoreLimit == -1 || scores[i] <= scoreLimit))
-                printf("%d: (%d, %d)\n", i, scores[i], pos[i]);
+                printf("#%d: %10d, %10d\n", i, scores[i], pos[i]);
         
     }
 
@@ -211,8 +220,6 @@ int main(int argc, char * const argv[]) {
     double cpuTime = ((double)(finish-start))/CLOCKS_PER_SEC;
     printf("\nCpu time of searching: %lf\n", cpuTime);
     // ---------------------------------------------------------------------------- //
-
-    printf("\n");
 
     // Free allocated space
     delete querySequences;
@@ -288,7 +295,6 @@ void printAlignment(const unsigned char* query, const int queryLength,
                     const unsigned char* target, const int targetLength,
                     const unsigned char* alignment, const int alignmentLength,
                     const int position, const int modeCode, const char* idxToLetter) {
-    printf("query length = %d, target length = %d\n", queryLength, targetLength);
     int tIdx = -1;
     int qIdx = -1;
     if (modeCode == MYERS_MODE_HW) {
@@ -322,7 +328,6 @@ void printAlignment(const unsigned char* query, const int queryLength,
             if (j == start)
                 startQIdx = qIdx;
         }
-        printf(" (%d - %d)\n", max(startQIdx, 0), qIdx);
-        printf("\n");
+        printf(" (%d - %d)\n\n", max(startQIdx, 0), qIdx);
     }
 }
