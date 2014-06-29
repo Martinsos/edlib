@@ -1,8 +1,9 @@
 # Speed comparison of Myers against SSW library.
+All times are in seconds. Tests were performed on Intel Core i3 M 350 @ 2.27GHz with 4GB RAM.
 
 ## Read alignment test
 I generated 10 reads of length 1000 from E.Coli genome (e_coli_DH1.fasta).  
-I tested aligners by aligning reads to e_coli_536.fasta.  
+I tested aligners by aligning reads to e_coli_536.fasta.
 I obtained E.Coli genomes from ncbi base.
 To generate N reads of length n from e_coli_DH1 I used tool `mason`:
   `./mason illumina -N <N> -n <n> -o reads.fasta e_coli_DH1.fasta`
@@ -15,17 +16,10 @@ I executed aligners using following commands:
 
 Following table shows performance of EDLIB and SSW for different lengths of reads.
 
- & N = 10, n = 1000 & N = 100, n = 100 & N = 200, n = 50 \\
-    \hline
-    \hline
-    EDLIB & 12.3 & 12.8 & 16.8 \\
-    \hline
-    SSWL & 21.0 & 49.0 & 80.0 \\
-
-| N = 10, n = 1000  | N = 100, n = 100 | N = 200, n = 50 |
-| ----------------- | ---------------- | --------------- 
-| Content Cell  | Content Cell  
-| Content Cell  | Content Cell  |
+|       | N = 10, n = 1000 | N = 100, n = 100 | N = 200, n = 50 |
+| ----- | ---------------- | ---------------- | --------------- |
+| EDLIB |       12.3       |      12.8        |       16.8      |
+|  SSW  |       21.0       |      49.0        |       80.0      |
 
 ## Protein comparison test
 ### Similar proteins
