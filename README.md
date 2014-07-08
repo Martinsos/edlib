@@ -32,18 +32,30 @@ int queryLength = 5;
 int targetLength = 9;
 unsigned char query[5] = {0,1,2,3,4};
 unsigned char target[9] = {8,5,0,1,3,4,6,7,5};
-int score, pos, alignmentLength;
+int score, numPositions, alignmentLength;
+int* positions;
 unsigned char* alignment;
+
 myersCalcEditDistance(query, queryLength, target, targetLength,
-                      alphabetLength, -1, MYERS_MODE_HW, &score, &pos,
+                      alphabetLength, -1, MYERS_MODE_HW, &score,
+                      &positions, &numPositions,
                       true, &alignment, &alignmentLength);
-printf("%d %d\n", score, pos);
-for (int i = 0; i < alignmentLength; i++)
-      printf("%d", alignment[i]);
+
+printf("Score %d\n", score);
+if (positions) {
+  printf("First position: %d\n", positions[0]);
+}
+if (alignment) {
+  for (int i = 0; i < alignmentLength; i++)
+    printf("%d", alignment[i]);
+}
+
+if (positions) free(positions);
+if (alignment) free(alignment);
 ...
 ```    
 
-For more examples of usage take a look at test.cpp.
+For more examples of usage take a look at test.cpp or aligner.cpp.
 
 #### Running tests
 In order to run tests, do following:
