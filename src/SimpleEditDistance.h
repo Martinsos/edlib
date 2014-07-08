@@ -2,7 +2,10 @@
 #define SIMPLE_EDIT_DISTANCE_H
 
 #include <cstdio>
+#include <vector>
 #include "myers.h"
+
+using namespace std;
 
 #ifdef __cplusplus 
 extern "C" {
@@ -19,12 +22,14 @@ int min3(int x, int y, int z) {
 
 int calcEditDistanceSimple(const unsigned char* query, int queryLength,
                            const unsigned char* target, int targetLength,
-                           int alphabetLength, int mode, int* score, int* position) {
+                           int alphabetLength, int mode, int* score,
+                           int** positions_, int* numPositions_) {
     int* C = new int[queryLength];
     int* newC = new int[queryLength];
-
+    
     int bestScore = -1;
-    int pos = -1;
+    vector<int> positions;
+    int numPositions = 0;
 
     // set first column (column zero)
     for (int i = 0; i < queryLength; i++) {
@@ -51,17 +56,29 @@ int calcEditDistanceSimple(const unsigned char* query, int queryLength,
             printf("\n");*/
 
         if (mode != MYERS_MODE_NW || c == targetLength - 1) { // For NW check only last column
-            if (bestScore == -1 || newC[queryLength-1] < bestScore) {
-                bestScore = newC[queryLength-1];
-                pos = c;
+            int score = newC[queryLength - 1];
+            if (bestScore == -1 || score <= bestScore) {
+                if (score < bestScore) {
+                    positions.clear();
+                    numPositions = 0;
+                }
+                bestScore = score;
+                positions.push_back(c);
+                numPositions++;
             }
         }
         // If mode is OV, check whole last column
         if (mode == MYERS_MODE_OV && c == targetLength - 1) {
             for (int r = 0; r < targetLength - 1; r++) {
-                if (bestScore == -1 || newC[r] < bestScore) {
-                    bestScore = newC[r];
-                    pos = c; // TODO: also return end position of query?
+                int score = newC[r];
+                if (bestScore == -1 || score < bestScore) {
+                    if (score < bestScore) {
+                        positions.clear();
+                        numPositions = 0;
+                    }
+                    bestScore = score;
+                    positions.push_back(c);
+                    numPositions++;
                 }
             }
         }
@@ -75,7 +92,14 @@ int calcEditDistanceSimple(const unsigned char* query, int queryLength,
     delete[] newC;
 
     *score = bestScore;
-    *position = pos;
+    if (positions.size() > 0) {
+        *positions_ = new int[positions.size()];
+        *numPositions_ = positions.size();
+        copy(positions.begin(), positions.end(), *positions_);
+    } else {
+        *positions_ = NULL;
+        *numPositions_ = 0;
+    }
 
     return MYERS_STATUS_OK;
 }

@@ -13,7 +13,8 @@ bool runTests();
 
 int calcEditDistanceSimple(const unsigned char* query, int queryLength,
                            const unsigned char* target, int targetLength,
-                           int alphabetLength, int mode, int* score, int* position);
+                           int alphabetLength, int mode, int* score,
+                           int** positions, int* numPositions);
 
 bool checkAlignment(const unsigned char* query, int queryLength,
                     const unsigned char* target, int targetLength,
@@ -26,7 +27,7 @@ int main() {
     printf("Testing HW with alignment...\n");
     runRandomTests(1000, MYERS_MODE_HW, true);
     printf("\n");
-
+    
     printf("Testing HW...\n");
     runRandomTests(1000, MYERS_MODE_HW, false);
     printf("\n");
@@ -34,6 +35,7 @@ int main() {
     printf("Testing NW with alignment...\n");
     runRandomTests(1000, MYERS_MODE_NW, true);
     printf("\n");
+    
     
     printf("Testing NW...\n");
     runRandomTests(1000, MYERS_MODE_NW, false);
@@ -91,20 +93,16 @@ void runRandomTests(int numTests, int mode, bool findAlignment) {
         printf("\n");
         */  
         start = clock();
-        int score1; int pos1;
+        int score1, numPositions1;
+        int* positions1;
         unsigned char* alignment; int alignmentLength;
-        myersCalcEditDistance(query, queryLength, target, targetLength,
-                              alphabetLength, -1, mode, &score1, &pos1,
+        myersCalcEditDistance(query, queryLength, target, targetLength, alphabetLength,
+                              -1, mode, &score1, &positions1, &numPositions1,
                               findAlignment, &alignment, &alignmentLength);
         timeMyers += clock() - start;
         if (alignment) {
-            /*printf("Alignment: ");
-            for (int i = 0; i < alignmentLength; i++)
-                printf("%d", alignment[i]);
-            printf("\n");
-            printf("%d, %d\n", score1, pos1);*/
             if (!checkAlignment(query, queryLength, target, targetLength,
-                                score1, pos1, mode, alignment, alignmentLength)) {
+                                score1, positions1[0], mode, alignment, alignmentLength)) {
                 failed = true;
                 printf("Alignment is not correct\n");
             }
@@ -112,23 +110,47 @@ void runRandomTests(int numTests, int mode, bool findAlignment) {
         }
         
         start = clock();
-        int score2; int pos2;
+        int score2; int numPositions2;
+        int* positions2;
         calcEditDistanceSimple(query, queryLength, target, targetLength,
-                               alphabetLength, mode, &score2, &pos2);
+                               alphabetLength, mode, &score2,
+                               &positions2, &numPositions2);
         timeSimple += clock() - start;
         
-        if (score1 != score2 || pos1 != pos2) {
+        // Compare results
+        if (score1 != score2) {
             failed = true;
-            printf("(%d, %d), (%d, %d)\n", score1, pos1, score2, pos2);
+            printf("Scores are different! Expected %d, got %d)\n", score2, score1);
+        } else if (score1 == -1 && !(positions1 == NULL)) {
+            failed = true;
+            printf("Score was not found but positions is not NULL!\n");
+        } else if (numPositions1 != numPositions2) {
+            failed = true;
+            printf("Number of positions returned is not equal! Expected %d, got %d\n",
+                   numPositions2, numPositions1);
+        } else {
+            for (int i = 0; i < numPositions1; i++) {
+                if (positions1[i] != positions2[i]) {
+                    failed = true;
+                    printf("Positions at %d are not equal! Expected %d, got %d\n",
+                           i, positions2[i], positions1[i]);
+                    break;
+                }
+            }
         }
+        
+        if (positions1) delete[] positions1;
+        if (positions2) delete[] positions2;
 
         for (int k = score2 - 1; k <= score2 + 1; k++) {
-            int score3, pos3;
+            int score3, numPositions3;
+            int* positions3;
             unsigned char* alignment3; int alignmentLength3;
             int scoreExpected = score2 > k ? -1 : score2;
             myersCalcEditDistance(query, queryLength, target, targetLength,
-                                  alphabetLength, k, mode, &score3, &pos3,
-                                  findAlignment, &alignment3, &alignmentLength3);
+                                  alphabetLength, k, mode, &score3, &positions3,
+                                  &numPositions3, findAlignment, &alignment3,
+                                  &alignmentLength3);
             if (score3 != scoreExpected ) {
                 failed = true;
                 printf("For k = %d score was %d but it should have been %d\n",
@@ -136,12 +158,13 @@ void runRandomTests(int numTests, int mode, bool findAlignment) {
             }
             if (alignment3) {
                 if (!checkAlignment(query, queryLength, target, targetLength,
-                                    score3, pos3, mode, alignment3, alignmentLength3)) {
+                                    score3, positions3[0], mode, alignment3, alignmentLength3)) {
                     failed = true;
                     printf("Alignment is not correct\n");
                 }
                 free(alignment3);
             }
+            if (positions3) delete[] positions3;
         }
 
         if (failed)
@@ -163,33 +186,53 @@ void runRandomTests(int numTests, int mode, bool findAlignment) {
 
 bool executeTest(const unsigned char* query, int queryLength,
                  const unsigned char* target, int targetLength,
-                 int alphabetLength, int score, int pos, int mode) {
-    int score1; int pos1;
-    unsigned char* alignment; int alignmentLength;
-    bool pass = true;
-    myersCalcEditDistance(query, queryLength, target, targetLength,
-                          alphabetLength, -1, mode, &score1, &pos1,
-                          true, &alignment, &alignmentLength);
-
-    int score2; int pos2;
-    calcEditDistanceSimple(query, queryLength, target, targetLength,
-                           alphabetLength, mode, &score2, &pos2);
-
-    if (!(score1 == score2 && score2 == score && pos1 == pos2 && pos2 == pos)) {
-        pass = false;
-    }
-
+                 int alphabetLength, int mode) {
     printf(mode == MYERS_MODE_HW ? "HW:  " : mode == MYERS_MODE_SHW ? "SHW: " : "NW:  ");
-    printf("Myers -> (%d, %d), simple -> (%d, %d), correct -> (%d, %d)",
-           score1, pos1, score2, pos2, score, pos);
-    if (!checkAlignment(query, queryLength, target, targetLength,
-                        score1, pos1, mode, alignment, alignmentLength)) {
+    
+    bool pass = true;
+
+    int score2; int numPositions2; int* positions2;
+    calcEditDistanceSimple(query, queryLength, target, targetLength,
+                           alphabetLength, mode, &score2, &positions2,
+                           &numPositions2);
+
+    int score1; int numPositions1; int* positions1;
+    unsigned char* alignment; int alignmentLength;
+    myersCalcEditDistance(query, queryLength, target, targetLength,
+                          alphabetLength, -1, mode, &score1, &positions1,
+                          &numPositions1, false, &alignment, &alignmentLength);
+
+    if (score1 != score2) {
         pass = false;
-        printf("Alignment is not correct\n");
+        printf("Scores: expected %d, got %d\n", score2, score1);
+    } else if (numPositions1 != numPositions2) {
+        pass = false;
+        printf("Number of positions: expected %d, got %d\n",
+               numPositions2, numPositions1);
+    } else {
+        for (int i = 0; i < numPositions1; i++) {
+            if (positions1[i] != positions2[i]) {
+                pass = false;
+                printf("Positions at %d are not equal! Expected %d, got %d\n",
+                       i, positions2[i], positions1[1]);
+                break;
+            }
+        }
     }
+    if (alignment) {
+        if (!checkAlignment(query, queryLength, target, targetLength,
+                            score1, positions1[0], mode, alignment,
+                            alignmentLength)) {
+            pass = false;
+            printf("Alignment is not correct\n");
+        }
+    }
+
     printf(pass ? "\x1B[32m OK \x1B[0m\n" : "\x1B[31m FAIL \x1B[0m\n");
     
     if (alignment) free(alignment);
+    if (positions1) delete[] positions1;
+    if (positions2) delete[] positions2;
     return pass;
 }
 
@@ -199,16 +242,10 @@ bool test1() {
     int targetLength = 4;
     unsigned char query[4] = {0,1,2,3};
     unsigned char target[4] = {0,1,2,3};
-    int scoreHW = 0;
-    int scoreNW = 0;
-    int scoreSHW = 0;
-    int posHW = 3;
-    int posNW = 3;
-    int posSHW = 3;
 
-    bool r = executeTest(query, queryLength, target, targetLength, alphabetLength, scoreHW, posHW, MYERS_MODE_HW);
-    r = r && executeTest(query, queryLength, target, targetLength, alphabetLength, scoreNW, posNW, MYERS_MODE_NW);
-    r = r && executeTest(query, queryLength, target, targetLength, alphabetLength, scoreSHW, posSHW, MYERS_MODE_SHW);
+    bool r = executeTest(query, queryLength, target, targetLength, alphabetLength, MYERS_MODE_HW);
+    r = r && executeTest(query, queryLength, target, targetLength, alphabetLength, MYERS_MODE_NW);
+    r = r && executeTest(query, queryLength, target, targetLength, alphabetLength, MYERS_MODE_SHW);
     return r;
 }
 
@@ -218,16 +255,10 @@ bool test2() {
     int targetLength = 9;
     unsigned char query[5] = {0,1,2,3,4}; // "match"
     unsigned char target[9] = {8,5,0,1,3,4,6,7,5}; // "remachine"
-    int scoreHW = 1;
-    int scoreNW = 6;
-    int scoreSHW = 3;
-    int posHW = 5;
-    int posNW = 8;
-    int posSHW = 5;
 
-    bool r = executeTest(query, queryLength, target, targetLength, alphabetLength, scoreHW, posHW, MYERS_MODE_HW);
-    r = r && executeTest(query, queryLength, target, targetLength, alphabetLength, scoreNW, posNW, MYERS_MODE_NW);
-    r = r && executeTest(query, queryLength, target, targetLength, alphabetLength, scoreSHW, posSHW, MYERS_MODE_SHW);
+    bool r = executeTest(query, queryLength, target, targetLength, alphabetLength, MYERS_MODE_HW);
+    r = r && executeTest(query, queryLength, target, targetLength, alphabetLength, MYERS_MODE_NW);
+    r = r && executeTest(query, queryLength, target, targetLength, alphabetLength, MYERS_MODE_SHW);
     return r;
 }
 
@@ -237,16 +268,10 @@ bool test3() {
     int targetLength = 9;
     unsigned char query[5] = {0,1,2,3,4};
     unsigned char target[9] = {1,2,0,1,2,3,4,5,4};
-    int scoreHW = 0;
-    int scoreNW = 4;
-    int scoreSHW = 2;
-    int posHW = 6;
-    int posNW = 8;
-    int posSHW = 6;
 
-    bool r = executeTest(query, queryLength, target, targetLength, alphabetLength, scoreHW, posHW, MYERS_MODE_HW);
-    r = r && executeTest(query, queryLength, target, targetLength, alphabetLength, scoreNW, posNW, MYERS_MODE_NW);
-    r = r && executeTest(query, queryLength, target, targetLength, alphabetLength, scoreSHW, posSHW, MYERS_MODE_SHW);
+    bool r = executeTest(query, queryLength, target, targetLength, alphabetLength, MYERS_MODE_HW);
+    r = r && executeTest(query, queryLength, target, targetLength, alphabetLength, MYERS_MODE_NW);
+    r = r && executeTest(query, queryLength, target, targetLength, alphabetLength, MYERS_MODE_SHW);
     return r;
 }
 
@@ -256,16 +281,10 @@ bool test4() {
     int targetLength = 200;
     unsigned char query[200] = {0};
     unsigned char target[200] = {1};
-    int scoreHW = 1;
-    int scoreNW = 1;
-    int scoreSHW = 1;
-    int posHW = 199;
-    int posNW = 199;
-    int posSHW = 199;
 
-    bool r = executeTest(query, queryLength, target, targetLength, alphabetLength, scoreHW, posHW, MYERS_MODE_HW);
-    r = r && executeTest(query, queryLength, target, targetLength, alphabetLength, scoreNW, posNW, MYERS_MODE_NW);
-    r = r && executeTest(query, queryLength, target, targetLength, alphabetLength, scoreSHW, posSHW, MYERS_MODE_SHW);
+    bool r = executeTest(query, queryLength, target, targetLength, alphabetLength, MYERS_MODE_HW);
+    r = r && executeTest(query, queryLength, target, targetLength, alphabetLength, MYERS_MODE_NW);
+    r = r && executeTest(query, queryLength, target, targetLength, alphabetLength, MYERS_MODE_SHW);
     return r;
 }
 
@@ -275,16 +294,10 @@ bool test5() {
     int targetLength = 64;
     unsigned char query[64] = {0};
     unsigned char target[64] = {1};
-    int scoreHW = 1;
-    int scoreNW = 1;
-    int scoreSHW = 1;
-    int posHW = 63;
-    int posNW = 63;
-    int posSHW = 63;
 
-    bool r = executeTest(query, queryLength, target, targetLength, alphabetLength, scoreHW, posHW, MYERS_MODE_HW);
-    r = r && executeTest(query, queryLength, target, targetLength, alphabetLength, scoreNW, posNW, MYERS_MODE_NW);
-    r = r && executeTest(query, queryLength, target, targetLength, alphabetLength, scoreSHW, posSHW, MYERS_MODE_SHW);
+    bool r = executeTest(query, queryLength, target, targetLength, alphabetLength, MYERS_MODE_HW);
+    r = r && executeTest(query, queryLength, target, targetLength, alphabetLength, MYERS_MODE_NW);
+    r = r && executeTest(query, queryLength, target, targetLength, alphabetLength, MYERS_MODE_SHW);
     return r;
 }
 
@@ -307,27 +320,25 @@ bool test6() {
                                  1,3,0,1,3,3,3,1,3,2,2,3,2,3,3,1,0,1,1,1,0,1,3,0,1,3,3,3,1,3,2,
                                  2,3,2,3,3,1,0,1,1,1,0,1,3,0,1,3,3,3,1,3,2,2,3,2,3,3,1,0,1,1,1,
                                  0,1,3,0,1,3,3,3,1,3,2,2,3,2,3,3,1};
-    int scoreHW = 3;
-    int scoreNW = 407;
-    int scoreSHW = 4;
-    int posHW = 31;
-    int posNW = 419;
-    int posSHW = 10;
     
-    bool r = executeTest(query, queryLength, target, targetLength, alphabetLength, scoreHW, posHW, MYERS_MODE_HW);
-    r = r && executeTest(query, queryLength, target, targetLength, alphabetLength, scoreNW, posNW, MYERS_MODE_NW);
-    r = r && executeTest(query, queryLength, target, targetLength, alphabetLength, scoreSHW, posSHW, MYERS_MODE_SHW);
+    bool r = executeTest(query, queryLength, target, targetLength, alphabetLength, MYERS_MODE_HW);
+    r = r && executeTest(query, queryLength, target, targetLength, alphabetLength, MYERS_MODE_NW);
+    r = r && executeTest(query, queryLength, target, targetLength, alphabetLength, MYERS_MODE_SHW);
     return r;
 }
 
 bool runTests() {
-    bool t1 = test1();
-    bool t2 = test2();
-    bool t3 = test3();
-    bool t4 = test4();
-    bool t5 = test5();
-    bool t6 = test6();
-    return t1 && t2 && t3 && t4 && t5 && t6;
+    int numTests = 6;
+    bool (* tests [])() = {test1, test2, test3, test4, test5, test6};
+    
+    bool allTestsPassed = true;
+    for (int i = 0; i < numTests; i++) {
+        printf("Test #%d:\n", i);
+        if ( !(*(tests[i]))() ) {
+            allTestsPassed = false;
+        }
+    }
+    return allTestsPassed;
 }
 
 /**

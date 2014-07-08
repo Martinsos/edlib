@@ -43,17 +43,22 @@ extern "C" {
      *                            Notice: Finding aligment will increase execution time
      *                                    and could take large amount of memory.
      * @param [out] score  Best score (smallest edit distance) or -1 if there is no score <= k.
-     * @param [out] position  Zero-based position in target where query ends (position of last character).
-     *                        If gap after query is penalized then it counts as part of query (NW),
-     *                        otherwise not. -1 if there is no score <= k.
-     * @param [out] alignment  Will contain alignment if findAlignment is true and score != -1.
+     * @param [out] positions  Array of zero-based positions in target where
+     *                         query ends (position of last character) with the best score. 
+     *                         If gap after query is penalized, gap counts as part of query (NW),
+     *                         otherwise not.
+     *                         If there is no score <= k, positions is set to NULL.
+     *                         Otherwise, array is returned and it is on you to free it with delete[].
+     * @param [out] numPositions  Number of positions returned.
+     * @param [out] alignment  Alignment is found for first position returned.
+     *                         Will contain alignment if findAlignment is true and score != -1.
      *                         Otherwise it will be set NULL.
      *                         Alignment is sequence of numbers: 0, 1, 2.
      *                         0 stands for (mis)match.
      *                         1 stands for insertion to target.
      *                         2 stands for insertion to query.
      *                         Alignment aligns query to target from begining of query till end of query.
-     *                         Alignment ends at @param position in target.
+     *                         Alignment ends at @param positions[0] in target.
      *                         If gaps are not penalized, they are not in alignment.
      *                         Important: Do not forget to free memory allocated for alignment!
      *                                    Use free().
@@ -63,7 +68,7 @@ extern "C" {
     int myersCalcEditDistance(const unsigned char* query, int queryLength,
                               const unsigned char* target, int targetLength,
                               int alphabetLength, int k, int mode,
-                              int* bestScore, int* position, 
+                              int* bestScore, int** positions, int* numPositions, 
                               bool findAlignment, unsigned char** alignment, int* alignmentLength);
 
 #ifdef __cplusplus 

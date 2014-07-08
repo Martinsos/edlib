@@ -144,6 +144,7 @@ int main(int argc, char * const argv[]) {
     priority_queue<int> bestScores; // Contains numBestSeqs best scores
     int k = kArg;
     unsigned char* alignment = NULL; int alignmentLength;
+    int* positions = NULL; int numPositions;
     clock_t start = clock();
 
     if (!findAlignment || silent) {
@@ -157,11 +158,21 @@ int main(int argc, char * const argv[]) {
         if (useSimple) {
             // Just for testing
             calcEditDistanceSimple(query, queryLength, target, targetLength,
-                                   alphabetLength, modeCode, scores + i, pos + i);
+                                   alphabetLength, modeCode, scores + i,
+                                   &positions, &numPositions);
         } else {
             myersCalcEditDistance(query, queryLength, target, targetLength,
-                                  alphabetLength, k, modeCode, scores + i, pos + i,
+                                  alphabetLength, k, modeCode, scores + i,
+                                  &positions, &numPositions,
                                   findAlignment, &alignment, &alignmentLength);
+        }
+
+        // Keep only first position
+        if (numPositions > 0) {
+            pos[i] = positions[0];
+            delete[] positions;
+        } else {
+            pos[i] = -1;
         }
         
         // If we want only numBestSeqs best sequences, update best scores and adjust k to largest score.

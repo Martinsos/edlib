@@ -4,6 +4,7 @@
 #include <cstdlib>
 #include <algorithm>
 #include <cstdio>
+#include <vector>
 
 using namespace std;
 
@@ -47,7 +48,8 @@ struct Block {
 static int myersCalcEditDistanceSemiGlobal(Block* blocks, Word* Peq, int W, int maxNumBlocks,
                                            const unsigned char* query, int queryLength,
                                            const unsigned char* target, int targetLength,
-                                           int alphabetLength, int k, int mode, int* bestScore, int* position);
+                                           int alphabetLength, int k, int mode, int* bestScore, 
+                                           int** positions, int* numPositions);
 
 static int myersCalcEditDistanceNW(Block* blocks, Word* Peq, int W, int maxNumBlocks,
                                    const unsigned char* query, int queryLength,
@@ -73,7 +75,7 @@ static inline Word* buildPeq(int alphabetLength, const unsigned char* query, int
 int myersCalcEditDistance(const unsigned char* query, int queryLength,
                           const unsigned char* target, int targetLength,
                           int alphabetLength, int k, int mode,
-                          int* bestScore, int* position, 
+                          int* bestScore, int** positions, int* numPositions, 
                           bool findAlignment, unsigned char** alignment, int* alignmentLength) {
     *alignment = NULL;
     /*--------------------- INITIALIZATION ------------------*/
@@ -88,7 +90,9 @@ int myersCalcEditDistance(const unsigned char* query, int queryLength,
     /*------------------ MAIN CALCULATION -------------------*/
     // TODO: Store alignment data only after k is determined? That could make things faster
     *bestScore = -1;
-    *position = -1;
+    *positions = NULL;
+    *numPositions = 0;
+    int positionNW; // Used only when mode is NW
     AlignmentData* alignData = NULL;
     bool dynamicK = false;
     if (k < 0) { // If valid k is not given, auto-adjust k until solution is found.
@@ -101,11 +105,12 @@ int myersCalcEditDistance(const unsigned char* query, int queryLength,
         if (mode == MYERS_MODE_HW || mode == MYERS_MODE_SHW)
             myersCalcEditDistanceSemiGlobal(blocks, Peq, W, maxNumBlocks,
                                             query, queryLength, target, targetLength,
-                                            alphabetLength, k, mode, bestScore, position);
+                                            alphabetLength, k, mode, bestScore,
+                                            positions, numPositions);
         else  // mode == MYERS_MODE_NW
             myersCalcEditDistanceNW(blocks, Peq, W, maxNumBlocks,
                                     query, queryLength, target, targetLength,
-                                    alphabetLength, k, bestScore, position,
+                                    alphabetLength, k, bestScore, &positionNW,
                                     findAlignment, &alignData);
         k *= 2;
     } while(dynamicK && *bestScore == -1);
@@ -114,17 +119,18 @@ int myersCalcEditDistance(const unsigned char* query, int queryLength,
     if (findAlignment && *bestScore >= 0) {
         if (mode != MYERS_MODE_NW) {
             int targetStart;
-            int targetEnd = *position;
+            int targetEnd = (*positions)[0];
             if (mode == MYERS_MODE_HW) { // If HW, I need to find target start
-                const unsigned char* rTarget = createReverseCopy(target, *position + 1);
+                const unsigned char* rTarget = createReverseCopy(target, targetEnd + 1);
                 const unsigned char* rQuery  = createReverseCopy(query, queryLength);
                 Word* rPeq = buildPeq(alphabetLength, rQuery, queryLength); // Peq for reversed query
-                int bestScoreSHW, positionSHW;
+                int bestScoreSHW, numPositionsSHW;
+                int* positionsSHW;
                 myersCalcEditDistanceSemiGlobal(blocks, rPeq, W, maxNumBlocks,
-                                                rQuery, queryLength, rTarget, *position + 1,
+                                                rQuery, queryLength, rTarget, targetEnd + 1,
                                                 alphabetLength, *bestScore, MYERS_MODE_SHW,
-                                                &bestScoreSHW, &positionSHW);
-                targetStart = targetEnd - positionSHW;
+                                                &bestScoreSHW, &positionsSHW, &numPositionsSHW);
+                targetStart = targetEnd - positionsSHW[0];
                 delete[] rTarget;
                 delete[] rQuery;
                 delete[] rPeq;
@@ -133,19 +139,25 @@ int myersCalcEditDistance(const unsigned char* query, int queryLength,
                 targetStart = 0;
             }
             int alnBestScore, alnPosition;
-            myersCalcEditDistanceNW(blocks, Peq, W, maxNumBlocks,
-                                    query, queryLength, target + targetStart, targetEnd - targetStart + 1,
-                                    alphabetLength, *bestScore, &alnBestScore, &alnPosition,
-                                    true, &alignData);
+            myersCalcEditDistanceNW(blocks, Peq, W, maxNumBlocks, query, queryLength,
+                                    target + targetStart, targetEnd - targetStart + 1,
+                                    alphabetLength, *bestScore, &alnBestScore, 
+                                    &alnPosition, true, &alignData);
             obtainAlignment(maxNumBlocks, queryLength, targetEnd - targetStart + 1, W, alnBestScore, 
                             alnPosition, alignData, alignment, alignmentLength);
         } else {
             obtainAlignment(maxNumBlocks, queryLength, targetLength, W, *bestScore, 
-                            *position, alignData, alignment, alignmentLength);
+                            positionNW, alignData, alignment, alignmentLength);
         }
     }
     /*-------------------------------------------------------*/
 
+    // If NW mode and there is solution, return position in correct format.
+    if (mode == MYERS_MODE_NW && *bestScore != -1) {
+        *positions = new int[1];
+        (*positions)[0] = positionNW;
+        *numPositions = 1;
+    }
     
     //--- Free memory ---//
     delete[] blocks;
@@ -278,7 +290,11 @@ static inline int max(int x, int y) {
 static int myersCalcEditDistanceSemiGlobal(Block* const blocks, Word* const Peq, const int W, const int maxNumBlocks,
                                            const unsigned char* const query,  const int queryLength,
                                            const unsigned char* const target, const int targetLength,
-                                           const int alphabetLength, int k, const int mode, int* bestScore_, int* position_) {
+                                           const int alphabetLength, int k, const int mode, int* bestScore_,
+                                           int** positions_, int* numPositions_) {
+    *positions_ = NULL;
+    *numPositions_ = 0;
+    
     // firstBlock is 0-based index of first block in Ukkonen band.
     // lastBlock is 0-based index of last block in Ukkonen band.
     int firstBlock = 0;
@@ -299,7 +315,7 @@ static int myersCalcEditDistanceSemiGlobal(Block* const blocks, Word* const Peq,
     }
 
     int bestScore = -1;
-    int position = -1;
+    vector<int> positions; // TODO: Maybe put this on heap?
     const int startHout = mode == MYERS_MODE_HW ? 0 : 1; // If 0 then gap before query is not penalized;
     const unsigned char* targetChar = target;
     for (int c = 0; c < targetLength; c++) { // for each column
@@ -374,7 +390,11 @@ static int myersCalcEditDistanceSemiGlobal(Block* const blocks, Word* const Peq,
         // If band stops to exist finish
         if (lastBlock < firstBlock) {
             *bestScore_ = bestScore;
-            *position_ = position;
+            if (bestScore != -1) {
+                *positions_ = new int[positions.size()];
+                *numPositions_ = positions.size();
+                copy(positions.begin(), positions.end(), *positions_);
+            }
             return MYERS_STATUS_OK;
         }
         //------------------------------------------------------------------//
@@ -384,10 +404,15 @@ static int myersCalcEditDistanceSemiGlobal(Block* const blocks, Word* const Peq,
             int colScore = bl->score;
             if (colScore <= k) { // Scores > k dont have correct values (so we cannot use them), but are certainly > k. 
                 // NOTE: Score that I find in column c is actually score from column c-W
-                if (bestScore == -1 || colScore < bestScore) {
-                    bestScore = colScore;
-                    position = c - W;
-                    k = bestScore - 1; // Change k so we will look only for better scores then the best found so far.
+                if (bestScore == -1 || colScore <= bestScore) {
+                    if (colScore != bestScore) {
+                        positions.clear();
+                        bestScore = colScore;
+                        // Change k so we will look only for equal or better
+                        // scores then the best found so far.
+                        k = bestScore;
+                    }
+                    positions.push_back(c - W);
                 }
             }
         }
@@ -405,16 +430,23 @@ static int myersCalcEditDistanceSemiGlobal(Block* const blocks, Word* const Peq,
             if (bl->P & mask) colScore--;
             if (bl->M & mask) colScore++;
             mask >>= 1;
-            if (colScore <= k && (bestScore == -1 || colScore < bestScore)) {
-                bestScore = colScore;
-                position = targetLength - 1 - i;
-                k = bestScore - 1;
+            if (colScore <= k && (bestScore == -1 || colScore <= bestScore)) {
+                if (colScore != bestScore) {
+                    positions.clear();
+                    bestScore = colScore;
+                    k = bestScore;
+                }
+                positions.push_back(targetLength - 1 - i);
             }
         }
     }
 
     *bestScore_ = bestScore;
-    *position_ = position;
+    if (bestScore != -1) {
+        *positions_ = new int[positions.size()];
+        *numPositions_ = positions.size();
+        copy(positions.begin(), positions.end(), *positions_);
+    }
     return MYERS_STATUS_OK;
 }
 
