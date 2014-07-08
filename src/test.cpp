@@ -139,8 +139,8 @@ void runRandomTests(int numTests, int mode, bool findAlignment) {
             }
         }
         
-        if (positions1) delete[] positions1;
-        if (positions2) delete[] positions2;
+        if (positions1) free(positions1);
+        if (positions2) free(positions2);
 
         for (int k = score2 - 1; k <= score2 + 1; k++) {
             int score3, numPositions3;
@@ -164,7 +164,7 @@ void runRandomTests(int numTests, int mode, bool findAlignment) {
                 }
                 free(alignment3);
             }
-            if (positions3) delete[] positions3;
+            if (positions3) free(positions3);
         }
 
         if (failed)
@@ -231,8 +231,8 @@ bool executeTest(const unsigned char* query, int queryLength,
     printf(pass ? "\x1B[32m OK \x1B[0m\n" : "\x1B[31m FAIL \x1B[0m\n");
     
     if (alignment) free(alignment);
-    if (positions1) delete[] positions1;
-    if (positions2) delete[] positions2;
+    if (positions1) free(positions1);
+    if (positions2) free(positions2);
     return pass;
 }
 

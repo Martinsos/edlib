@@ -170,7 +170,7 @@ int main(int argc, char * const argv[]) {
         // Keep only first position
         if (numPositions > 0) {
             pos[i] = positions[0];
-            delete[] positions;
+            free(positions);
         } else {
             pos[i] = -1;
         }

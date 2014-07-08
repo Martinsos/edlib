@@ -154,7 +154,7 @@ int myersCalcEditDistance(const unsigned char* query, int queryLength,
 
     // If NW mode and there is solution, return position in correct format.
     if (mode == MYERS_MODE_NW && *bestScore != -1) {
-        *positions = new int[1];
+        *positions = (int *) malloc(sizeof(int) * 1);
         (*positions)[0] = positionNW;
         *numPositions = 1;
     }
@@ -391,7 +391,7 @@ static int myersCalcEditDistanceSemiGlobal(Block* const blocks, Word* const Peq,
         if (lastBlock < firstBlock) {
             *bestScore_ = bestScore;
             if (bestScore != -1) {
-                *positions_ = new int[positions.size()];
+                *positions_ = (int *) malloc(sizeof(int) * positions.size());
                 *numPositions_ = positions.size();
                 copy(positions.begin(), positions.end(), *positions_);
             }
@@ -443,7 +443,7 @@ static int myersCalcEditDistanceSemiGlobal(Block* const blocks, Word* const Peq,
 
     *bestScore_ = bestScore;
     if (bestScore != -1) {
-        *positions_ = new int[positions.size()];
+        *positions_ = (int *) malloc(sizeof(int) * positions.size());
         *numPositions_ = positions.size();
         copy(positions.begin(), positions.end(), *positions_);
     }

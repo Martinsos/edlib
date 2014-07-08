@@ -48,7 +48,7 @@ extern "C" {
      *                         If gap after query is penalized, gap counts as part of query (NW),
      *                         otherwise not.
      *                         If there is no score <= k, positions is set to NULL.
-     *                         Otherwise, array is returned and it is on you to free it with delete[].
+     *                         Otherwise, array is returned and it is on you to free it with free().
      * @param [out] numPositions  Number of positions returned.
      * @param [out] alignment  Alignment is found for first position returned.
      *                         Will contain alignment if findAlignment is true and score != -1.
