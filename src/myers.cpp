@@ -300,6 +300,11 @@ static int myersCalcEditDistanceSemiGlobal(Block* const blocks, Word* const Peq,
     int firstBlock = 0;
     int lastBlock = min(ceilDiv(k + 1, WORD_SIZE), maxNumBlocks) - 1; // y in Myers
     Block *bl; // Current block
+
+    // For HW, solution will never be larger then queryLength.
+    if (mode == MYERS_MODE_HW) {
+        k = min(queryLength, k);
+    }
     
     // Each STRONG_REDUCE_NUM column is reduced in more expensive way.
     // This gives speed up of about 2 times for small k.
@@ -387,6 +392,14 @@ static int myersCalcEditDistanceSemiGlobal(Block* const blocks, Word* const Peq,
             }
         }
 
+        // For HW, even if all cells are > k, there still may be solution in next
+        // column because starting conditions at upper boundary are 0.
+        // That means that first block is always candidate for solution,
+        // and we can never end calculation before last column.
+        if (mode == MYERS_MODE_HW) {
+            lastBlock = max(0, lastBlock);
+        }
+
         // If band stops to exist finish
         if (lastBlock < firstBlock) {
             *bestScore_ = bestScore;
@@ -447,6 +460,7 @@ static int myersCalcEditDistanceSemiGlobal(Block* const blocks, Word* const Peq,
         *numPositions_ = positions.size();
         copy(positions.begin(), positions.end(), *positions_);
     }
+
     return MYERS_STATUS_OK;
 }
 
