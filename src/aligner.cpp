@@ -140,11 +140,11 @@ int main(int argc, char * const argv[]) {
     // ----------------------------- MAIN CALCULATION ----------------------------- //
     printf("\nComparing queries to target...\n");
     int* scores = new int[numQueries];
-    int* pos    = new int[numQueries];
+    int** positions = new int*[numQueries];
+    int* numPositions = new int[numQueries];
     priority_queue<int> bestScores; // Contains numBestSeqs best scores
     int k = kArg;
     unsigned char* alignment = NULL; int alignmentLength;
-    int* positions = NULL; int numPositions;
     clock_t start = clock();
 
     if (!findAlignment || silent) {
@@ -159,22 +159,14 @@ int main(int argc, char * const argv[]) {
             // Just for testing
             calcEditDistanceSimple(query, queryLength, target, targetLength,
                                    alphabetLength, modeCode, scores + i,
-                                   &positions, &numPositions);
+                                   positions + i, numPositions + i);
         } else {
             myersCalcEditDistance(query, queryLength, target, targetLength,
                                   alphabetLength, k, modeCode, scores + i,
-                                  &positions, &numPositions,
+                                  positions + i, numPositions + i,
                                   findAlignment, &alignment, &alignmentLength);
         }
 
-        // Keep only first position
-        if (numPositions > 0) {
-            pos[i] = positions[0];
-            free(positions);
-        } else {
-            pos[i] = -1;
-        }
-        
         // If we want only numBestSeqs best sequences, update best scores and adjust k to largest score.
         if (numBestSeqs > 0) {
             if (scores[i] >= 0) {
@@ -194,13 +186,13 @@ int main(int argc, char * const argv[]) {
             printf("\r%d/%d", i+1, numQueries);
             fflush(stdout);
         } else {
-            // Print alignment if it was found
+            // Print alignment if it was found, use first position
             if (alignment) {
                 printf("\n");
                 printf("Query #%d (%d residues): score = %d\n", i, queryLength, scores[i]);
                 printAlignment(query, queryLength, target, targetLength,
                                alignment, alignmentLength,
-                               pos[i], modeCode, idxToLetter);
+                               *(positions[i]), modeCode, idxToLetter);
             }
         }
 
@@ -220,10 +212,20 @@ int main(int argc, char * const argv[]) {
             printf("Scores:\n");
         }
 
-        printf("<query number>: <score>, <end_position_in_target>\n");
-        for (int i = 0; i < numQueries; i++)
-            if (scores[i] > -1 && (scoreLimit == -1 || scores[i] <= scoreLimit))
-                printf("#%d: %10d, %10d\n", i, scores[i], pos[i]);
+        printf("<query number>: <score>, <num_positions>, [<end_position_in_target>]\n");
+        for (int i = 0; i < numQueries; i++) {
+            if (scores[i] > -1 && (scoreLimit == -1 || scores[i] <= scoreLimit)) {
+                printf("#%d: %d  %d", i, scores[i], numPositions[i]);
+                if (numPositions[i] > 0) {
+                    printf("  [");
+                    for (int j = 0; j < numPositions[i]; j++) {
+                        printf(" %d", *(positions[i] + j));
+                    }
+                    printf(" ]");
+                }
+                printf("\n");
+            }
+        }
         
     }
 
@@ -233,10 +235,14 @@ int main(int argc, char * const argv[]) {
     // ---------------------------------------------------------------------------- //
 
     // Free allocated space
+    for (int i = 0; i < numQueries; i++) {
+        free(positions[i]);
+    }
+    delete[] positions;
+    delete[] numPositions;
     delete querySequences;
     delete targetSequences;
     delete[] scores;
-    delete[] pos;
     
     return 0;
 }
