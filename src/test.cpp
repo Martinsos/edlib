@@ -1,6 +1,7 @@
 #include <cstdio>
 #include <ctime>
 #include <cstdlib>
+#include <cstring>
 
 #include "myers.h"
 #include "SimpleEditDistance.h"
@@ -327,9 +328,29 @@ bool test6() {
     return r;
 }
 
+bool testCigar() {
+    unsigned char alignment[] = {0, 0, 1, 1, 1, 2, 1, 1, 3, 0, 0};
+    char* cigar;
+    edlibAlignmentToCigar(alignment, 11, &cigar);
+
+    bool pass = true;
+    char expected[] = "2=3I1D2I1X2=";
+    if (strcmp(cigar, expected) != 0) {
+        pass = false;
+        printf("Expected %s, got %s\n", expected, cigar);
+    }
+
+    printf(pass ? "\x1B[32m""OK""\x1B[0m\n" : "\x1B[31m""FAIL""\x1B[0m\n");
+    if (cigar) {
+        free(cigar);
+    }
+    return pass;
+}
+
 bool runTests() {
-    int numTests = 6;
-    bool (* tests [])() = {test1, test2, test3, test4, test5, test6};
+    // TODO: make this global vector where tests have to add themselves.
+    int numTests = 7;
+    bool (* tests [])() = {test1, test2, test3, test4, test5, test6, testCigar};
     
     bool allTestsPassed = true;
     for (int i = 0; i < numTests; i++) {
@@ -352,16 +373,25 @@ bool checkAlignment(const unsigned char* query, int queryLength,
     int qIdx = queryLength - 1;
     int tIdx = pos;
     for (int i = alignmentLength - 1; i >= 0; i--) {
-        if (alignment[i] == 0) { // (mis)match
-            alignScore += query[qIdx] == target[tIdx] ? 0 : 1;
+        if (alignment[i] == 0) { // match
+            if (query[qIdx] != target[tIdx]) {
+                printf("Should be match but is a mismatch! (tIdx, qIdx, i): (%d, %d, %d)\n", tIdx, qIdx, i);
+                return false;
+            }
             qIdx--;
             tIdx--;
-        }
-        else if (alignment[i] == 1) {
+        } else if (alignment[i] == 3) { // mismatch
+            if (query[qIdx] == target[tIdx]) {
+                printf("Should be mismatch but is a match! (tIdx, qIdx, i): (%d, %d, %d)\n", tIdx, qIdx, i);
+                return false;
+            }
             alignScore += 1;
             qIdx--;
-        }
-        else if (alignment[i] == 2) {
+            tIdx--;
+        } else if (alignment[i] == 1) {
+            alignScore += 1;
+            qIdx--;
+        } else if (alignment[i] == 2) {
             if (!(mode == MYERS_MODE_HW && qIdx == -1))
                 alignScore += 1;
             tIdx--;

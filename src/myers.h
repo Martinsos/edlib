@@ -8,6 +8,7 @@ extern "C" {
 
 // Status codes
 #define MYERS_STATUS_OK 0
+#define MYERS_STATUS_ERROR 1
 
 // Alignment modes
 #define MYERS_MODE_HW  0
@@ -53,13 +54,15 @@ extern "C" {
      * @param [out] alignment  Alignment is found for first position returned.
      *                         Will contain alignment if findAlignment is true and score != -1.
      *                         Otherwise it will be set NULL.
-     *                         Alignment is sequence of numbers: 0, 1, 2.
-     *                         0 stands for (mis)match.
+     *                         Alignment is sequence of numbers: 0, 1, 2, 3.
+     *                         0 stands for match.
      *                         1 stands for insertion to target.
      *                         2 stands for insertion to query.
+     *                         3 stands for mismatch.
      *                         Alignment aligns query to target from begining of query till end of query.
      *                         Alignment ends at @param positions[0] in target.
      *                         If gaps are not penalized, they are not in alignment.
+     *                         Needed memory is allocated and given pointer is set to it.
      *                         Important: Do not forget to free memory allocated for alignment!
      *                                    Use free().
      * @param [out] alignmentLength  Length of alignment.
@@ -69,7 +72,25 @@ extern "C" {
                               const unsigned char* target, int targetLength,
                               int alphabetLength, int k, int mode,
                               int* bestScore, int** positions, int* numPositions, 
-                              bool findAlignment, unsigned char** alignment, int* alignmentLength);
+                              bool findAlignment, unsigned char** alignment,
+                              int* alignmentLength);
+
+    /** 
+     * Builds cigar string from given alignment sequence.
+     * @param [in] alignment  Alignment sequence.
+     *                        0 stands for match.
+     *                        1 stands for insertion to target.
+     *                        2 stands for insertion to query.
+     *                        3 stands for mismatch.
+     * @param [in] alignmentLength
+     * @param [out] cigar  Will contain cigar string.
+     *     String is null terminated.
+     *     Needed memory is allocated and given pointer is set to it.
+     *     Do not forget to free it later using free()!
+     * @return Status code.
+     */
+    int edlibAlignmentToCigar(unsigned char* alignment, int alignmentLength,
+                              char** cigar);
 
 #ifdef __cplusplus 
 }

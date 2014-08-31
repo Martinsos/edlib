@@ -45,14 +45,19 @@ int main(int argc, char * const argv[]) {
     // If true, simple implementation of edit distance algorithm is used instead of myers.
     // This is for testing purposes.
     bool useSimple = false;
-    while ((option = getopt(argc, argv, "a:n:k:sct")) >= 0) { // : is not a delimiter but indicator of parameter
+    // If true, cigar string will be printed, if not nice representation
+    // of alignment will be printed.
+    bool printCigar = false;
+
+    while ((option = getopt(argc, argv, "a:n:k:sftc")) >= 0) { // : is not a delimiter but indicator of parameter
         switch (option) {
         case 'a': strcpy(mode, optarg); break;
         case 'n': numBestSeqs = atoi(optarg); break;
         case 'k': kArg = atoi(optarg); break;
         case 's': silent = true; break;
-        case 'c': findAlignment = true; break;
+        case 'f': findAlignment = true; break;
         case 't': useSimple = true; break;
+        case 'c': printCigar = true; break;
         }
     }
     if (optind + 2 != argc) {
@@ -64,10 +69,11 @@ int main(int argc, char * const argv[]) {
         fprintf(stderr, "\t-n N  Score will be calculated only for N best sequences (best = with smallest score)."
                 " If N = 0 then all sequences will be calculated." 
                 " Specifying small N can make total calculation much faster. [default: 0]\n");
-        fprintf(stderr, "\t-c If specified, alignment will be found and printed.\n");
+        fprintf(stderr, "\t-f If specified, alignment will be found and printed.\n");
         fprintf(stderr, "\t-k K  Sequences with score > K will be discarded."
                 " Smaller k, faster calculation.\n");
         fprintf(stderr, "\t-t If specified, simple algorithm is used instead of myers. To be used for testing.\n");
+        fprintf(stderr, "\t-c If specified and alignment is found, cigar string will be printed.\n");
         return 1;
     }
     //-------------------------------------------------------------------------//
@@ -167,7 +173,8 @@ int main(int argc, char * const argv[]) {
                                   findAlignment, &alignment, &alignmentLength);
         }
 
-        // If we want only numBestSeqs best sequences, update best scores and adjust k to largest score.
+        // If we want only numBestSeqs best sequences, update best scores 
+        // and adjust k to largest score.
         if (numBestSeqs > 0) {
             if (scores[i] >= 0) {
                 bestScores.push(scores[i]);
@@ -193,13 +200,24 @@ int main(int argc, char * const argv[]) {
                 printAlignment(query, queryLength, target, targetLength,
                                alignment, alignmentLength,
                                *(positions[i]), modeCode, idxToLetter);
+                if (printCigar) {
+                    printf("Cigar:\n");
+                    char* cigar = NULL;
+                    edlibAlignmentToCigar(alignment, alignmentLength,
+                                          &cigar);
+                    if (cigar) {
+                        printf("%s\n", cigar);
+                        free(cigar);
+                    } else {
+                        printf("Error while printing cigar!\n");
+                    }
+                }
             }
         }
 
         if (alignment)
             free(alignment);
     }
-    printf("\n");
 
     if (!silent && !findAlignment) {
         int scoreLimit = -1; // Only scores <= then scoreLimit will be printed (we consider -1 as infinity)

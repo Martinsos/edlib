@@ -3,8 +3,8 @@
 #include <stdint.h>
 #include <cstdlib>
 #include <algorithm>
-#include <cstdio>
 #include <vector>
+#include <cstring>
 
 using namespace std;
 
@@ -168,6 +168,51 @@ int myersCalcEditDistance(const unsigned char* query, int queryLength,
     return MYERS_STATUS_OK;
 }
 
+
+int edlibAlignmentToCigar(unsigned char* alignment, int alignmentLength,
+                          char** cigar_) {
+    vector<char>* cigar = new vector<char>();
+    unsigned char lastMove = -1;  // Code of last move.
+    int numOfSameMoves = 0;
+    for (int i = 0; i <= alignmentLength; i++) {
+        // if new sequence of same moves started
+        if (i == alignmentLength || alignment[i] != lastMove) {
+            if (i > 0) {  // if previous sequence of same moves ended
+                // Write number of moves to cigar string.
+                int numDigits = 0;
+                for (; numOfSameMoves; numOfSameMoves /= 10) {
+                    cigar->push_back('0' + numOfSameMoves % 10);
+                    numDigits++;
+                }
+                reverse(cigar->end() - numDigits, cigar->end());
+                // Write code of move to cigar string.
+                if (lastMove == 0) {
+                    cigar->push_back('=');
+                } else if (lastMove == 1) {
+                    cigar->push_back('I');
+                } else if (lastMove == 2) {
+                    cigar->push_back('D');
+                } else if (lastMove == 3) {
+                    cigar->push_back('X');
+                } else {
+                    delete cigar;
+                    return MYERS_STATUS_ERROR;
+                }
+            }
+            if (i < alignmentLength) {
+                numOfSameMoves = 0;
+                lastMove = alignment[i];
+            }
+        }
+        numOfSameMoves++;
+    }
+    cigar->push_back(0);  // Null character termination.
+    *cigar_ = (char*) malloc(cigar->size() * sizeof(char));
+    memcpy(*cigar_, &(*cigar)[0], cigar->size() * sizeof(char));
+    delete cigar;
+
+    return MYERS_STATUS_OK;
+}
 
 /**
  * Build Peq table for given query and alphabet.
@@ -666,7 +711,6 @@ static int myersCalcEditDistanceNW(Block* blocks, Word* Peq, int W, int maxNumBl
 static void obtainAlignment(int maxNumBlocks, int queryLength, int targetLength,
                             int W, int bestScore, int position, AlignmentData* alignData,
                             unsigned char** alignment, int* alignmentLength) {
-    // TODO: reallocate when done
     *alignment = (unsigned char*) malloc((queryLength + targetLength - 1) * sizeof(unsigned char));
     *alignmentLength = 0;
     int c = position; // index of column
@@ -795,11 +839,12 @@ static void obtainAlignment(int maxNumBlocks, int queryLength, int targetLength,
         }
         // Move up left - (mis)match
         else if (ulScore != -1) {
+            unsigned char moveCode = ulScore == currScore ? 0 : 3;  // 0 for match, 3 for mismatch.
             currScore = ulScore;
             uScore = lScore = ulScore = -1;
             c--;
             if (c == -1) { // If there are no cells to the left (only boundary cells)
-                (*alignment)[(*alignmentLength)++] = 0; // Move left
+                (*alignment)[(*alignmentLength)++] = moveCode; // Move left
                 int numUp = b * WORD_SIZE + blockPos;
                 for (int i = 0; i < numUp; i++) // Move up until end
                     (*alignment)[(*alignmentLength)++] = 1;
@@ -807,7 +852,7 @@ static void obtainAlignment(int maxNumBlocks, int queryLength, int targetLength,
             }
             if (blockPos == 0) { // If entering upper left block
                 if (b == 0) { // If there are no more cells above (only boundary cells)
-                    (*alignment)[(*alignmentLength)++] = 0; // Move up left
+                    (*alignment)[(*alignmentLength)++] = moveCode; // Move up left
                     for (int i = 0; i < c + 1; i++) // Move left until end
                         (*alignment)[(*alignmentLength)++] = 2;
                     break;
@@ -838,7 +883,7 @@ static void obtainAlignment(int maxNumBlocks, int queryLength, int targetLength,
                 }
             }
             // Mark move
-            (*alignment)[(*alignmentLength)++] = 0;
+            (*alignment)[(*alignmentLength)++] = moveCode;
         } else {
             // Reached end - finished!
             break;
