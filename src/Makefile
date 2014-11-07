@@ -8,14 +8,14 @@ endif
 
 all: test aligner
 
-test: myers.o test.cpp SimpleEditDistance.h
-	$(CC) $(CFLAGS) myers.o test.cpp -o test
+test: edlib.o test.cpp SimpleEditDistance.h
+	$(CC) $(CFLAGS) edlib.o test.cpp -o test
 
-aligner: myers.o aligner.cpp SimpleEditDistance.h
-	$(CC) $(CFLAGS) myers.o aligner.cpp -o aligner
+aligner: edlib.o aligner.cpp SimpleEditDistance.h
+	$(CC) $(CFLAGS) edlib.o aligner.cpp -o aligner
 
-myers.o: myers.cpp myers.h
-	$(CC) $(CFLAGS) -c myers.cpp
+edlib.o: edlib.cpp edlib.h
+	$(CC) $(CFLAGS) -c edlib.cpp
 
 # etags are used in emacs
 etags:

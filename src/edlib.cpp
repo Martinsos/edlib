@@ -1,4 +1,4 @@
-#include "myers.h"
+#include "edlib.h"
 
 #include <stdint.h>
 #include <cstdlib>
@@ -72,7 +72,7 @@ static inline Word* buildPeq(int alphabetLength, const unsigned char* query, int
 /**
  * Entry function.
  */
-int myersCalcEditDistance(const unsigned char* query, int queryLength,
+int edlibCalcEditDistance(const unsigned char* query, int queryLength,
                           const unsigned char* target, int targetLength,
                           int alphabetLength, int k, int mode,
                           int* bestScore, int** positions, int* numPositions, 
@@ -102,12 +102,12 @@ int myersCalcEditDistance(const unsigned char* query, int queryLength,
 
     do {
         if (alignData) delete alignData;
-        if (mode == MYERS_MODE_HW || mode == MYERS_MODE_SHW)
+        if (mode == EDLIB_MODE_HW || mode == EDLIB_MODE_SHW)
             myersCalcEditDistanceSemiGlobal(blocks, Peq, W, maxNumBlocks,
                                             query, queryLength, target, targetLength,
                                             alphabetLength, k, mode, bestScore,
                                             positions, numPositions);
-        else  // mode == MYERS_MODE_NW
+        else  // mode == EDLIB_MODE_NW
             myersCalcEditDistanceNW(blocks, Peq, W, maxNumBlocks,
                                     query, queryLength, target, targetLength,
                                     alphabetLength, k, bestScore, &positionNW,
@@ -117,10 +117,10 @@ int myersCalcEditDistance(const unsigned char* query, int queryLength,
     
     // Finding alignment -> all comes down to finding alignment for NW
     if (findAlignment && *bestScore >= 0) {
-        if (mode != MYERS_MODE_NW) {
+        if (mode != EDLIB_MODE_NW) {
             int targetStart;
             int targetEnd = (*positions)[0];
-            if (mode == MYERS_MODE_HW) { // If HW, I need to find target start
+            if (mode == EDLIB_MODE_HW) { // If HW, I need to find target start
                 const unsigned char* rTarget = createReverseCopy(target, targetEnd + 1);
                 const unsigned char* rQuery  = createReverseCopy(query, queryLength);
                 Word* rPeq = buildPeq(alphabetLength, rQuery, queryLength); // Peq for reversed query
@@ -128,7 +128,7 @@ int myersCalcEditDistance(const unsigned char* query, int queryLength,
                 int* positionsSHW;
                 myersCalcEditDistanceSemiGlobal(blocks, rPeq, W, maxNumBlocks,
                                                 rQuery, queryLength, rTarget, targetEnd + 1,
-                                                alphabetLength, *bestScore, MYERS_MODE_SHW,
+                                                alphabetLength, *bestScore, EDLIB_MODE_SHW,
                                                 &bestScoreSHW, &positionsSHW, &numPositionsSHW);
                 targetStart = targetEnd - positionsSHW[0];
                 delete[] rTarget;
@@ -136,7 +136,7 @@ int myersCalcEditDistance(const unsigned char* query, int queryLength,
                 delete[] rPeq;
                 delete[] positionsSHW;
             }
-            if (mode == MYERS_MODE_SHW) {
+            if (mode == EDLIB_MODE_SHW) {
                 targetStart = 0;
             }
             int alnBestScore, alnPosition;
@@ -154,7 +154,7 @@ int myersCalcEditDistance(const unsigned char* query, int queryLength,
     /*-------------------------------------------------------*/
 
     // If NW mode and there is solution, return position in correct format.
-    if (mode == MYERS_MODE_NW && *bestScore != -1) {
+    if (mode == EDLIB_MODE_NW && *bestScore != -1) {
         *positions = (int *) malloc(sizeof(int) * 1);
         (*positions)[0] = positionNW;
         *numPositions = 1;
@@ -166,7 +166,7 @@ int myersCalcEditDistance(const unsigned char* query, int queryLength,
     if (alignData) delete alignData;
     //-------------------//
 
-    return MYERS_STATUS_OK;
+    return EDLIB_STATUS_OK;
 }
 
 
@@ -197,7 +197,7 @@ int edlibAlignmentToCigar(unsigned char* alignment, int alignmentLength,
                     cigar->push_back('X');
                 } else {
                     delete cigar;
-                    return MYERS_STATUS_ERROR;
+                    return EDLIB_STATUS_ERROR;
                 }
             }
             if (i < alignmentLength) {
@@ -212,7 +212,7 @@ int edlibAlignmentToCigar(unsigned char* alignment, int alignmentLength,
     memcpy(*cigar_, &(*cigar)[0], cigar->size() * sizeof(char));
     delete cigar;
 
-    return MYERS_STATUS_OK;
+    return EDLIB_STATUS_OK;
 }
 
 /**
@@ -331,7 +331,7 @@ static inline int max(int x, int y) {
 
 
 /**
- * @param [in] mode  MYERS_MODE_HW or MYERS_MODE_SHW or MYERS_MODE_OV
+ * @param [in] mode  EDLIB_MODE_HW or EDLIB_MODE_SHW or EDLIB_MODE_OV
  */
 static int myersCalcEditDistanceSemiGlobal(Block* const blocks, Word* const Peq, const int W, const int maxNumBlocks,
                                            const unsigned char* const query,  const int queryLength,
@@ -348,7 +348,7 @@ static int myersCalcEditDistanceSemiGlobal(Block* const blocks, Word* const Peq,
     Block *bl; // Current block
 
     // For HW, solution will never be larger then queryLength.
-    if (mode == MYERS_MODE_HW) {
+    if (mode == EDLIB_MODE_HW) {
         k = min(queryLength, k);
     }
     
@@ -367,7 +367,7 @@ static int myersCalcEditDistanceSemiGlobal(Block* const blocks, Word* const Peq,
 
     int bestScore = -1;
     vector<int> positions; // TODO: Maybe put this on heap?
-    const int startHout = mode == MYERS_MODE_HW ? 0 : 1; // If 0 then gap before query is not penalized;
+    const int startHout = mode == EDLIB_MODE_HW ? 0 : 1; // If 0 then gap before query is not penalized;
     const unsigned char* targetChar = target;
     for (int c = 0; c < targetLength; c++) { // for each column
         const Word* Peq_c = Peq + (*targetChar) * maxNumBlocks;
@@ -385,7 +385,7 @@ static int myersCalcEditDistanceSemiGlobal(Block* const blocks, Word* const Peq,
         //------------------------------------------------------------------//
 
         //---------- Adjust number of blocks according to Ukkonen ----------//
-        if (mode != MYERS_MODE_HW) {
+        if (mode != EDLIB_MODE_HW) {
             while (firstBlock < maxNumBlocks && blocks[firstBlock].score >= k + WORD_SIZE) {
                 firstBlock++;
             }
@@ -442,7 +442,7 @@ static int myersCalcEditDistanceSemiGlobal(Block* const blocks, Word* const Peq,
         // column because starting conditions at upper boundary are 0.
         // That means that first block is always candidate for solution,
         // and we can never end calculation before last column.
-        if (mode == MYERS_MODE_HW) {
+        if (mode == EDLIB_MODE_HW) {
             lastBlock = max(0, lastBlock);
         }
 
@@ -454,7 +454,7 @@ static int myersCalcEditDistanceSemiGlobal(Block* const blocks, Word* const Peq,
                 *numPositions_ = positions.size();
                 copy(positions.begin(), positions.end(), *positions_);
             }
-            return MYERS_STATUS_OK;
+            return EDLIB_STATUS_OK;
         }
         //------------------------------------------------------------------//
 
@@ -507,7 +507,7 @@ static int myersCalcEditDistanceSemiGlobal(Block* const blocks, Word* const Peq,
         copy(positions.begin(), positions.end(), *positions_);
     }
 
-    return MYERS_STATUS_OK;
+    return EDLIB_STATUS_OK;
 }
 
 
@@ -529,7 +529,7 @@ static int myersCalcEditDistanceNW(Block* blocks, Word* Peq, int W, int maxNumBl
 
     if (k < abs(targetLength - queryLength)) {
         *bestScore_ = *position_ = -1;
-        return MYERS_STATUS_OK;
+        return EDLIB_STATUS_OK;
     }
 
     k = min(k, max(queryLength, targetLength));  // Upper bound for k
@@ -652,7 +652,7 @@ static int myersCalcEditDistanceNW(Block* blocks, Word* Peq, int W, int maxNumBl
         // If band stops to exist finish
         if (lastBlock < firstBlock) {
             *bestScore_ = *position_ = -1;
-            return MYERS_STATUS_OK;
+            return EDLIB_STATUS_OK;
         }
         //------------------------------------------------------------------//
         
@@ -688,12 +688,12 @@ static int myersCalcEditDistanceNW(Block* blocks, Word* Peq, int W, int maxNumBl
         if (bestScore <= k) {
             *bestScore_ = bestScore;
             *position_ = targetLength - 1;
-            return MYERS_STATUS_OK;
+            return EDLIB_STATUS_OK;
         }
     }
     
     *bestScore_ = *position_ = -1;
-    return MYERS_STATUS_OK;
+    return EDLIB_STATUS_OK;
 }
 
 

@@ -8,7 +8,7 @@
 #include <climits>
 #include <queue>
 
-#include "myers.h"
+#include "edlib.h"
 
 #include "SimpleEditDistance.h"
 
@@ -42,7 +42,7 @@ int main(int argc, char * const argv[]) {
     bool findAlignment = false;
     int option;
     int kArg = -1;
-    // If true, simple implementation of edit distance algorithm is used instead of myers.
+    // If true, simple implementation of edit distance algorithm is used instead of edlib.
     // This is for testing purposes.
     bool useSimple = false;
     // If true, cigar string will be printed, if not nice representation
@@ -72,7 +72,7 @@ int main(int argc, char * const argv[]) {
         fprintf(stderr, "\t-f If specified, alignment will be found and printed.\n");
         fprintf(stderr, "\t-k K  Sequences with score > K will be discarded."
                 " Smaller k, faster calculation.\n");
-        fprintf(stderr, "\t-t If specified, simple algorithm is used instead of myers. To be used for testing.\n");
+        fprintf(stderr, "\t-t If specified, simple algorithm is used instead of edlib. To be used for testing.\n");
         fprintf(stderr, "\t-c If specified and alignment is found, cigar string will be printed.\n");
         return 1;
     }
@@ -80,11 +80,11 @@ int main(int argc, char * const argv[]) {
 
     int modeCode;
     if (!strcmp(mode, "SHW"))
-        modeCode = MYERS_MODE_SHW;
+        modeCode = EDLIB_MODE_SHW;
     else if (!strcmp(mode, "HW"))
-        modeCode = MYERS_MODE_HW;
+        modeCode = EDLIB_MODE_HW;
     else if (!strcmp(mode, "NW"))
-        modeCode = MYERS_MODE_NW;
+        modeCode = EDLIB_MODE_NW;
     else {
         printf("Invalid mode!\n");
         return 1;
@@ -167,7 +167,7 @@ int main(int argc, char * const argv[]) {
                                    alphabetLength, modeCode, scores + i,
                                    positions + i, numPositions + i);
         } else {
-            myersCalcEditDistance(query, queryLength, target, targetLength,
+            edlibCalcEditDistance(query, queryLength, target, targetLength,
                                   alphabetLength, k, modeCode, scores + i,
                                   positions + i, numPositions + i,
                                   findAlignment, &alignment, &alignmentLength);
@@ -332,7 +332,7 @@ void printAlignment(const unsigned char* query, const int queryLength,
                     const int position, const int modeCode, const char* idxToLetter) {
     int tIdx = -1;
     int qIdx = -1;
-    if (modeCode == MYERS_MODE_HW) {
+    if (modeCode == EDLIB_MODE_HW) {
         tIdx = position;
         for (int i = 0; i < alignmentLength; i++) {
             if (alignment[i] != 1)

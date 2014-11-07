@@ -1,5 +1,5 @@
-#ifndef MYERS_H
-#define MYERS_H
+#ifndef EDLIB_H
+#define EDLIB_H
 
 
 #ifdef __cplusplus 
@@ -7,14 +7,14 @@ extern "C" {
 #endif
 
 // Status codes
-#define MYERS_STATUS_OK 0
-#define MYERS_STATUS_ERROR 1
+#define EDLIB_STATUS_OK 0
+#define EDLIB_STATUS_ERROR 1
 
 // Alignment modes
-#define MYERS_MODE_HW  0
-#define MYERS_MODE_NW  1
-#define MYERS_MODE_SHW 2
-#define MYERS_MODE_OV  3
+#define EDLIB_MODE_HW  0
+#define EDLIB_MODE_NW  1
+#define EDLIB_MODE_SHW 2
+#define EDLIB_MODE_OV  3
 
     /**
      * Calculates Levenshtein distance of query and target 
@@ -35,10 +35,10 @@ extern "C" {
      *                 If you are interested in score only if it is <= K, set k to K.
      *                 If k is negative then k will be auto-adjusted (increased) until score is found.
      * @param [in] mode  Mode that determines alignment algorithm.
-     *                    MYERS_MODE_NW: global (Needleman-Wunsch)
-     *                    MYERS_MODE_HW: semi-global. Gaps before and after query are not penalized.
-     *                    MYERS_MODE_SHW: semi-global. Gap after query is not penalized.
-     *                    MYERS_MODE_OV: semi-global. Gaps before and after query and target are not penalized.
+     *                    EDLIB_MODE_NW: global (Needleman-Wunsch)
+     *                    EDLIB_MODE_HW: semi-global. Gaps before and after query are not penalized.
+     *                    EDLIB_MODE_SHW: semi-global. Gap after query is not penalized.
+     *                    EDLIB_MODE_OV: semi-global. Gaps before and after query and target are not penalized.
      * @param [in] findAlignment  If true and if score != -1, reconstruction of alignment will be performed
      *                            and alignment will be returned. 
      *                            Notice: Finding aligment will increase execution time
@@ -68,7 +68,7 @@ extern "C" {
      * @param [out] alignmentLength  Length of alignment.
      * @return Status code.
      */
-    int myersCalcEditDistance(const unsigned char* query, int queryLength,
+    int edlibCalcEditDistance(const unsigned char* query, int queryLength,
                               const unsigned char* target, int targetLength,
                               int alphabetLength, int k, int mode,
                               int* bestScore, int** positions, int* numPositions, 
@@ -96,4 +96,4 @@ extern "C" {
 }
 #endif
 
-#endif // MYERS_H
+#endif // EDLIB_H

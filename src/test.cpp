@@ -3,7 +3,7 @@
 #include <cstdlib>
 #include <cstring>
 
-#include "myers.h"
+#include "edlib.h"
 #include "SimpleEditDistance.h"
 
 using namespace std;
@@ -26,28 +26,28 @@ int main() {
     srand(1);
     
     printf("Testing HW with alignment...\n");
-    runRandomTests(1000, MYERS_MODE_HW, true);
+    runRandomTests(1000, EDLIB_MODE_HW, true);
     printf("\n");
     
     printf("Testing HW...\n");
-    runRandomTests(1000, MYERS_MODE_HW, false);
+    runRandomTests(1000, EDLIB_MODE_HW, false);
     printf("\n");
     
     printf("Testing NW with alignment...\n");
-    runRandomTests(1000, MYERS_MODE_NW, true);
+    runRandomTests(1000, EDLIB_MODE_NW, true);
     printf("\n");
     
     
     printf("Testing NW...\n");
-    runRandomTests(1000, MYERS_MODE_NW, false);
+    runRandomTests(1000, EDLIB_MODE_NW, false);
     printf("\n");
     
     printf("Testing SHW with alignment...\n");
-    runRandomTests(1000, MYERS_MODE_SHW, true);
+    runRandomTests(1000, EDLIB_MODE_SHW, true);
     printf("\n");
     
     printf("Testing SHW...\n");
-    runRandomTests(1000, MYERS_MODE_SHW, false);
+    runRandomTests(1000, EDLIB_MODE_SHW, false);
     printf("\n");
     
     printf("Specific tests:\n");
@@ -69,7 +69,7 @@ void runRandomTests(int numTests, int mode, bool findAlignment) {
     int alphabetLength = 10;
     int numTestsFailed = 0;
     clock_t start;
-    double timeMyers = 0;
+    double timeEdlib = 0;
     double timeSimple = 0;
     
     for (int i = 0; i < numTests; i++) {
@@ -97,10 +97,10 @@ void runRandomTests(int numTests, int mode, bool findAlignment) {
         int score1, numPositions1;
         int* positions1;
         unsigned char* alignment; int alignmentLength;
-        myersCalcEditDistance(query, queryLength, target, targetLength, alphabetLength,
+        edlibCalcEditDistance(query, queryLength, target, targetLength, alphabetLength,
                               -1, mode, &score1, &positions1, &numPositions1,
                               findAlignment, &alignment, &alignmentLength);
-        timeMyers += clock() - start;
+        timeEdlib += clock() - start;
         if (alignment) {
             if (!checkAlignment(query, queryLength, target, targetLength,
                                 score1, positions1[0], mode, alignment, alignmentLength)) {
@@ -148,7 +148,7 @@ void runRandomTests(int numTests, int mode, bool findAlignment) {
             int* positions3;
             unsigned char* alignment3; int alignmentLength3;
             int scoreExpected = score2 > k ? -1 : score2;
-            myersCalcEditDistance(query, queryLength, target, targetLength,
+            edlibCalcEditDistance(query, queryLength, target, targetLength,
                                   alphabetLength, k, mode, &score3, &positions3,
                                   &numPositions3, findAlignment, &alignment3,
                                   &alignmentLength3);
@@ -172,14 +172,14 @@ void runRandomTests(int numTests, int mode, bool findAlignment) {
             numTestsFailed++;
     }
     
-    printf(mode == MYERS_MODE_HW ? "HW: " : mode == MYERS_MODE_SHW ? "SHW: " : "NW: ");
+    printf(mode == EDLIB_MODE_HW ? "HW: " : mode == EDLIB_MODE_SHW ? "SHW: " : "NW: ");
     printf(numTestsFailed == 0 ? "\x1B[32m" : "\x1B[31m");
     printf("%d/%d", numTests - numTestsFailed, numTests);
     printf("\x1B[0m");
     printf(" random tests passed!\n");
-    double mTime = ((double)(timeMyers))/CLOCKS_PER_SEC;
+    double mTime = ((double)(timeEdlib))/CLOCKS_PER_SEC;
     double sTime = ((double)(timeSimple))/CLOCKS_PER_SEC;
-    printf("Time Myers: %lf\n", mTime);
+    printf("Time Edlib: %lf\n", mTime);
     printf("Time Simple: %lf\n", sTime);
     printf("Times faster: %.2lf\n", sTime / mTime);
 }
@@ -188,7 +188,7 @@ void runRandomTests(int numTests, int mode, bool findAlignment) {
 bool executeTest(const unsigned char* query, int queryLength,
                  const unsigned char* target, int targetLength,
                  int alphabetLength, int mode) {
-    printf(mode == MYERS_MODE_HW ? "HW:  " : mode == MYERS_MODE_SHW ? "SHW: " : "NW:  ");
+    printf(mode == EDLIB_MODE_HW ? "HW:  " : mode == EDLIB_MODE_SHW ? "SHW: " : "NW:  ");
     
     bool pass = true;
 
@@ -199,7 +199,7 @@ bool executeTest(const unsigned char* query, int queryLength,
 
     int score1; int numPositions1; int* positions1;
     unsigned char* alignment; int alignmentLength;
-    myersCalcEditDistance(query, queryLength, target, targetLength,
+    edlibCalcEditDistance(query, queryLength, target, targetLength,
                           alphabetLength, -1, mode, &score1, &positions1,
                           &numPositions1, false, &alignment, &alignmentLength);
 
@@ -244,9 +244,9 @@ bool test1() {
     unsigned char query[4] = {0,1,2,3};
     unsigned char target[4] = {0,1,2,3};
 
-    bool r = executeTest(query, queryLength, target, targetLength, alphabetLength, MYERS_MODE_HW);
-    r = r && executeTest(query, queryLength, target, targetLength, alphabetLength, MYERS_MODE_NW);
-    r = r && executeTest(query, queryLength, target, targetLength, alphabetLength, MYERS_MODE_SHW);
+    bool r = executeTest(query, queryLength, target, targetLength, alphabetLength, EDLIB_MODE_HW);
+    r = r && executeTest(query, queryLength, target, targetLength, alphabetLength, EDLIB_MODE_NW);
+    r = r && executeTest(query, queryLength, target, targetLength, alphabetLength, EDLIB_MODE_SHW);
     return r;
 }
 
@@ -257,9 +257,9 @@ bool test2() {
     unsigned char query[5] = {0,1,2,3,4}; // "match"
     unsigned char target[9] = {8,5,0,1,3,4,6,7,5}; // "remachine"
 
-    bool r = executeTest(query, queryLength, target, targetLength, alphabetLength, MYERS_MODE_HW);
-    r = r && executeTest(query, queryLength, target, targetLength, alphabetLength, MYERS_MODE_NW);
-    r = r && executeTest(query, queryLength, target, targetLength, alphabetLength, MYERS_MODE_SHW);
+    bool r = executeTest(query, queryLength, target, targetLength, alphabetLength, EDLIB_MODE_HW);
+    r = r && executeTest(query, queryLength, target, targetLength, alphabetLength, EDLIB_MODE_NW);
+    r = r && executeTest(query, queryLength, target, targetLength, alphabetLength, EDLIB_MODE_SHW);
     return r;
 }
 
@@ -270,9 +270,9 @@ bool test3() {
     unsigned char query[5] = {0,1,2,3,4};
     unsigned char target[9] = {1,2,0,1,2,3,4,5,4};
 
-    bool r = executeTest(query, queryLength, target, targetLength, alphabetLength, MYERS_MODE_HW);
-    r = r && executeTest(query, queryLength, target, targetLength, alphabetLength, MYERS_MODE_NW);
-    r = r && executeTest(query, queryLength, target, targetLength, alphabetLength, MYERS_MODE_SHW);
+    bool r = executeTest(query, queryLength, target, targetLength, alphabetLength, EDLIB_MODE_HW);
+    r = r && executeTest(query, queryLength, target, targetLength, alphabetLength, EDLIB_MODE_NW);
+    r = r && executeTest(query, queryLength, target, targetLength, alphabetLength, EDLIB_MODE_SHW);
     return r;
 }
 
@@ -283,9 +283,9 @@ bool test4() {
     unsigned char query[200] = {0};
     unsigned char target[200] = {1};
 
-    bool r = executeTest(query, queryLength, target, targetLength, alphabetLength, MYERS_MODE_HW);
-    r = r && executeTest(query, queryLength, target, targetLength, alphabetLength, MYERS_MODE_NW);
-    r = r && executeTest(query, queryLength, target, targetLength, alphabetLength, MYERS_MODE_SHW);
+    bool r = executeTest(query, queryLength, target, targetLength, alphabetLength, EDLIB_MODE_HW);
+    r = r && executeTest(query, queryLength, target, targetLength, alphabetLength, EDLIB_MODE_NW);
+    r = r && executeTest(query, queryLength, target, targetLength, alphabetLength, EDLIB_MODE_SHW);
     return r;
 }
 
@@ -296,9 +296,9 @@ bool test5() {
     unsigned char query[64] = {0};
     unsigned char target[64] = {1};
 
-    bool r = executeTest(query, queryLength, target, targetLength, alphabetLength, MYERS_MODE_HW);
-    r = r && executeTest(query, queryLength, target, targetLength, alphabetLength, MYERS_MODE_NW);
-    r = r && executeTest(query, queryLength, target, targetLength, alphabetLength, MYERS_MODE_SHW);
+    bool r = executeTest(query, queryLength, target, targetLength, alphabetLength, EDLIB_MODE_HW);
+    r = r && executeTest(query, queryLength, target, targetLength, alphabetLength, EDLIB_MODE_NW);
+    r = r && executeTest(query, queryLength, target, targetLength, alphabetLength, EDLIB_MODE_SHW);
     return r;
 }
 
@@ -322,9 +322,9 @@ bool test6() {
                                  2,3,2,3,3,1,0,1,1,1,0,1,3,0,1,3,3,3,1,3,2,2,3,2,3,3,1,0,1,1,1,
                                  0,1,3,0,1,3,3,3,1,3,2,2,3,2,3,3,1};
     
-    bool r = executeTest(query, queryLength, target, targetLength, alphabetLength, MYERS_MODE_HW);
-    r = r && executeTest(query, queryLength, target, targetLength, alphabetLength, MYERS_MODE_NW);
-    r = r && executeTest(query, queryLength, target, targetLength, alphabetLength, MYERS_MODE_SHW);
+    bool r = executeTest(query, queryLength, target, targetLength, alphabetLength, EDLIB_MODE_HW);
+    r = r && executeTest(query, queryLength, target, targetLength, alphabetLength, EDLIB_MODE_NW);
+    r = r && executeTest(query, queryLength, target, targetLength, alphabetLength, EDLIB_MODE_SHW);
     return r;
 }
 
@@ -392,7 +392,7 @@ bool checkAlignment(const unsigned char* query, int queryLength,
             alignScore += 1;
             qIdx--;
         } else if (alignment[i] == 2) {
-            if (!(mode == MYERS_MODE_HW && qIdx == -1))
+            if (!(mode == EDLIB_MODE_HW && qIdx == -1))
                 alignScore += 1;
             tIdx--;
         }
