@@ -134,6 +134,7 @@ int myersCalcEditDistance(const unsigned char* query, int queryLength,
                 delete[] rTarget;
                 delete[] rQuery;
                 delete[] rPeq;
+                delete[] positionsSHW;
             }
             if (mode == MYERS_MODE_SHW) {
                 targetStart = 0;
