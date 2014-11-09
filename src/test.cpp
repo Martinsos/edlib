@@ -74,7 +74,7 @@ void runRandomTests(int numTests, int mode, bool findAlignment) {
     
     for (int i = 0; i < numTests; i++) {
         bool failed = false;
-        int queryLength = 10 + rand() % 200;
+        int queryLength = 10 + rand() % 400;
         int targetLength = 100 + rand() % 20000;
         unsigned char query[queryLength];
         unsigned char target[targetLength];

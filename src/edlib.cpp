@@ -5,6 +5,7 @@
 #include <algorithm>
 #include <vector>
 #include <cstring>
+#include <cstdio>
 
 using namespace std;
 
@@ -328,6 +329,36 @@ static inline int max(int x, int y) {
 }
 
 
+/**
+ * @param [in] block
+ * @return Values of cells in block, starting with bottom cell in block.
+ */
+static inline vector<int> getBlockCellValues(Block* const block) {
+    vector<int> scores(WORD_SIZE);
+    int score = block->score;
+    Word mask = HIGH_BIT_MASK;
+    for (int i = 0; i < WORD_SIZE - 1; i++) {
+        scores[i] = score;
+        if (block->P & mask) score--;
+        if (block->M & mask) score++;
+        mask >>= 1;
+    }
+    scores[WORD_SIZE - 1] = score;
+    return scores;
+}
+
+/**
+ * @param [in] block
+ * @param [in] k
+ * @return True if all cells in block have value larger than k, otherwise false.
+ */
+static inline bool allBlockCellsLarger(Block* const block, const int k) {
+    vector<int> scores = getBlockCellValues(block);
+    for (int i = 0; i < WORD_SIZE; i++) {
+        if (scores[i] <= k) return false;
+    }
+    return true;
+}
 
 
 /**
@@ -385,29 +416,6 @@ static int myersCalcEditDistanceSemiGlobal(Block* const blocks, Word* const Peq,
         //------------------------------------------------------------------//
 
         //---------- Adjust number of blocks according to Ukkonen ----------//
-        if (mode != EDLIB_MODE_HW) {
-            while (firstBlock < maxNumBlocks && blocks[firstBlock].score >= k + WORD_SIZE) {
-                firstBlock++;
-            }
-            if (c % STRONG_REDUCE_NUM == 0) { // Do strong reduction every some blocks
-                while (firstBlock < maxNumBlocks) {
-                    // If all cells > k, remove block
-                    int score = blocks[firstBlock].score;
-                    Word P = blocks[firstBlock].P;
-                    Word M = blocks[firstBlock].M;
-                    Word mask = HIGH_BIT_MASK;
-                    for (int i = 0; i < WORD_SIZE - 1; i++) {
-                        if (score <= k) break;
-                        if (P & mask) score--;
-                        if (M & mask) score++;
-                        mask >>= 1;
-                    }
-                    if (score <= k) break;
-                    firstBlock++;
-                }
-            }
-        }
-
         if ((lastBlock < maxNumBlocks - 1) && (bl->score - hout <= k) // bl is pointing to last block
             && ((*(Peq_c + 1) & WORD_1) || hout < 0)) { // Peq_c is pointing to last block
             // If score of left block is not too big, calculate one more block
@@ -416,25 +424,26 @@ static int myersCalcEditDistanceSemiGlobal(Block* const blocks, Word* const Peq,
             bl->M = (Word)0;
             bl->score = (bl - 1)->score - hout + WORD_SIZE + calculateBlock(bl->P, bl->M, *Peq_c, hout, bl->P, bl->M);
         } else {
-            while (lastBlock >= 0 && bl->score >= k + WORD_SIZE) {
+            while (lastBlock >= firstBlock && bl->score >= k + WORD_SIZE) {
                 lastBlock--; bl--; Peq_c--;
             }
         }
 
         // Every some columns, do some expensive but also more efficient block reducing -> this is important!
         if (c % STRONG_REDUCE_NUM == 0) {
-            while (lastBlock >= 0) {
-                // If all cells > k, remove block
-                int score = bl->score;
-                Word mask = HIGH_BIT_MASK;
-                for (int i = 0; i < WORD_SIZE - 1; i++) {
-                    if (score <= k) break;
-                    if (bl->P & mask) score--;
-                    if (bl->M & mask) score++;
-                    mask >>= 1;
-                }
-                if (score <= k) break;
+            while (lastBlock >= firstBlock && allBlockCellsLarger(bl, k)) {
                 lastBlock--; bl--; Peq_c--;
+            }
+        }
+
+        if (mode != EDLIB_MODE_HW) {
+            while (firstBlock <= lastBlock && blocks[firstBlock].score >= k + WORD_SIZE) {
+                firstBlock++;
+            }
+            if (c % STRONG_REDUCE_NUM == 0) { // Do strong reduction every some blocks
+                while (firstBlock <= lastBlock && allBlockCellsLarger(blocks + firstBlock, k)) {
+                    firstBlock++;
+                }
             }
         }
 
@@ -483,19 +492,15 @@ static int myersCalcEditDistanceSemiGlobal(Block* const blocks, Word* const Peq,
 
     // Obtain results for last W columns from last column.
     if (lastBlock == maxNumBlocks - 1) {
-        int colScore = bl->score;
-        Word mask = HIGH_BIT_MASK;
-        for (int i = W - 1; i >= 0; i--) {
-            if (bl->P & mask) colScore--;
-            if (bl->M & mask) colScore++;
-            mask >>= 1;
+        vector<int> blockScores = getBlockCellValues(bl);
+        for (int i = 0; i < W; i++) {
+            int colScore = blockScores[i + 1];
             if (colScore <= k && (bestScore == -1 || colScore <= bestScore)) {
                 if (colScore != bestScore) {
                     positions.clear();
-                    bestScore = colScore;
-                    k = bestScore;
+                    k = bestScore = colScore;
                 }
-                positions.push_back(targetLength - 1 - i);
+                positions.push_back(targetLength - W + i);
             }
         }
     }
@@ -595,7 +600,7 @@ static int myersCalcEditDistanceNW(Block* blocks, Word* Peq, int W, int maxNumBl
 
         // While block is out of band, move one block up. - This is optimal now, by my formula.
         // NOTICE: I added + W, and now it works! This has to be added because query is padded with W cells.
-        while (lastBlock >= 0
+        while (lastBlock >= firstBlock
                && (bl->score >= k + WORD_SIZE
                    || ((lastBlock + 1) * WORD_SIZE - 1 > 
                        k - bl->score + 2 * WORD_SIZE - 2 - targetLength + c + queryLength + W))) {
@@ -605,9 +610,10 @@ static int myersCalcEditDistanceNW(Block* blocks, Word* Peq, int W, int maxNumBl
 
         //--- Adjust first block ---//
         // While outside of band, advance block
-        while (firstBlock <= lastBlock &&
-               (blocks[firstBlock].score >= k + WORD_SIZE
-                || (firstBlock + 1) * WORD_SIZE - 1 < blocks[firstBlock].score - k - targetLength + queryLength + c)) {
+        while (firstBlock <= lastBlock
+               && (blocks[firstBlock].score >= k + WORD_SIZE
+                   || ((firstBlock + 1) * WORD_SIZE - 1 <
+                       blocks[firstBlock].score - k - targetLength + queryLength + c))) {
             firstBlock++;
         }
         //--------------------------/
@@ -615,35 +621,36 @@ static int myersCalcEditDistanceNW(Block* blocks, Word* Peq, int W, int maxNumBl
         
         // TODO: consider if this part is useful, it does not seem to help much
         if (c % STRONG_REDUCE_NUM == 0) { // Every some columns do more expensive but more efficient reduction
-            while (lastBlock >= 0) {
+            while (lastBlock >= firstBlock) {
                 // If all cells outside of band, remove block
-                int score = bl->score;
-                Word mask = HIGH_BIT_MASK;
+                vector<int> scores = getBlockCellValues(bl);
                 int r = (lastBlock + 1) * WORD_SIZE - 1;
-                for (int i = 0; i < WORD_SIZE - 1; i++) {
-                    if (score <= k && r <= k - score - targetLength + c + queryLength + W + 1) break; // TODO: Does not work if do not put +1! Why???
-                    if (bl->P & mask) score--;
-                    if (bl->M & mask) score++;
-                    mask >>= 1;
+                bool reduce = true;
+                for (int i = 0; i < WORD_SIZE; i++) {
+                    // TODO: Does not work if do not put +1! Why???
+                    if (scores[i] <= k && r <= k - scores[i] - targetLength + c + queryLength + W + 1) {
+                        reduce = false;
+                        break; 
+                    }
                     r--;
                 }
-                if (score <= k && r <= k - score - targetLength + c + queryLength + W + 1) break; // TODO: Same as above
+                if (!reduce) break;
                 lastBlock--; bl--;
             }
 
-            while (firstBlock < maxNumBlocks) {
+            while (firstBlock <= lastBlock) {
                 // If all cells outside of band, remove block
-                int score = blocks[firstBlock].score;
-                Word mask = HIGH_BIT_MASK;
+                vector<int> scores = getBlockCellValues(blocks + firstBlock);
                 int r = (firstBlock + 1) * WORD_SIZE - 1;
-                for (int i = 0; i < WORD_SIZE - 1; i++) {
-                    if (score <= k && r >= score - k - targetLength + c + queryLength) break;
-                    if (blocks[firstBlock].P & mask) score--;
-                    if (blocks[firstBlock].M & mask) score++;
-                    mask >>= 1;
+                bool reduce = true;
+                for (int i = 0; i < WORD_SIZE; i++) {
+                    if (scores[i] <= k && r >= scores[i] - k - targetLength + c + queryLength) {
+                        reduce = false;
+                        break;
+                    }
                     r--;
                 }
-                if (score <= k && r >= score - k - targetLength + c + queryLength) break;
+                if (!reduce) break;
                 firstBlock++;
             }
         }
@@ -676,15 +683,7 @@ static int myersCalcEditDistanceNW(Block* blocks, Word* Peq, int W, int maxNumBl
 
     if (lastBlock == maxNumBlocks - 1) { // If last block of last column was calculated
         // Obtain best score from block -> it is complicated because query is padded with W cells
-        bl = blocks + lastBlock;
-        int bestScore = bl->score;
-        Word mask = HIGH_BIT_MASK;
-        for (int i = 0; i < W; i++) {
-            if (bl->P & mask) bestScore--;
-            if (bl->M & mask) bestScore++;
-            mask >>= 1;
-        }
-
+        int bestScore = getBlockCellValues(blocks + lastBlock)[W];
         if (bestScore <= k) {
             *bestScore_ = bestScore;
             *position_ = targetLength - 1;
