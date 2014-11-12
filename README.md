@@ -2,8 +2,8 @@
 
 EDLIB is C/C++ library for sequence alignment using edit distance based on Myers's ["Fast Bit-Vector Algorithm for Approximate String Matching Based on Dynamic Programming"](http://www.gersteinlab.org/courses/452/09-spring/pdf/Myers.pdf).  
 Implementation combines Myers's bit-vector algorithm with banded approach.  
-Calculates best score (Levenshtein distance) and first position of best score.
-It can also return alignment path.
+Calculates best score (Levenshtein distance) and all positions of best score.
+It can also return alignment path, or only starting locations of alignment.
 
 
 #### Alignment modes
@@ -18,11 +18,11 @@ There are 3 different modes of alignment:
 
 
 #### Usage
-Include myers.h in your code and compile it together with myers.cpp.  
+Include edlib.h in your code and compile it together with myers.cpp.  
 
 ```
 ...
-#include "myers.h"
+#include "edlib.h"
 ...
 ```
 ```
@@ -32,28 +32,41 @@ int queryLength = 5;
 int targetLength = 9;
 unsigned char query[5] = {0,1,2,3,4};
 unsigned char target[9] = {8,5,0,1,3,4,6,7,5};
-int score, numPositions, alignmentLength;
-int* positions;
+int score, numLocations, alignmentLength;
+int* startLocations;
+int* endLocations;
 unsigned char* alignment;
 
-myersCalcEditDistance(query, queryLength, target, targetLength,
-                      alphabetLength, -1, MYERS_MODE_HW, &score,
-                      &positions, &numPositions,
-                      true, &alignment, &alignmentLength);
+edlibCalcEditDistance(query, queryLength, target, targetLength,
+                      alphabetLength, -1, MYERS_MODE_HW, true, true,
+                      &score, &endLocations, &startLocations, &numLocations,
+                      &alignment, &alignmentLength);
 
 printf("Score %d\n", score);
-if (positions) {
-  printf("First position: %d\n", positions[0]);
-}
-if (alignment) {
-  for (int i = 0; i < alignmentLength; i++)
-    printf("%d", alignment[i]);
+for (int i = 0; i < numLocations; i++) {
+  printf("(%d, %d)\n", startLocations[i], endLocations[i]);
 }
 
-if (positions) free(positions);
+if (alignment) {
+  for (int i = 0; i < alignmentLength; i++) {
+    printf("%d", alignment[i]);
+  }
+  printf("\n");
+
+  char* cigar;
+  edlibAlignmentToCigar(alignment, alignmentLength, EDLIB_CIGAR_EXTENDED, &cigar);
+  printf("%s\n", cigar);
+  free(cigar);
+}
+
+if (endLocations) free(endLocations);
+if (startLocations) free(startLocations);
 if (alignment) free(alignment);
 ...
-```    
+```
+
+Main function is `edlibCalcEditDistance`.
+There is also `edlibAlignmentToCigar` function, which you can use to convert alignment to cigar format.
 
 For more examples of usage take a look at test.cpp or aligner.cpp.
 
@@ -76,4 +89,3 @@ Type `./aligner` for help.
 
 Example of usage:
     ./aligner -p ../test_data/query.fasta ../test_data/target.fasta
-

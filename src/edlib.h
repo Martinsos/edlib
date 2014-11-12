@@ -43,18 +43,25 @@ extern "C" {
      *                    EDLIB_MODE_HW: semi-global. Gaps before and after query are not penalized.
      *                    EDLIB_MODE_SHW: semi-global. Gap after query is not penalized.
      *                    EDLIB_MODE_OV: semi-global. Gaps before and after query and target are not penalized.
+     * @param [in] findStartLocations  If true, start locations are returned.
+     *                                 May somewhat slow down the calculation.
+     *                                 If findAlignment is true, start locations will also be found.
      * @param [in] findAlignment  If true and if score != -1, reconstruction of alignment will be performed
      *                            and alignment will be returned. 
      *                            Notice: Finding aligment will increase execution time
      *                                    and could take large amount of memory.
-     * @param [out] score  Best score (smallest edit distance) or -1 if there is no score <= k.
-     * @param [out] positions  Array of zero-based positions in target where
-     *                         query ends (position of last character) with the best score. 
-     *                         If gap after query is penalized, gap counts as part of query (NW),
-     *                         otherwise not.
-     *                         If there is no score <= k, positions is set to NULL.
-     *                         Otherwise, array is returned and it is on you to free it with free().
-     * @param [out] numPositions  Number of positions returned.
+     * @param [out] bestScore  Best score (smallest edit distance) or -1 if there is no score <= k.
+     * @param [out] endLocations  Array of zero-based positions in target where
+     *     query ends (position of last character) with the best score.
+     *     If gap after query is penalized, gap counts as part of query (NW), otherwise not.
+     *     If there is no score <= k, endLocations is set to NULL.
+     *     Otherwise, array is returned and it is on you to free it with free().
+     * @param [out] startLocations  Array of zero-based positions in target where
+     *     query starts, they correspond to endLocations.
+     *     If gap before query is penalized, gap counts as part of query (NW), otherwise not.
+     *     If there is no score <= k, startLocations is set to NULL.
+     *     Otherwise, array is returned and it is on you to free it with free().
+     * @param [out] numLocations  Number of positions returned.
      * @param [out] alignment  Alignment is found for first position returned.
      *                         Will contain alignment if findAlignment is true and score != -1.
      *                         Otherwise it will be set NULL.
@@ -72,12 +79,13 @@ extern "C" {
      * @param [out] alignmentLength  Length of alignment.
      * @return Status code.
      */
-    int edlibCalcEditDistance(const unsigned char* query, int queryLength,
-                              const unsigned char* target, int targetLength,
-                              int alphabetLength, int k, int mode,
-                              int* bestScore, int** positions, int* numPositions, 
-                              bool findAlignment, unsigned char** alignment,
-                              int* alignmentLength);
+    int edlibCalcEditDistance(
+        const unsigned char* query, int queryLength,
+        const unsigned char* target, int targetLength,
+        int alphabetLength, int k, int mode,
+        bool findStartLocations, bool findAlignment,
+        int* bestScore, int** endLocations, int** startLocations, int* numLocations,
+        unsigned char** alignment, int* alignmentLength);
 
     /** 
      * Builds cigar string from given alignment sequence.

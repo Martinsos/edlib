@@ -5,6 +5,7 @@
 #include <algorithm>
 #include <vector>
 #include <cstring>
+#include <cassert>
 
 using namespace std;
 
@@ -72,11 +73,14 @@ static inline Word* buildPeq(int alphabetLength, const unsigned char* query, int
 /**
  * Entry function.
  */
-int edlibCalcEditDistance(const unsigned char* query, int queryLength,
-                          const unsigned char* target, int targetLength,
-                          int alphabetLength, int k, int mode,
-                          int* bestScore, int** positions, int* numPositions, 
-                          bool findAlignment, unsigned char** alignment, int* alignmentLength) {
+int edlibCalcEditDistance(
+        const unsigned char* query, int queryLength,
+        const unsigned char* target, int targetLength,
+        int alphabetLength, int k, int mode,
+        bool findStartLocations, bool findAlignment,
+        int* bestScore, int** endLocations, int** startLocations, int* numLocations,
+        unsigned char** alignment, int* alignmentLength) {
+    
     *alignment = NULL;
     /*--------------------- INITIALIZATION ------------------*/
     int maxNumBlocks = ceilDiv(queryLength, WORD_SIZE); // bmax in Myers
@@ -88,77 +92,91 @@ int edlibCalcEditDistance(const unsigned char* query, int queryLength,
 
     
     /*------------------ MAIN CALCULATION -------------------*/
-    // TODO: Store alignment data only after k is determined? That could make things faster
+    // TODO: Store alignment data only after k is determined? That could make things faster.
     *bestScore = -1;
-    *positions = NULL;
-    *numPositions = 0;
-    int positionNW; // Used only when mode is NW
+    *endLocations = *startLocations = NULL;
+    *numLocations = 0;
+    int positionNW; // Used only when mode is NW.
     AlignmentData* alignData = NULL;
     bool dynamicK = false;
     if (k < 0) { // If valid k is not given, auto-adjust k until solution is found.
         dynamicK = true;
-        k = WORD_SIZE; // Gives better results then smaller k
+        k = WORD_SIZE; // Gives better results then smaller k.
     }
 
     do {
         if (alignData) delete alignData;
-        if (mode == EDLIB_MODE_HW || mode == EDLIB_MODE_SHW)
+        if (mode == EDLIB_MODE_HW || mode == EDLIB_MODE_SHW) {
             myersCalcEditDistanceSemiGlobal(blocks, Peq, W, maxNumBlocks,
                                             query, queryLength, target, targetLength,
                                             alphabetLength, k, mode, bestScore,
-                                            positions, numPositions);
-        else  // mode == EDLIB_MODE_NW
+                                            endLocations, numLocations);
+        } else {  // mode == EDLIB_MODE_NW
             myersCalcEditDistanceNW(blocks, Peq, W, maxNumBlocks,
                                     query, queryLength, target, targetLength,
                                     alphabetLength, k, bestScore, &positionNW,
                                     findAlignment, &alignData);
+        }
         k *= 2;
     } while(dynamicK && *bestScore == -1);
+
+    if (*bestScore >= 0) {  // If there is solution.
+        // If NW mode, set end location explicitly.
+        if (mode == EDLIB_MODE_NW) {
+            *endLocations = (int *) malloc(sizeof(int) * 1);
+            (*endLocations)[0] = targetLength - 1;
+            *numLocations = 1;
+        }
     
-    // Finding alignment -> all comes down to finding alignment for NW
-    if (findAlignment && *bestScore >= 0) {
-        if (mode != EDLIB_MODE_NW) {
-            int targetStart;
-            int targetEnd = (*positions)[0];
-            if (mode == EDLIB_MODE_HW) { // If HW, I need to find target start
-                const unsigned char* rTarget = createReverseCopy(target, targetEnd + 1);
+        // Find starting locations.
+        if (findStartLocations || findAlignment) {
+            *startLocations = (int*) malloc((*numLocations) * sizeof(int));
+            if (mode == EDLIB_MODE_HW) {  // If HW, I need to calculate start locations.
+                const unsigned char* rTarget = createReverseCopy(target, targetLength);
                 const unsigned char* rQuery  = createReverseCopy(query, queryLength);
                 Word* rPeq = buildPeq(alphabetLength, rQuery, queryLength); // Peq for reversed query
-                int bestScoreSHW, numPositionsSHW;
-                int* positionsSHW;
-                myersCalcEditDistanceSemiGlobal(blocks, rPeq, W, maxNumBlocks,
-                                                rQuery, queryLength, rTarget, targetEnd + 1,
-                                                alphabetLength, *bestScore, EDLIB_MODE_SHW,
-                                                &bestScoreSHW, &positionsSHW, &numPositionsSHW);
-                targetStart = targetEnd - positionsSHW[0];
+                for (int i = 0; i < *numLocations; i++) {
+                    int endLocation = (*endLocations)[i];
+                    int bestScoreSHW, numPositionsSHW;
+                    int* positionsSHW;
+                    myersCalcEditDistanceSemiGlobal(
+                            blocks, rPeq, W, maxNumBlocks,
+                            rQuery, queryLength, rTarget + targetLength - endLocation - 1, endLocation + 1,
+                            alphabetLength, *bestScore, EDLIB_MODE_SHW,
+                            &bestScoreSHW, &positionsSHW, &numPositionsSHW);
+                    (*startLocations)[i] = endLocation - positionsSHW[0];
+                    delete[] positionsSHW;
+                }
                 delete[] rTarget;
                 delete[] rQuery;
                 delete[] rPeq;
-                delete[] positionsSHW;
+            } else {  // If mode is SHW or NW
+                for (int i = 0; i < *numLocations; i++) {
+                    (*startLocations)[i] = 0;
+                }
             }
-            if (mode == EDLIB_MODE_SHW) {
-                targetStart = 0;
+        }
+
+        // Find alignment -> all comes down to finding alignment for NW.
+        // Currently we return alignment only for first pair of locations.
+        if (findAlignment) {
+            int alnStartLocation = (*startLocations)[0];
+            int alnEndLocation = (*endLocations)[0];
+            if (mode != EDLIB_MODE_NW) {  // Calculate align data.
+                int score_, endLocation_;  // Used only to call function.
+                myersCalcEditDistanceNW(blocks, Peq, W, maxNumBlocks, query, queryLength,
+                                        target + alnStartLocation, alnEndLocation - alnStartLocation + 1,
+                                        alphabetLength, *bestScore, &score_,
+                                        &endLocation_, true, &alignData);
+                assert(score_ == *bestScore);
+                assert(endLocation_ == alnEndLocation - alnStartLocation);
             }
-            int alnBestScore, alnPosition;
-            myersCalcEditDistanceNW(blocks, Peq, W, maxNumBlocks, query, queryLength,
-                                    target + targetStart, targetEnd - targetStart + 1,
-                                    alphabetLength, *bestScore, &alnBestScore, 
-                                    &alnPosition, true, &alignData);
-            obtainAlignment(maxNumBlocks, queryLength, targetEnd - targetStart + 1, W, alnBestScore, 
-                            alnPosition, alignData, alignment, alignmentLength);
-        } else {
-            obtainAlignment(maxNumBlocks, queryLength, targetLength, W, *bestScore, 
-                            positionNW, alignData, alignment, alignmentLength);
+            obtainAlignment(maxNumBlocks, queryLength, alnEndLocation - alnStartLocation + 1, W,
+                            *bestScore, alnEndLocation - alnStartLocation,
+                            alignData, alignment, alignmentLength);
         }
     }
     /*-------------------------------------------------------*/
-
-    // If NW mode and there is solution, return position in correct format.
-    if (mode == EDLIB_MODE_NW && *bestScore != -1) {
-        *positions = (int *) malloc(sizeof(int) * 1);
-        (*positions)[0] = positionNW;
-        *numPositions = 1;
-    }
     
     //--- Free memory ---//
     delete[] blocks;
@@ -370,7 +388,8 @@ static inline bool allBlockCellsLarger(Block* const block, const int k) {
 /**
  * @param [in] mode  EDLIB_MODE_HW or EDLIB_MODE_SHW or EDLIB_MODE_OV
  */
-static int myersCalcEditDistanceSemiGlobal(Block* const blocks, Word* const Peq, const int W, const int maxNumBlocks,
+static int myersCalcEditDistanceSemiGlobal(Block* const blocks, Word* const Peq, const int W,
+                                           const int maxNumBlocks,
                                            const unsigned char* const query,  const int queryLength,
                                            const unsigned char* const target, const int targetLength,
                                            const int alphabetLength, int k, const int mode, int* bestScore_,
@@ -719,6 +738,8 @@ static void obtainAlignment(int maxNumBlocks, int queryLength, int targetLength,
                             unsigned char** alignment, int* alignmentLength) {
     *alignment = (unsigned char*) malloc((queryLength + targetLength - 1) * sizeof(unsigned char));
     *alignmentLength = 0;
+    // TODO(martinsos): is this position needed? If this function is used for NW only,
+    // then I can assume value of position is equal to targetLength - 1 and remove position argument.
     int c = position; // index of column
     int b = maxNumBlocks - 1; // index of block in column
     int currScore = bestScore; // Score of current cell

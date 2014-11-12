@@ -22,9 +22,12 @@ bool checkAlignment(const unsigned char* query, int queryLength,
                     int score, int pos, int mode,
                     unsigned char* alignment, int alignmentLength);
 
+int getAlignmentStart(const unsigned char* alignment, int alignmentLength,
+                      int endLocation);
+
 int main() {
     srand(1);
-    /*
+    
     printf("Testing HW with alignment...\n");
     runRandomTests(1000, EDLIB_MODE_HW, true);
     printf("\n");
@@ -49,7 +52,7 @@ int main() {
     printf("Testing SHW...\n");
     runRandomTests(1000, EDLIB_MODE_SHW, false);
     printf("\n");
-    */
+    
     printf("Specific tests:\n");
     if (runTests())
         printf("All specific tests passed!\n");
@@ -74,8 +77,8 @@ void runRandomTests(int numTests, int mode, bool findAlignment) {
     
     for (int i = 0; i < numTests; i++) {
         bool failed = false;
-        int queryLength = 10 + rand() % 400;
-        int targetLength = 100 + rand() % 20000;
+        int queryLength = 50 + rand() % 300;
+        int targetLength = 500 + rand() % 10000;
         unsigned char query[queryLength];
         unsigned char target[targetLength];
         fillRandomly(query, queryLength, alphabetLength);
@@ -94,78 +97,93 @@ void runRandomTests(int numTests, int mode, bool findAlignment) {
         printf("\n");
         */  
         start = clock();
-        int score1, numPositions1;
-        int* positions1;
+        int score1, numLocations1;
+        int* endLocations1, * startLocations1;
         unsigned char* alignment; int alignmentLength;
         edlibCalcEditDistance(query, queryLength, target, targetLength, alphabetLength,
-                              -1, mode, &score1, &positions1, &numPositions1,
-                              findAlignment, &alignment, &alignmentLength);
+                              -1, mode, false, findAlignment, &score1,
+                              &endLocations1, &startLocations1, &numLocations1,
+                              &alignment, &alignmentLength);
         timeEdlib += clock() - start;
         if (alignment) {
             if (!checkAlignment(query, queryLength, target, targetLength,
-                                score1, positions1[0], mode, alignment, alignmentLength)) {
+                                score1, endLocations1[0], mode, alignment, alignmentLength)) {
                 failed = true;
                 printf("Alignment is not correct\n");
             }
+            int alignmentStart = getAlignmentStart(alignment, alignmentLength, endLocations1[0]);
+            if (startLocations1[0] != alignmentStart) {
+                failed = true;
+                printf("Start location (%d) is not consistent with alignment start (%d)\n",
+                       startLocations1[0], alignmentStart);
+            }
             free(alignment);
         }
+        if (startLocations1) free(startLocations1);
         
         start = clock();
-        int score2; int numPositions2;
-        int* positions2;
+        int score2; int numLocations2;
+        int* endLocations2;
         calcEditDistanceSimple(query, queryLength, target, targetLength,
                                alphabetLength, mode, &score2,
-                               &positions2, &numPositions2);
+                               &endLocations2, &numLocations2);
         timeSimple += clock() - start;
         
         // Compare results
         if (score1 != score2) {
             failed = true;
             printf("Scores are different! Expected %d, got %d)\n", score2, score1);
-        } else if (score1 == -1 && !(positions1 == NULL)) {
+        } else if (score1 == -1 && !(endLocations1 == NULL)) {
             failed = true;
-            printf("Score was not found but positions is not NULL!\n");
-        } else if (numPositions1 != numPositions2) {
+            printf("Score was not found but endLocations is not NULL!\n");
+        } else if (numLocations1 != numLocations2) {
             failed = true;
-            printf("Number of positions returned is not equal! Expected %d, got %d\n",
-                   numPositions2, numPositions1);
+            printf("Number of endLocations returned is not equal! Expected %d, got %d\n",
+                   numLocations2, numLocations1);
         } else {
-            for (int i = 0; i < numPositions1; i++) {
-                if (positions1[i] != positions2[i]) {
+            for (int i = 0; i < numLocations1; i++) {
+                if (endLocations1[i] != endLocations2[i]) {
                     failed = true;
-                    printf("Positions at %d are not equal! Expected %d, got %d\n",
-                           i, positions2[i], positions1[i]);
+                    printf("EndLocations at %d are not equal! Expected %d, got %d\n",
+                           i, endLocations2[i], endLocations1[i]);
                     break;
                 }
             }
         }
         
-        if (positions1) free(positions1);
-        if (positions2) free(positions2);
+        if (endLocations1) free(endLocations1);
+        if (endLocations2) free(endLocations2);
 
         for (int k = score2 - 1; k <= score2 + 1; k++) {
-            int score3, numPositions3;
-            int* positions3;
+            int score3, numLocations3;
+            int* endLocations3, * startLocations3;
             unsigned char* alignment3; int alignmentLength3;
             int scoreExpected = score2 > k ? -1 : score2;
             edlibCalcEditDistance(query, queryLength, target, targetLength,
-                                  alphabetLength, k, mode, &score3, &positions3,
-                                  &numPositions3, findAlignment, &alignment3,
-                                  &alignmentLength3);
-            if (score3 != scoreExpected ) {
+                                  alphabetLength, k, mode, false, findAlignment,
+                                  &score3, &endLocations3, &startLocations3, &numLocations3,
+                                  &alignment3, &alignmentLength3);
+            if (score3 != scoreExpected) {
                 failed = true;
                 printf("For k = %d score was %d but it should have been %d\n",
                        k, score3, scoreExpected);
             }
             if (alignment3) {
                 if (!checkAlignment(query, queryLength, target, targetLength,
-                                    score3, positions3[0], mode, alignment3, alignmentLength3)) {
+                                    score3, endLocations3[0], mode, alignment3, alignmentLength3)) {
                     failed = true;
                     printf("Alignment is not correct\n");
                 }
+                int alignmentStart = getAlignmentStart(alignment3, alignmentLength3, endLocations3[0]);
+                if (startLocations3[0] != alignmentStart) {
+                    failed = true;
+                    printf("Start location (%d) is not consistent with alignment start (%d)\n",
+                           startLocations3[0], alignmentStart);
+                }
                 free(alignment3);
             }
-            if (positions3) free(positions3);
+            if (endLocations3) free(endLocations3);
+            if (startLocations3) free(startLocations3);
         }
 
         if (failed)
@@ -192,48 +210,56 @@ bool executeTest(const unsigned char* query, int queryLength,
     
     bool pass = true;
 
-    int score2; int numPositions2; int* positions2;
+    int score2; int numLocations2; int* endLocations2;
     calcEditDistanceSimple(query, queryLength, target, targetLength,
-                           alphabetLength, mode, &score2, &positions2,
-                           &numPositions2);
+                           alphabetLength, mode, &score2, &endLocations2,
+                           &numLocations2);
 
-    int score1; int numPositions1; int* positions1;
+    int score1; int numLocations1; int* endLocations1; int* startLocations1;
     unsigned char* alignment; int alignmentLength;
     edlibCalcEditDistance(query, queryLength, target, targetLength,
-                          alphabetLength, -1, mode, &score1, &positions1,
-                          &numPositions1, false, &alignment, &alignmentLength);
+                          alphabetLength, -1, mode, false, false,
+                          &score1, &endLocations1, &startLocations1, &numLocations1,
+                          &alignment, &alignmentLength);
 
     if (score1 != score2) {
         pass = false;
         printf("Scores: expected %d, got %d\n", score2, score1);
-    } else if (numPositions1 != numPositions2) {
+    } else if (numLocations1 != numLocations2) {
         pass = false;
-        printf("Number of positions: expected %d, got %d\n",
-               numPositions2, numPositions1);
+        printf("Number of locations: expected %d, got %d\n",
+               numLocations2, numLocations1);
     } else {
-        for (int i = 0; i < numPositions1; i++) {
-            if (positions1[i] != positions2[i]) {
+        for (int i = 0; i < numLocations1; i++) {
+            if (endLocations1[i] != endLocations2[i]) {
                 pass = false;
-                printf("Positions at %d are not equal! Expected %d, got %d\n",
-                       i, positions2[i], positions1[1]);
+                printf("End locations at %d are not equal! Expected %d, got %d\n",
+                       i, endLocations2[i], endLocations1[1]);
                 break;
             }
         }
     }
     if (alignment) {
         if (!checkAlignment(query, queryLength, target, targetLength,
-                            score1, positions1[0], mode, alignment,
+                            score1, endLocations1[0], mode, alignment,
                             alignmentLength)) {
             pass = false;
             printf("Alignment is not correct\n");
+        }
+        int alignmentStart = getAlignmentStart(alignment, alignmentLength, endLocations1[0]);
+        if (startLocations1[0] != alignmentStart) {
+            pass = false;
+            printf("Start location (%d) is not consistent with alignment start (%d)\n",
+                   startLocations1[0], alignmentStart);
         }
     }
 
     printf(pass ? "\x1B[32m OK \x1B[0m\n" : "\x1B[31m FAIL \x1B[0m\n");
     
     if (alignment) free(alignment);
-    if (positions1) free(positions1);
-    if (positions2) free(positions2);
+    if (endLocations1) free(endLocations1);
+    if (endLocations2) free(endLocations2);
+    if (startLocations1) free(startLocations1);
     return pass;
 }
 
@@ -418,4 +444,24 @@ bool checkAlignment(const unsigned char* query, int queryLength,
         return false;
     }
     return true;
+}
+
+/**
+ * @param alignment
+ * @param alignmentLength
+ * @param endLocation
+ * @return Return start location of alignment in target, if there is none return -1.
+ */
+int getAlignmentStart(const unsigned char* alignment, int alignmentLength,
+                      int endLocation) {
+    int startLocation = endLocation + 1;
+    for (int i = 0; i < alignmentLength; i++) {
+        if (alignment[i] != 1) {
+            startLocation--;
+        }
+    }
+    if (startLocation == endLocation) {
+        return -1;
+    }
+    return startLocation;
 }

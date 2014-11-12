@@ -40,6 +40,7 @@ int main(int argc, char * const argv[]) {
     // If 0, then we want them all.
     int numBestSeqs = 0;
     bool findAlignment = false;
+    bool findStartLocations = false;
     int option;
     int kArg = -1;
     // If true, simple implementation of edit distance algorithm is used instead of edlib.
@@ -50,15 +51,16 @@ int main(int argc, char * const argv[]) {
     char alignmentFormat[16] = "NICE";
 
     bool invalidOption = false;
-    while ((option = getopt(argc, argv, "m:n:k:f:sptc")) >= 0) { // : is not a delimiter but indicator of parameter
+    while ((option = getopt(argc, argv, "m:n:k:f:splt")) >= 0) {
         switch (option) {
         case 'm': strcpy(mode, optarg); break;
         case 'n': numBestSeqs = atoi(optarg); break;
         case 'k': kArg = atoi(optarg); break;
+        case 'f': strcpy(alignmentFormat, optarg); break;
         case 's': silent = true; break;
         case 'p': findAlignment = true; break;
+        case 'l': findStartLocations = true; break;
         case 't': useSimple = true; break;
-        case 'f': strcpy(alignmentFormat, optarg); break;
         default: invalidOption = true;
         }
     }
@@ -74,7 +76,12 @@ int main(int argc, char * const argv[]) {
         fprintf(stderr, "\t-k K  Sequences with score > K will be discarded."
                 " Smaller k, faster calculation.\n");
         fprintf(stderr, "\t-t  If specified, simple algorithm is used instead of edlib. To be used for testing.\n");
-        fprintf(stderr, "\t-p  If specified, alignment path will be found and printed.\n");
+        fprintf(stderr, "\t-p  If specified, alignment path will be found and printed. If query is large, "
+                "this will consume a lot of memory and slow down the calculation.\n");
+        fprintf(stderr, "\t-l  If specified, start locations will be found and printed. "
+                "Each start location corresponds to one end location. This may somewhat slow down "
+                "the calculation, but is still faster then finding alignment path and does not consume "
+                "any extra memory.\n");
         fprintf(stderr, "\t-f NICE|CIG_STD|CIG_EXT  Format that will be used to print alignment path,"
                 " can be used only with -p. NICE will give visually attractive format, CIG_STD will "
                 " give standard cigar format and CIG_EXT will give extended cigar format. [default: NICE]\n");
@@ -156,8 +163,9 @@ int main(int argc, char * const argv[]) {
     // ----------------------------- MAIN CALCULATION ----------------------------- //
     printf("\nComparing queries to target...\n");
     int* scores = new int[numQueries];
-    int** positions = new int*[numQueries];
-    int* numPositions = new int[numQueries];
+    int** endLocations = new int*[numQueries];
+    int** startLocations = new int*[numQueries];
+    int* numLocations = new int[numQueries];
     priority_queue<int> bestScores; // Contains numBestSeqs best scores
     int k = kArg;
     unsigned char* alignment = NULL; int alignmentLength;
@@ -175,12 +183,12 @@ int main(int argc, char * const argv[]) {
             // Just for testing
             calcEditDistanceSimple(query, queryLength, target, targetLength,
                                    alphabetLength, modeCode, scores + i,
-                                   positions + i, numPositions + i);
+                                   endLocations + i, numLocations + i);
         } else {
             edlibCalcEditDistance(query, queryLength, target, targetLength,
-                                  alphabetLength, k, modeCode, scores + i,
-                                  positions + i, numPositions + i,
-                                  findAlignment, &alignment, &alignmentLength);
+                                  alphabetLength, k, modeCode, findStartLocations, findAlignment,
+                                  scores + i, endLocations + i, startLocations + i, numLocations + i,
+                                  &alignment, &alignmentLength);
         }
 
         // If we want only numBestSeqs best sequences, update best scores 
@@ -200,7 +208,7 @@ int main(int argc, char * const argv[]) {
         }
         
         if (!findAlignment || silent) {
-            printf("\r%d/%d", i+1, numQueries);
+            printf("\r%d/%d", i + 1, numQueries);
             fflush(stdout);
         } else {
             // Print alignment if it was found, use first position
@@ -210,7 +218,7 @@ int main(int argc, char * const argv[]) {
                 if (!strcmp(alignmentFormat, "NICE")) {
                     printAlignment(query, queryLength, target, targetLength,
                                    alignment, alignmentLength,
-                                   *(positions[i]), modeCode, idxToLetter);
+                                   *(endLocations[i]), modeCode, idxToLetter);
                 } else {
                     printf("Cigar:\n");
                     char* cigar = NULL;
@@ -242,14 +250,21 @@ int main(int argc, char * const argv[]) {
             printf("Scores:\n");
         }
 
-        printf("<query number>: <score>, <num_positions>, [<end_position_in_target>]\n");
+        printf("<query number>: <score>, <num_locations>, "
+               "[(<start_location_in_target>, <end_location_in_target>)]\n");
         for (int i = 0; i < numQueries; i++) {
             if (scores[i] > -1 && (scoreLimit == -1 || scores[i] <= scoreLimit)) {
-                printf("#%d: %d  %d", i, scores[i], numPositions[i]);
-                if (numPositions[i] > 0) {
+                printf("#%d: %d  %d", i, scores[i], numLocations[i]);
+                if (numLocations[i] > 0) {
                     printf("  [");
-                    for (int j = 0; j < numPositions[i]; j++) {
-                        printf(" %d", *(positions[i] + j));
+                    for (int j = 0; j < numLocations[i]; j++) {
+                        printf(" (");
+                        if (startLocations[i]) {
+                            printf("%d", *(startLocations[i] + j));
+                        } else {
+                            printf("?");
+                        }
+                        printf(", %d)", *(endLocations[i] + j));
                     }
                     printf(" ]");
                 }
@@ -266,10 +281,12 @@ int main(int argc, char * const argv[]) {
 
     // Free allocated space
     for (int i = 0; i < numQueries; i++) {
-        free(positions[i]);
+        free(endLocations[i]);
+        if (startLocations[i]) free(startLocations[i]);
     }
-    delete[] positions;
-    delete[] numPositions;
+    delete[] endLocations;
+    delete[] startLocations;
+    delete[] numLocations;
     delete querySequences;
     delete targetSequences;
     delete[] scores;
