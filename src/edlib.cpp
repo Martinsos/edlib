@@ -5,7 +5,6 @@
 #include <algorithm>
 #include <vector>
 #include <cstring>
-#include <cstdio>
 
 using namespace std;
 
@@ -172,41 +171,48 @@ int edlibCalcEditDistance(const unsigned char* query, int queryLength,
 
 
 int edlibAlignmentToCigar(unsigned char* alignment, int alignmentLength,
-                          char** cigar_) {
+                          int cigarFormat, char** cigar_) {
+    *cigar_ = NULL;
+    if (cigarFormat != EDLIB_CIGAR_EXTENDED && cigarFormat != EDLIB_CIGAR_STANDARD) {
+        return EDLIB_STATUS_ERROR;
+    }
+
+    // Maps move code from alignment to char in cigar.
+    //                        0    1    2    3
+    char moveCodeToChar[] = {'=', 'I', 'D', 'X'};
+    if (cigarFormat == EDLIB_CIGAR_STANDARD) {
+        moveCodeToChar[0] = moveCodeToChar[3] = 'M';
+    }
+
     vector<char>* cigar = new vector<char>();
-    unsigned char lastMove = -1;  // Code of last move.
+    char lastMove = 0;  // Char of last move. 0 if there was no previous move.
     int numOfSameMoves = 0;
     for (int i = 0; i <= alignmentLength; i++) {
         // if new sequence of same moves started
-        if (i == alignmentLength || alignment[i] != lastMove) {
-            if (i > 0) {  // if previous sequence of same moves ended
-                // Write number of moves to cigar string.
-                int numDigits = 0;
-                for (; numOfSameMoves; numOfSameMoves /= 10) {
-                    cigar->push_back('0' + numOfSameMoves % 10);
-                    numDigits++;
-                }
-                reverse(cigar->end() - numDigits, cigar->end());
-                // Write code of move to cigar string.
-                if (lastMove == 0) {
-                    cigar->push_back('=');
-                } else if (lastMove == 1) {
-                    cigar->push_back('I');
-                } else if (lastMove == 2) {
-                    cigar->push_back('D');
-                } else if (lastMove == 3) {
-                    cigar->push_back('X');
-                } else {
+        if (i == alignmentLength || (moveCodeToChar[alignment[i]] != lastMove && lastMove != 0)) {
+            // Write number of moves to cigar string.
+            int numDigits = 0;
+            for (; numOfSameMoves; numOfSameMoves /= 10) {
+                cigar->push_back('0' + numOfSameMoves % 10);
+                numDigits++;
+            }
+            reverse(cigar->end() - numDigits, cigar->end());
+            // Write code of move to cigar string.
+            cigar->push_back(lastMove);                
+            // If not at the end, start new sequence of moves.
+            if (i < alignmentLength) {
+                // Check if alignment has valid values.
+                if (alignment[i] < 0 || alignment[i] > 3) {
                     delete cigar;
                     return EDLIB_STATUS_ERROR;
                 }
-            }
-            if (i < alignmentLength) {
                 numOfSameMoves = 0;
-                lastMove = alignment[i];
             }
         }
-        numOfSameMoves++;
+        if (i < alignmentLength) {
+            lastMove = moveCodeToChar[alignment[i]];
+            numOfSameMoves++;
+        }
     }
     cigar->push_back(0);  // Null character termination.
     *cigar_ = (char*) malloc(cigar->size() * sizeof(char));

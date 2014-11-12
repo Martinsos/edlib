@@ -16,6 +16,10 @@ extern "C" {
 #define EDLIB_MODE_SHW 2
 #define EDLIB_MODE_OV  3
 
+// Cigar formats
+#define EDLIB_CIGAR_EXTENDED 0
+#define EDLIB_CIGAR_STANDARD 1
+
     /**
      * Calculates Levenshtein distance of query and target 
      * using Myers's fast bit-vector algorithm and Ukkonen's algorithm.
@@ -78,19 +82,27 @@ extern "C" {
     /** 
      * Builds cigar string from given alignment sequence.
      * @param [in] alignment  Alignment sequence.
-     *                        0 stands for match.
-     *                        1 stands for insertion to target.
-     *                        2 stands for insertion to query.
-     *                        3 stands for mismatch.
+     *     0 stands for match.
+     *     1 stands for insertion to target.
+     *     2 stands for insertion to query.
+     *     3 stands for mismatch.
      * @param [in] alignmentLength
+     * @param [in] cigarFormat
+     *     If EDLIB_CIGAR_EXTENDED, extended cigar is returned.
+     *     If EDLIB_CIGAR_STANDARD, standard cigar is returned (contains only I, D and M).
      * @param [out] cigar  Will contain cigar string.
+     *     I stands for insertion.
+     *     D stands for deletion.
+     *     X stands for mismatch. (used only in extended format)
+     *     = stands for match. (used only in extended format)
+     *     M stands for (mis)match. (used only in standard format)
      *     String is null terminated.
      *     Needed memory is allocated and given pointer is set to it.
      *     Do not forget to free it later using free()!
      * @return Status code.
      */
     int edlibAlignmentToCigar(unsigned char* alignment, int alignmentLength,
-                              char** cigar);
+                              int cigarFormat, char** cigar);
 
 #ifdef __cplusplus 
 }

@@ -24,7 +24,7 @@ bool checkAlignment(const unsigned char* query, int queryLength,
 
 int main() {
     srand(1);
-    
+    /*
     printf("Testing HW with alignment...\n");
     runRandomTests(1000, EDLIB_MODE_HW, true);
     printf("\n");
@@ -49,7 +49,7 @@ int main() {
     printf("Testing SHW...\n");
     runRandomTests(1000, EDLIB_MODE_SHW, false);
     printf("\n");
-    
+    */
     printf("Specific tests:\n");
     if (runTests())
         printf("All specific tests passed!\n");
@@ -331,19 +331,27 @@ bool test6() {
 bool testCigar() {
     unsigned char alignment[] = {0, 0, 1, 1, 1, 2, 1, 1, 3, 0, 0};
     char* cigar;
-    edlibAlignmentToCigar(alignment, 11, &cigar);
 
+    edlibAlignmentToCigar(alignment, 11, EDLIB_CIGAR_EXTENDED, &cigar);
     bool pass = true;
     char expected[] = "2=3I1D2I1X2=";
     if (strcmp(cigar, expected) != 0) {
         pass = false;
         printf("Expected %s, got %s\n", expected, cigar);
     }
-
     printf(pass ? "\x1B[32m""OK""\x1B[0m\n" : "\x1B[31m""FAIL""\x1B[0m\n");
-    if (cigar) {
-        free(cigar);
+    if (cigar) free(cigar);
+
+    edlibAlignmentToCigar(alignment, 11, EDLIB_CIGAR_STANDARD, &cigar);
+    pass = true;
+    char expected2[] = "2M3I1D2I3M";
+    if (strcmp(cigar, expected2) != 0) {
+        pass = false;
+        printf("Expected %s, got %s\n", expected2, cigar);
     }
+    printf(pass ? "\x1B[32m""OK""\x1B[0m\n" : "\x1B[31m""FAIL""\x1B[0m\n");
+    if (cigar) free(cigar);
+
     return pass;
 }
 

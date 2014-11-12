@@ -75,5 +75,5 @@ In order to compile and use simple aligner that uses EDLIB run makefile in src:
 Type `./aligner` for help.
 
 Example of usage:
-    ./aligner -f -c ../test_data/query.fasta ../test_data/target.fasta
+    ./aligner -p ../test_data/query.fasta ../test_data/target.fasta
 
