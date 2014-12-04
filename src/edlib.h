@@ -2,7 +2,7 @@
 #define EDLIB_H
 
 
-#ifdef __cplusplus 
+#ifdef __cplusplus
 extern "C" {
 #endif
 
@@ -21,33 +21,33 @@ extern "C" {
 #define EDLIB_CIGAR_STANDARD 1
 
     /**
-     * Calculates Levenshtein distance of query and target 
+     * Calculates Levenshtein distance of query and target
      * using Myers's fast bit-vector algorithm and Ukkonen's algorithm.
      * In Levenshtein distance mismatch and indel have cost of 1, while match has cost of 0.
-     * Query and target are represented as arrays of numbers, where each number is 
-     *  index of corresponding letter in alphabet. So for example if alphabet is ['A','C','T','G']
-     *  and query string is "AACG" and target string is "GATTCGG" then our input query should be
-     *  [0,0,1,3] and input target should be [3,0,2,2,1,3,3] (and alphabetLength would be 4).
+     * Query and target are represented as arrays of numbers, where each number is
+     * index of corresponding letter in alphabet. So for example if alphabet is ['A','C','T','G']
+     * and query string is "AACG" and target string is "GATTCGG" then our input query should be
+     * [0,0,1,3] and input target should be [3,0,2,2,1,3,3] (and alphabetLength would be 4).
      * @param [in] query  Array of alphabet indices.
      * @param [in] queryLength
      * @param [in] target  Array of alphabet indices.
      * @param [in] targetLength
      * @param [in] alphabetLength
-     * @param [in] k  Non-negative number, constraint for Ukkonen. 
-     *                 Only best score <= k will be searched for.
-     *                 If k is smaller then calculation is faster.
-     *                 If you are interested in score only if it is <= K, set k to K.
-     *                 If k is negative then k will be auto-adjusted (increased) until score is found.
+     * @param [in] k  Non-negative number, constraint for Ukkonen.
+     *     Only best score <= k will be searched for.
+     *     If k is smaller then calculation is faster.
+     *     If you are interested in score only if it is <= K, set k to K.
+     *     If k is negative then k will be auto-adjusted (increased) until score is found.
      * @param [in] mode  Mode that determines alignment algorithm.
-     *                    EDLIB_MODE_NW: global (Needleman-Wunsch)
-     *                    EDLIB_MODE_HW: semi-global. Gaps before and after query are not penalized.
-     *                    EDLIB_MODE_SHW: semi-global. Gap after query is not penalized.
-     *                    EDLIB_MODE_OV: semi-global. Gaps before and after query and target are not penalized.
+     *     EDLIB_MODE_NW: global (Needleman-Wunsch)
+     *     EDLIB_MODE_HW: semi-global. Gaps before and after query are not penalized.
+     *     EDLIB_MODE_SHW: semi-global. Gap after query is not penalized.
+     *     EDLIB_MODE_OV: semi-global. Gaps before and after query and target are not penalized.
      * @param [in] findStartLocations  If true, start locations are returned.
      *                                 May somewhat slow down the calculation.
      *                                 If findAlignment is true, start locations will also be found.
      * @param [in] findAlignment  If true and if score != -1, reconstruction of alignment will be performed
-     *                            and alignment will be returned. 
+     *                            and alignment will be returned.
      *                            Notice: Finding aligment will increase execution time
      *                                    and could take large amount of memory.
      * @param [out] bestScore  Best score (smallest edit distance) or -1 if there is no score <= k.
@@ -87,7 +87,7 @@ extern "C" {
         int* bestScore, int** endLocations, int** startLocations, int* numLocations,
         unsigned char** alignment, int* alignmentLength);
 
-    /** 
+    /**
      * Builds cigar string from given alignment sequence.
      * @param [in] alignment  Alignment sequence.
      *     0 stands for match.
@@ -112,7 +112,7 @@ extern "C" {
     int edlibAlignmentToCigar(unsigned char* alignment, int alignmentLength,
                               int cigarFormat, char** cigar);
 
-#ifdef __cplusplus 
+#ifdef __cplusplus
 }
 #endif
 

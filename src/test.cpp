@@ -443,6 +443,10 @@ bool checkAlignment(const unsigned char* query, int queryLength,
         printf("Wrong score in alignment! %d should be %d\n", alignScore, score);
         return false;
     }
+    if (alignmentLength > 0 && alignment[0] == 1 && tIdx >= 0) {
+        printf("Alignment starts with insertion in target, while it could start with mismatch!\n");
+        return false;
+    }
     return true;
 }
 

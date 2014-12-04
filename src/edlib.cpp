@@ -49,7 +49,7 @@ struct Block {
 static int myersCalcEditDistanceSemiGlobal(Block* blocks, Word* Peq, int W, int maxNumBlocks,
                                            const unsigned char* query, int queryLength,
                                            const unsigned char* target, int targetLength,
-                                           int alphabetLength, int k, int mode, int* bestScore, 
+                                           int alphabetLength, int k, int mode, int* bestScore,
                                            int** positions, int* numPositions);
 
 static int myersCalcEditDistanceNW(Block* blocks, Word* Peq, int W, int maxNumBlocks,
@@ -59,7 +59,7 @@ static int myersCalcEditDistanceNW(Block* blocks, Word* Peq, int W, int maxNumBl
                                    bool findAlignment, AlignmentData** alignData);
 
 static void obtainAlignment(int maxNumBlocks, int queryLength, int targetLength, int W, int bestScore,
-                            int position, AlignmentData* alignData, 
+                            int position, AlignmentData* alignData,
                             unsigned char** alignment, int* alignmentLength);
 
 static inline int ceilDiv(int x, int y);
@@ -80,7 +80,7 @@ int edlibCalcEditDistance(
         bool findStartLocations, bool findAlignment,
         int* bestScore, int** endLocations, int** startLocations, int* numLocations,
         unsigned char** alignment, int* alignmentLength) {
-    
+
     *alignment = NULL;
     /*--------------------- INITIALIZATION ------------------*/
     int maxNumBlocks = ceilDiv(queryLength, WORD_SIZE); // bmax in Myers
@@ -90,7 +90,7 @@ int edlibCalcEditDistance(
     Word* Peq = buildPeq(alphabetLength, query, queryLength);
     /*-------------------------------------------------------*/
 
-    
+
     /*------------------ MAIN CALCULATION -------------------*/
     // TODO: Store alignment data only after k is determined? That could make things faster.
     *bestScore = -1;
@@ -127,7 +127,7 @@ int edlibCalcEditDistance(
             (*endLocations)[0] = targetLength - 1;
             *numLocations = 1;
         }
-    
+
         // Find starting locations.
         if (findStartLocations || findAlignment) {
             *startLocations = (int*) malloc((*numLocations) * sizeof(int));
@@ -144,7 +144,9 @@ int edlibCalcEditDistance(
                             rQuery, queryLength, rTarget + targetLength - endLocation - 1, endLocation + 1,
                             alphabetLength, *bestScore, EDLIB_MODE_SHW,
                             &bestScoreSHW, &positionsSHW, &numPositionsSHW);
-                    (*startLocations)[i] = endLocation - positionsSHW[0];
+                    // Taking last location as start ensures that alignment will not start with insertions
+                    // if it can start with mismatches instead.
+                    (*startLocations)[i] = endLocation - positionsSHW[numPositionsSHW - 1];
                     delete[] positionsSHW;
                 }
                 delete[] rTarget;
@@ -177,7 +179,7 @@ int edlibCalcEditDistance(
         }
     }
     /*-------------------------------------------------------*/
-    
+
     //--- Free memory ---//
     delete[] blocks;
     delete[] Peq;
@@ -216,7 +218,7 @@ int edlibAlignmentToCigar(unsigned char* alignment, int alignmentLength,
             }
             reverse(cigar->end() - numDigits, cigar->end());
             // Write code of move to cigar string.
-            cigar->push_back(lastMove);                
+            cigar->push_back(lastMove);
             // If not at the end, start new sequence of moves.
             if (i < alignmentLength) {
                 // Check if alignment has valid values.
@@ -765,7 +767,7 @@ static void obtainAlignment(int maxNumBlocks, int queryLength, int targetLength,
     }
     while (true) {
         // TODO: improvement: calculate only those cells that are needed,
-        //       for example if I calculate upper cell and can move up, 
+        //       for example if I calculate upper cell and can move up,
         //       there is no need to calculate left and upper left cell
         //---------- Calculate scores ---------//
         if (lScore == -1 && thereIsLeftBlock) {
@@ -782,7 +784,7 @@ static void obtainAlignment(int maxNumBlocks, int queryLength, int targetLength,
                 ulScore = lScore;
                 if (lP & HIGH_BIT_MASK) ulScore--;
                 if (lM & HIGH_BIT_MASK) ulScore++;
-            } 
+            }
             else if (c > 0 && b-1 >= alignData->firstBlocks[c-1] && b-1 <= alignData->lastBlocks[c-1]) {
                 // This is the case when upper left cell is last cell in block,
                 // and block to left is not in band so lScore is -1.
@@ -916,7 +918,7 @@ static void obtainAlignment(int maxNumBlocks, int queryLength, int targetLength,
             break;
         }
         //----------------------------------//
-    }   
+    }
 
     *alignment = (unsigned char*) realloc(*alignment, (*alignmentLength) * sizeof(unsigned char));
     reverse(*alignment, *alignment + (*alignmentLength));
