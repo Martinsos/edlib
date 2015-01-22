@@ -222,7 +222,7 @@ int edlibAlignmentToCigar(unsigned char* alignment, int alignmentLength,
             // If not at the end, start new sequence of moves.
             if (i < alignmentLength) {
                 // Check if alignment has valid values.
-                if (alignment[i] < 0 || alignment[i] > 3) {
+                if (alignment[i] > 3) {
                     delete cigar;
                     return EDLIB_STATUS_ERROR;
                 }
@@ -250,7 +250,6 @@ int edlibAlignmentToCigar(unsigned char* alignment, int alignmentLength,
  */
 static inline Word* buildPeq(int alphabetLength, const unsigned char* query, int queryLength) {
     int maxNumBlocks = ceilDiv(queryLength, WORD_SIZE);
-    int W = maxNumBlocks * WORD_SIZE - queryLength; // number of redundant cells in last level blocks
     // table of dimensions alphabetLength+1 x maxNumBlocks. Last symbol is wildcard.
     Word* Peq = new Word[(alphabetLength + 1) * maxNumBlocks];
 
