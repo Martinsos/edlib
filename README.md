@@ -5,6 +5,8 @@ Implementation combines Myers's bit-vector algorithm with banded approach.
 Calculates best score (Levenshtein distance) and all positions of best score.
 It can also return alignment path, or only starting locations of alignment.
 
+#### Nodejs
+For those who want to use edlib in nodejs there is a nodejs addon, [node-edlib](https://www.npmjs.com/package/node-edlib)!
 
 #### Alignment modes
 There are 3 different modes of alignment:
