@@ -16,6 +16,12 @@ extern "C" {
 #define EDLIB_MODE_SHW 2
 #define EDLIB_MODE_OV  3
 
+// Edit operations
+#define EDLIB_EDOP_MATCH 0
+#define EDLIB_EDOP_INSERT 1  // Insertion to target = deletion from query.
+#define EDLIB_EDOP_DELETE 2  // Deletion from target = insertion to query.
+#define EDLIB_EDOP_MISMATCH 3
+
 // Cigar formats
 #define EDLIB_CIGAR_EXTENDED 0
 #define EDLIB_CIGAR_STANDARD 1
@@ -48,8 +54,7 @@ extern "C" {
      *                                 If findAlignment is true, start locations will also be found.
      * @param [in] findAlignment  If true and if score != -1, reconstruction of alignment will be performed
      *                            and alignment will be returned.
-     *                            Notice: Finding aligment will increase execution time
-     *                                    and could take large amount of memory.
+     *                            Notice: Finding aligment will increase execution time.
      * @param [out] bestScore  Best score (smallest edit distance) or -1 if there is no score <= k.
      * @param [out] endLocations  Array of zero-based positions in target where
      *     query ends (position of last character) with the best score.

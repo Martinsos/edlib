@@ -71,13 +71,13 @@ int main(int argc, char * const argv[]) {
         fprintf(stderr, "\t-s  If specified, there will be no score or alignment output (silent mode).\n");
         fprintf(stderr, "\t-m HW|NW|SHW  Alignment mode that will be used. [default: NW]\n");
         fprintf(stderr, "\t-n N  Score will be calculated only for N best sequences (best = with smallest score)."
-                " If N = 0 then all sequences will be calculated." 
+                " If N = 0 then all sequences will be calculated."
                 " Specifying small N can make total calculation much faster. [default: 0]\n");
         fprintf(stderr, "\t-k K  Sequences with score > K will be discarded."
                 " Smaller k, faster calculation.\n");
         fprintf(stderr, "\t-t  If specified, simple algorithm is used instead of edlib. To be used for testing.\n");
-        fprintf(stderr, "\t-p  If specified, alignment path will be found and printed. If query is large, "
-                "this will consume a lot of memory and slow down the calculation.\n");
+        fprintf(stderr, "\t-p  If specified, alignment path will be found and printed. "
+                "This may significantly slow down the calculation.\n");
         fprintf(stderr, "\t-l  If specified, start locations will be found and printed. "
                 "Each start location corresponds to one end location. This may somewhat slow down "
                 "the calculation, but is still faster then finding alignment path and does not consume "
