@@ -8,6 +8,8 @@
 #include <climits>
 #include <queue>
 
+#include <seqan/align.h>
+
 #include "edlib.h"
 
 #include "SimpleEditDistance.h"
@@ -30,6 +32,8 @@ void printSeq(const vector<unsigned char> &seq) {
 }
 
 int main(int argc, char * const argv[]) {
+    typedef seqan::String<unsigned char> TSequence;                 // sequence type
+    typedef seqan::Align<TSequence, seqan::ArrayGaps> TAlign;     // align type
     
     //----------------------------- PARSE COMMAND LINE ------------------------//
     // If true, there will be no output.
@@ -159,6 +163,18 @@ int main(int argc, char * const argv[]) {
             printf("%c ", c);
     printf("\n");
 
+    TSequence querySeqAn;
+    for (int idx = 0; idx < (*querySequences)[0].size(); idx++) {
+        seqan::appendValue(querySeqAn, (*querySequences)[0][idx]);
+    }
+    TSequence targetSeqAn;
+    for (int idx = 0; idx < (*targetSequences)[0].size(); idx++) {
+        seqan::appendValue(targetSeqAn, (*targetSequences)[0][idx]);
+    }
+    TAlign align;
+    seqan::resize(seqan::rows(align), 2);
+    seqan::assignSource(seqan::row(align, 0), targetSeqAn);
+    seqan::assignSource(seqan::row(align, 1), querySeqAn);
 
     // ----------------------------- MAIN CALCULATION ----------------------------- //
     printf("\nComparing queries to target...\n");
@@ -178,18 +194,60 @@ int main(int argc, char * const argv[]) {
     for (int i = 0; i < numQueries; i++) {
         unsigned char* query = (*querySequences)[i].data();
         int queryLength = (*querySequences)[i].size();
+
+        start = clock();
         // Calculate score
         if (useSimple) {
             // Just for testing
+            /*
             calcEditDistanceSimple(query, queryLength, target, targetLength,
                                    alphabetLength, modeCode, scores + i,
                                    endLocations + i, numLocations + i);
+            */
+            int score;
+            if (findAlignment) {
+                if (modeCode == EDLIB_MODE_SHW) {
+                    score = seqan::globalAlignment(align, seqan::Score<int, seqan::Simple>(0, -1, -1),
+                                                   seqan::AlignConfig<false, false, false, true>(),
+                                                   seqan::LinearGaps());
+                }
+                if (modeCode == EDLIB_MODE_HW) {
+                    score = seqan::globalAlignment(align, seqan::Score<int, seqan::Simple>(0, -1, -1),
+                                                   seqan::AlignConfig<true, false, false, true>(),
+                                                   seqan::LinearGaps());
+                }
+                if (modeCode == EDLIB_MODE_HW) {
+                    score = seqan::globalAlignment(align, seqan::MyersHirschberg());
+                }
+            } else {
+                if (modeCode == EDLIB_MODE_SHW) {
+                    score = seqan::globalAlignmentScore(targetSeqAn, querySeqAn,
+                                                        seqan::Score<int, seqan::Simple>(0, -1, -1),
+                                                        seqan::AlignConfig<false, false, false, true>(),
+                                                        seqan::LinearGaps());
+                }
+                if (modeCode == EDLIB_MODE_HW) {
+                    score = seqan::globalAlignmentScore(targetSeqAn, querySeqAn,
+                                                        seqan::Score<int, seqan::Simple>(0, -1, -1),
+                                                        seqan::AlignConfig<true, false, false, true>(),
+                                                        seqan::LinearGaps());
+                }
+                if (modeCode == EDLIB_MODE_NW) {
+                    score = seqan::globalAlignmentScore(querySeqAn, targetSeqAn, seqan::MyersBitVector());
+                }
+            }
+            cout << "\n Seqan Score: " << score << endl;
+
         } else {
             edlibCalcEditDistance(query, queryLength, target, targetLength,
                                   alphabetLength, k, modeCode, findStartLocations, findAlignment,
                                   scores + i, endLocations + i, startLocations + i, numLocations + i,
                                   &alignment, &alignmentLength);
+            cout << "\n Edlib Score: " << scores[i] << endl;
         }
+        clock_t finish = clock();
+        double cpuTime = ((double)(finish-start))/CLOCKS_PER_SEC;
+        printf("\nCpu time of searching: %lf\n", cpuTime);
 
         // If we want only numBestSeqs best sequences, update best scores 
         // and adjust k to largest score.
