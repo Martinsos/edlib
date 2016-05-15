@@ -216,7 +216,7 @@ int main(int argc, char * const argv[]) {
                                                    seqan::AlignConfig<true, false, false, true>(),
                                                    seqan::LinearGaps());
                 }
-                if (modeCode == EDLIB_MODE_HW) {
+                if (modeCode == EDLIB_MODE_NW) {
                     score = seqan::globalAlignment(align, seqan::MyersHirschberg());
                 }
             } else {
