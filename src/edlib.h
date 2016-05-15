@@ -14,7 +14,6 @@ extern "C" {
 #define EDLIB_MODE_HW  0
 #define EDLIB_MODE_NW  1
 #define EDLIB_MODE_SHW 2
-#define EDLIB_MODE_OV  3
 
 // Edit operations
 #define EDLIB_EDOP_MATCH 0
@@ -48,7 +47,6 @@ extern "C" {
      *     EDLIB_MODE_NW: global (Needleman-Wunsch)
      *     EDLIB_MODE_HW: semi-global. Gaps before and after query are not penalized.
      *     EDLIB_MODE_SHW: semi-global. Gap after query is not penalized.
-     *     EDLIB_MODE_OV: semi-global. Gaps before and after query and target are not penalized.
      * @param [in] findStartLocations  If true, start locations are returned.
      *                                 May somewhat slow down the calculation.
      *                                 If findAlignment is true, start locations will also be found.

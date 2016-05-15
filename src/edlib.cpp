@@ -435,7 +435,7 @@ static inline bool allBlockCellsLarger(const Block block, const int k) {
 
 
 /**
- * @param [in] mode  EDLIB_MODE_HW or EDLIB_MODE_SHW or EDLIB_MODE_OV
+ * @param [in] mode  EDLIB_MODE_HW or EDLIB_MODE_SHW
  */
 static int myersCalcEditDistanceSemiGlobal(Word* const Peq, const int W, const int maxNumBlocks,
                                            const unsigned char* const query,  const int queryLength,
