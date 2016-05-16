@@ -7,7 +7,7 @@
 
 using namespace std;
 
-#ifdef __cplusplus 
+#ifdef __cplusplus
 extern "C" {
 #endif
 
@@ -26,14 +26,14 @@ int calcEditDistanceSimple(const unsigned char* query, int queryLength,
                            int** positions_, int* numPositions_) {
     int* C = new int[queryLength];
     int* newC = new int[queryLength];
-    
+
     int bestScore = -1;
     vector<int> positions;
     int numPositions = 0;
 
     // set first column (column zero)
     for (int i = 0; i < queryLength; i++) {
-        C[i] = mode == EDLIB_MODE_OV ? 0 : i + 1;
+        C[i] = i + 1;
     }
     /*
     for (int i = 0; i < queryLength; i++)
@@ -41,8 +41,8 @@ int calcEditDistanceSimple(const unsigned char* query, int queryLength,
     printf("\n");
     */
     for (int c = 0; c < targetLength; c++) { // for each column
-        newC[0] = min3((mode == EDLIB_MODE_HW || mode == EDLIB_MODE_OV ? 0 : c + 1) + 1, // up
-                       (mode == EDLIB_MODE_HW || mode == EDLIB_MODE_OV ? 0 : c) 
+        newC[0] = min3((mode == EDLIB_MODE_HW ? 0 : c + 1) + 1, // up
+                       (mode == EDLIB_MODE_HW ? 0 : c)
                        + (target[c] == query[0] ? 0 : 1), // up left
                        C[0] + 1); // left
         for (int r = 1; r < queryLength; r++) {
@@ -50,7 +50,7 @@ int calcEditDistanceSimple(const unsigned char* query, int queryLength,
                            C[r-1] + (target[c] == query[r] ? 0 : 1), // up left
                            C[r] + 1); // left
         }
-        
+
         /*  for (int i = 0; i < queryLength; i++)
             printf("%3d ", newC[i]);
             printf("\n");*/
@@ -67,22 +67,7 @@ int calcEditDistanceSimple(const unsigned char* query, int queryLength,
                 numPositions++;
             }
         }
-        // If mode is OV, check whole last column
-        if (mode == EDLIB_MODE_OV && c == targetLength - 1) {
-            for (int r = 0; r < targetLength - 1; r++) {
-                int score = newC[r];
-                if (bestScore == -1 || score < bestScore) {
-                    if (score < bestScore) {
-                        positions.clear();
-                        numPositions = 0;
-                    }
-                    bestScore = score;
-                    positions.push_back(c);
-                    numPositions++;
-                }
-            }
-        }
-        
+
         int *tmp = C;
         C = newC;
         newC = tmp;
@@ -106,7 +91,7 @@ int calcEditDistanceSimple(const unsigned char* query, int queryLength,
 
 
 
-#ifdef __cplusplus 
+#ifdef __cplusplus
 }
 #endif
 
