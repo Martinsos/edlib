@@ -1,5 +1,5 @@
 CC = g++
-CFLAGS = -O3 -I/home/martin/git/seqan/include/ -std=c++11
+CFLAGS = -O3 -I/home/martin/git/snap/SNAPLib/ -std=c++98
 
 DEBUG ?= 0
 ifeq ($(DEBUG), 1)

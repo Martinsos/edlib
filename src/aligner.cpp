@@ -7,9 +7,9 @@
 #include <string>
 #include <climits>
 #include <queue>
+#include <iostream>
 
-#include <seqan/align.h>
-#include <seqan/find.h>
+#include <LandauVishkin.h>
 
 #include "edlib.h"
 
@@ -33,9 +33,7 @@ void printSeq(const vector<unsigned char> &seq) {
 }
 
 int main(int argc, char * const argv[]) {
-    typedef seqan::String<unsigned char> TSequence;                 // sequence type
-    typedef seqan::Align<TSequence, seqan::ArrayGaps> TAlign;     // align type
-    
+
     //----------------------------- PARSE COMMAND LINE ------------------------//
     // If true, there will be no output.
     bool silent = false;
@@ -164,18 +162,7 @@ int main(int argc, char * const argv[]) {
             printf("%c ", c);
     printf("\n");
 
-    TSequence querySeqAn;
-    for (int idx = 0; idx < (*querySequences)[0].size(); idx++) {
-        seqan::appendValue(querySeqAn, (*querySequences)[0][idx]);
-    }
-    TSequence targetSeqAn;
-    for (int idx = 0; idx < (*targetSequences)[0].size(); idx++) {
-        seqan::appendValue(targetSeqAn, (*targetSequences)[0][idx]);
-    }
-    TAlign align;
-    seqan::resize(seqan::rows(align), 2);
-    seqan::assignSource(seqan::row(align, 0), targetSeqAn);
-    seqan::assignSource(seqan::row(align, 1), querySeqAn);
+
 
     // ----------------------------- MAIN CALCULATION ----------------------------- //
     printf("\nComparing queries to target...\n");
@@ -196,6 +183,14 @@ int main(int argc, char * const argv[]) {
         unsigned char* query = (*querySequences)[i].data();
         int queryLength = (*querySequences)[i].size();
 
+
+        char* targetLV = (char*) malloc(sizeof(char) * targetLength);
+        for (int j = 0; j < targetLength; j++) targetLV[j] = target[j];
+        char* queryLV = (char*) malloc(sizeof(char) * queryLength);
+        for (int j = 0; j < queryLength; j++) queryLV[j] = query[j];
+        LandauVishkin<> lv;
+
+
         start = clock();
         // Calculate score
         if (useSimple) {
@@ -208,48 +203,29 @@ int main(int argc, char * const argv[]) {
             int score;
             if (findAlignment) {
                 if (modeCode == EDLIB_MODE_SHW) {
-                    score = seqan::globalAlignment(align, seqan::Score<int, seqan::Simple>(0, -1, -1),
-                                                   seqan::AlignConfig<false, false, false, true>(),
-                                                   seqan::LinearGaps());
+
                 }
                 if (modeCode == EDLIB_MODE_HW) {
-                    score = seqan::globalAlignment(align, seqan::Score<int, seqan::Simple>(0, -1, -1),
-                                                   seqan::AlignConfig<true, false, false, true>(),
-                                                   seqan::LinearGaps());
+
                 }
                 if (modeCode == EDLIB_MODE_NW) {
-                    printf("\nStarted alignment\n");
-                    score = seqan::globalAlignment(align, seqan::MyersHirschberg());
-                    printf("\nFinished alignment\n");
+
                 }
             } else {
                 if (modeCode == EDLIB_MODE_SHW) {
-                    score = seqan::globalAlignmentScore(targetSeqAn, querySeqAn,
-                                                        seqan::Score<int, seqan::Simple>(0, -1, -1),
-                                                        seqan::AlignConfig<false, false, false, true>(),
-                                                        seqan::LinearGaps());
-                    // TODO: try to use finder interface here.
+                    printf("\nExecuting LV\n");
+                    score = lv.computeEditDistance(queryLV, queryLength, targetLV, targetLength, 1000);
+                    //score = lv.computeEditDistance("abcde", 5, "abcde", 5, 2);
+                    printf("\nExecuted LV\n");
                 }
                 if (modeCode == EDLIB_MODE_HW) {
-                    // TODO: try to use finder interface here.
-                    seqan::Pattern<TSequence, seqan::MyersUkkonen> pattern(querySeqAn);
-                    seqan::Finder<TSequence> finder(targetSeqAn);
-                    seqan::find(finder, pattern, -1000);
-                    if (seqan::find(finder, pattern))
-                        cout << "\nFound pattern with score: " << seqan::getScore(pattern) << endl;
-                    else
-                        cout << "\nDidn't find pattern!" << endl;
 
-                    // score = seqan::globalAlignmentScore(targetSeqAn, querySeqAn,
-                    //                                     seqan::Score<int, seqan::Simple>(0, -1, -1),
-                    //                                     seqan::AlignConfig<true, false, false, true>(),
-                    //                                     seqan::LinearGaps());
                 }
                 if (modeCode == EDLIB_MODE_NW) {
-                    score = seqan::globalAlignmentScore(querySeqAn, targetSeqAn, seqan::MyersBitVector());
+
                 }
             }
-            cout << "\n Seqan Score: " << score << endl;
+            cout << "\n Snap LV Score: " << score << endl;
 
         } else {
             edlibCalcEditDistance(query, queryLength, target, targetLength,
