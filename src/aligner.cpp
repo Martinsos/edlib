@@ -9,6 +9,7 @@
 #include <queue>
 
 #include <seqan/align.h>
+#include <seqan/find.h>
 
 #include "edlib.h"
 
@@ -217,7 +218,9 @@ int main(int argc, char * const argv[]) {
                                                    seqan::LinearGaps());
                 }
                 if (modeCode == EDLIB_MODE_NW) {
+                    printf("\nStarted alignment\n");
                     score = seqan::globalAlignment(align, seqan::MyersHirschberg());
+                    printf("\nFinished alignment\n");
                 }
             } else {
                 if (modeCode == EDLIB_MODE_SHW) {
@@ -225,12 +228,22 @@ int main(int argc, char * const argv[]) {
                                                         seqan::Score<int, seqan::Simple>(0, -1, -1),
                                                         seqan::AlignConfig<false, false, false, true>(),
                                                         seqan::LinearGaps());
+                    // TODO: try to use finder interface here.
                 }
                 if (modeCode == EDLIB_MODE_HW) {
-                    score = seqan::globalAlignmentScore(targetSeqAn, querySeqAn,
-                                                        seqan::Score<int, seqan::Simple>(0, -1, -1),
-                                                        seqan::AlignConfig<true, false, false, true>(),
-                                                        seqan::LinearGaps());
+                    // TODO: try to use finder interface here.
+                    seqan::Pattern<TSequence, seqan::MyersUkkonen> pattern(querySeqAn);
+                    seqan::Finder<TSequence> finder(targetSeqAn);
+                    seqan::find(finder, pattern, -1000);
+                    if (seqan::find(finder, pattern))
+                        cout << "\nFound pattern with score: " << seqan::getScore(pattern) << endl;
+                    else
+                        cout << "\nDidn't find pattern!" << endl;
+
+                    // score = seqan::globalAlignmentScore(targetSeqAn, querySeqAn,
+                    //                                     seqan::Score<int, seqan::Simple>(0, -1, -1),
+                    //                                     seqan::AlignConfig<true, false, false, true>(),
+                    //                                     seqan::LinearGaps());
                 }
                 if (modeCode == EDLIB_MODE_NW) {
                     score = seqan::globalAlignmentScore(querySeqAn, targetSeqAn, seqan::MyersBitVector());
