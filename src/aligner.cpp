@@ -164,18 +164,18 @@ int main(int argc, char * const argv[]) {
             printf("%c ", c);
     printf("\n");
 
-    TSequence querySeqAn;
+    TSequence* querySeqAn = new TSequence;
     for (int idx = 0; idx < (*querySequences)[0].size(); idx++) {
-        seqan::appendValue(querySeqAn, (*querySequences)[0][idx]);
+        seqan::appendValue(*querySeqAn, (*querySequences)[0][idx]);
     }
-    TSequence targetSeqAn;
+    TSequence* targetSeqAn = new TSequence;
     for (int idx = 0; idx < (*targetSequences)[0].size(); idx++) {
-        seqan::appendValue(targetSeqAn, (*targetSequences)[0][idx]);
+        seqan::appendValue(*targetSeqAn, (*targetSequences)[0][idx]);
     }
-    TAlign align;
-    seqan::resize(seqan::rows(align), 2);
-    seqan::assignSource(seqan::row(align, 0), targetSeqAn);
-    seqan::assignSource(seqan::row(align, 1), querySeqAn);
+    TAlign* align = new TAlign;
+    seqan::resize(seqan::rows(*align), 2);
+    seqan::assignSource(seqan::row(*align, 0), *targetSeqAn);
+    seqan::assignSource(seqan::row(*align, 1), *querySeqAn);
 
     // ----------------------------- MAIN CALCULATION ----------------------------- //
     printf("\nComparing queries to target...\n");
@@ -208,23 +208,23 @@ int main(int argc, char * const argv[]) {
             int score;
             if (findAlignment) {
                 if (modeCode == EDLIB_MODE_SHW) {
-                    score = seqan::globalAlignment(align, seqan::Score<int, seqan::Simple>(0, -1, -1),
+                    score = seqan::globalAlignment(*align, seqan::Score<int, seqan::Simple>(0, -1, -1),
                                                    seqan::AlignConfig<false, false, false, true>(),
                                                    seqan::LinearGaps());
                 }
                 if (modeCode == EDLIB_MODE_HW) {
-                    score = seqan::globalAlignment(align, seqan::Score<int, seqan::Simple>(0, -1, -1),
+                    score = seqan::globalAlignment(*align, seqan::Score<int, seqan::Simple>(0, -1, -1),
                                                    seqan::AlignConfig<true, false, false, true>(),
                                                    seqan::LinearGaps());
                 }
                 if (modeCode == EDLIB_MODE_NW) {
                     printf("\nStarted alignment\n");
-                    score = seqan::globalAlignment(align, seqan::MyersHirschberg());
+                    score = seqan::globalAlignment(*align, seqan::MyersHirschberg());
                     printf("\nFinished alignment\n");
                 }
             } else {
                 if (modeCode == EDLIB_MODE_SHW) {
-                    score = seqan::globalAlignmentScore(targetSeqAn, querySeqAn,
+                    score = seqan::globalAlignmentScore(*targetSeqAn, *querySeqAn,
                                                         seqan::Score<int, seqan::Simple>(0, -1, -1),
                                                         seqan::AlignConfig<false, false, false, true>(),
                                                         seqan::LinearGaps());
@@ -232,21 +232,22 @@ int main(int argc, char * const argv[]) {
                 }
                 if (modeCode == EDLIB_MODE_HW) {
                     // TODO: try to use finder interface here.
-                    seqan::Pattern<TSequence, seqan::MyersUkkonen> pattern(querySeqAn);
-                    seqan::Finder<TSequence> finder(targetSeqAn);
+                    seqan::Pattern<TSequence, seqan::MyersUkkonen> pattern(*querySeqAn);
+                    seqan::Finder<TSequence> finder(*targetSeqAn);
                     seqan::find(finder, pattern, -1000);
-                    if (seqan::find(finder, pattern))
-                        cout << "\nFound pattern with score: " << seqan::getScore(pattern) << endl;
-                    else
+                    if (seqan::find(finder, pattern)) {
+                        score = seqan::getScore(pattern);
+                        cout << "\nFound pattern with score: " << score << endl;
+                    } else
                         cout << "\nDidn't find pattern!" << endl;
 
-                    // score = seqan::globalAlignmentScore(targetSeqAn, querySeqAn,
+                    // score = seqan::globalAlignmentScore(*targetSeqAn, *querySeqAn,
                     //                                     seqan::Score<int, seqan::Simple>(0, -1, -1),
                     //                                     seqan::AlignConfig<true, false, false, true>(),
                     //                                     seqan::LinearGaps());
                 }
                 if (modeCode == EDLIB_MODE_NW) {
-                    score = seqan::globalAlignmentScore(querySeqAn, targetSeqAn, seqan::MyersBitVector());
+                    score = seqan::globalAlignmentScore(*querySeqAn, *targetSeqAn, seqan::MyersBitVector());
                 }
             }
             cout << "\n Seqan Score: " << score << endl;
