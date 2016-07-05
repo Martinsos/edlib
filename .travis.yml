@@ -1,0 +1,10 @@
+language: cpp
+compiler:
+  - gcc
+os:
+  - linux
+  - osx
+script:
+  - cd src
+  - make test
+  - ./test

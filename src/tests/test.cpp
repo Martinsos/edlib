@@ -9,7 +9,7 @@
 using namespace std;
 
 
-void runRandomTests(int numTests, int mode, bool findAlignment);
+bool runRandomTests(int numTests, int mode, bool findAlignment);
 bool runTests();
 
 int calcEditDistanceSimple(const unsigned char* query, int queryLength,
@@ -26,39 +26,42 @@ int getAlignmentStart(const unsigned char* alignment, int alignmentLength,
                       int endLocation);
 
 int main() {
-    srand(1);
+    srand(42);
+    bool allTestsPassed = true;
 
     printf("Testing HW with alignment...\n");
-    runRandomTests(100, EDLIB_MODE_HW, true);
+    allTestsPassed &= runRandomTests(100, EDLIB_MODE_HW, true);
     printf("\n");
 
     printf("Testing HW...\n");
-    runRandomTests(100, EDLIB_MODE_HW, false);
+    allTestsPassed &= runRandomTests(100, EDLIB_MODE_HW, false);
     printf("\n");
 
     printf("Testing NW with alignment...\n");
-    runRandomTests(100, EDLIB_MODE_NW, true);
+    allTestsPassed &= runRandomTests(100, EDLIB_MODE_NW, true);
     printf("\n");
 
     printf("Testing NW...\n");
-    runRandomTests(100, EDLIB_MODE_NW, false);
+    allTestsPassed &= runRandomTests(100, EDLIB_MODE_NW, false);
     printf("\n");
 
     printf("Testing SHW with alignment...\n");
-    runRandomTests(100, EDLIB_MODE_SHW, true);
+    allTestsPassed &= runRandomTests(100, EDLIB_MODE_SHW, true);
     printf("\n");
 
     printf("Testing SHW...\n");
-    runRandomTests(100, EDLIB_MODE_SHW, false);
+    allTestsPassed &= runRandomTests(100, EDLIB_MODE_SHW, false);
     printf("\n");
 
     printf("Specific tests:\n");
-    if (runTests())
+    bool specificTestsPassed = runTests();
+    if (specificTestsPassed)
         printf("All specific tests passed!\n");
     else
         printf("Some specific tests failed\n");
+    allTestsPassed &= specificTestsPassed;
 
-    return 0;
+    return !allTestsPassed;
 }
 
 
@@ -67,7 +70,8 @@ void fillRandomly(unsigned char* seq, int seqLength, int alphabetLength) {
         seq[i] = rand() % alphabetLength;
 }
 
-void runRandomTests(int numTests, int mode, bool findAlignment) {
+// Returns true if all tests passed, false otherwise.
+bool runRandomTests(int numTests, int mode, bool findAlignment) {
     int alphabetLength = 10;
     int numTestsFailed = 0;
     clock_t start;
@@ -199,6 +203,7 @@ void runRandomTests(int numTests, int mode, bool findAlignment) {
     printf("Time Edlib: %lf\n", mTime);
     printf("Time Simple: %lf\n", sTime);
     printf("Times faster: %.2lf\n", sTime / mTime);
+    return numTestsFailed == 0;
 }
 
 

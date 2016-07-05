@@ -3,7 +3,7 @@
 
 #include "edlib.h"
 
-int main(int argc, char * const argv[]) {
+int main() {
 
     // We are goint to map letters in following way:
     // D = 0, E = 1, H = 2, L = 3, O = 4, R = 5, W = 6.

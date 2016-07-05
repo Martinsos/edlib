@@ -3,6 +3,7 @@ EDLIB
 
 A lightweight and super fast C/C++ library for calculating [edit distance](https://en.wikipedia.org/wiki/Edit_distance) between two sequences(strings).
 
+[![Build Status](https://travis-ci.org/Martinsos/edlib.svg?branch=master)](https://travis-ci.org/Martinsos/edlib)
 
 ### Features
 * Calculates **edit distance**.
@@ -34,7 +35,7 @@ example.c
 #include <stdlib.h>
 #include "edlib.h"
 
-int main(int argc, char * const argv[]) {
+int main() {
     unsigned char query[4] = {0,1,2,1};
     unsigned char target[5] = {0,2,1,1,1};
     int editDistance, numLocations, alignmentLength;
