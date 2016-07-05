@@ -47,11 +47,11 @@ extern "C" {
      *     EDLIB_MODE_NW: global (Needleman-Wunsch)
      *     EDLIB_MODE_HW: semi-global. Gaps before and after query are not penalized.
      *     EDLIB_MODE_SHW: semi-global. Gap after query is not penalized.
-     * @param [in] findStartLocations  If true, start locations are returned.
+     * @param [in] findStartLocations  If different than 0, start locations are returned.
      *                                 May somewhat slow down the calculation.
-     *                                 If findAlignment is true, start locations will also be found.
-     * @param [in] findAlignment  If true and if score != -1, reconstruction of alignment will be performed
-     *                            and alignment will be returned.
+     *                                 If findAlignment is set, start locations will also be found.
+     * @param [in] findAlignment  If different than 0 and if score != -1, reconstruction of alignment
+     *                            will be performed and alignment will be returned.
      *                            Notice: Finding aligment will increase execution time.
      * @param [out] bestScore  Best score (smallest edit distance) or -1 if there is no score <= k.
      * @param [out] endLocations  Array of zero-based positions in target where
@@ -66,7 +66,7 @@ extern "C" {
      *     Otherwise, array is returned and it is on you to free it with free().
      * @param [out] numLocations  Number of positions returned.
      * @param [out] alignment  Alignment is found for first position returned.
-     *                         Will contain alignment if findAlignment is true and score != -1.
+     *                         Will contain alignment if findAlignment is set and score != -1.
      *                         Otherwise it will be set NULL.
      *                         Alignment is sequence of numbers: 0, 1, 2, 3.
      *                         0 stands for match.
@@ -86,7 +86,7 @@ extern "C" {
         const unsigned char* query, int queryLength,
         const unsigned char* target, int targetLength,
         int alphabetLength, int k, int mode,
-        bool findStartLocations, bool findAlignment,
+        int findStartLocations, int findAlignment,
         int* bestScore, int** endLocations, int** startLocations, int* numLocations,
         unsigned char** alignment, int* alignmentLength);
 

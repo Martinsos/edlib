@@ -96,7 +96,7 @@ int edlibCalcEditDistance(
         const unsigned char* query, int queryLength,
         const unsigned char* target, int targetLength,
         int alphabetLength, int k, int mode,
-        bool findStartLocations, bool findAlignment,
+        int findStartLocations, int findAlignment,
         int* bestScore, int** endLocations, int** startLocations, int* numLocations,
         unsigned char** alignment, int* alignmentLength) {
 

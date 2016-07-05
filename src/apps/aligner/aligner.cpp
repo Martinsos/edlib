@@ -10,8 +10,6 @@
 
 #include "edlib.h"
 
-#include "SimpleEditDistance.h"
-
 using namespace std;
 
 int readFastaSequences(const char* path, vector< vector<unsigned char> >* seqs,
@@ -43,15 +41,13 @@ int main(int argc, char * const argv[]) {
     bool findStartLocations = false;
     int option;
     int kArg = -1;
-    // If true, simple implementation of edit distance algorithm is used instead of edlib.
-    // This is for testing purposes.
-    bool useSimple = false;
+
     // If "STD" or "EXT", cigar string will be printed. if "NICE" nice representation
     // of alignment will be printed.
     char alignmentFormat[16] = "NICE";
 
     bool invalidOption = false;
-    while ((option = getopt(argc, argv, "m:n:k:f:splt")) >= 0) {
+    while ((option = getopt(argc, argv, "m:n:k:f:spl")) >= 0) {
         switch (option) {
         case 'm': strcpy(mode, optarg); break;
         case 'n': numBestSeqs = atoi(optarg); break;
@@ -60,7 +56,6 @@ int main(int argc, char * const argv[]) {
         case 's': silent = true; break;
         case 'p': findAlignment = true; break;
         case 'l': findStartLocations = true; break;
-        case 't': useSimple = true; break;
         default: invalidOption = true;
         }
     }
@@ -75,7 +70,6 @@ int main(int argc, char * const argv[]) {
                 " Specifying small N can make total calculation much faster. [default: 0]\n");
         fprintf(stderr, "\t-k K  Sequences with score > K will be discarded."
                 " Smaller k, faster calculation.\n");
-        fprintf(stderr, "\t-t  If specified, simple algorithm is used instead of edlib. To be used for testing.\n");
         fprintf(stderr, "\t-p  If specified, alignment path will be found and printed. "
                 "This may significantly slow down the calculation.\n");
         fprintf(stderr, "\t-l  If specified, start locations will be found and printed. "
@@ -179,17 +173,10 @@ int main(int argc, char * const argv[]) {
         unsigned char* query = (*querySequences)[i].data();
         int queryLength = (*querySequences)[i].size();
         // Calculate score
-        if (useSimple) {
-            // Just for testing
-            calcEditDistanceSimple(query, queryLength, target, targetLength,
-                                   alphabetLength, modeCode, scores + i,
-                                   endLocations + i, numLocations + i);
-        } else {
-            edlibCalcEditDistance(query, queryLength, target, targetLength,
-                                  alphabetLength, k, modeCode, findStartLocations, findAlignment,
-                                  scores + i, endLocations + i, startLocations + i, numLocations + i,
-                                  &alignment, &alignmentLength);
-        }
+        edlibCalcEditDistance(query, queryLength, target, targetLength,
+                              alphabetLength, k, modeCode, findStartLocations, findAlignment,
+                              scores + i, endLocations + i, startLocations + i, numLocations + i,
+                              &alignment, &alignmentLength);
 
         // If we want only numBestSeqs best sequences, update best scores 
         // and adjust k to largest score.

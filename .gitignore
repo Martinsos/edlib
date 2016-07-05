@@ -17,8 +17,9 @@ callgrind.out.*
 core
 
 # Executables
-test
-aligner
+src/test
+src/aligner
+src/helloWorld
 
 local_tests
 
