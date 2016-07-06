@@ -20,9 +20,9 @@ int min3(int x, int y, int z) {
     return min(x, min(y, z));
 }
 
-int calcEditDistanceSimple(const unsigned char* query, int queryLength,
-                           const unsigned char* target, int targetLength,
-                           int alphabetLength, int mode, int* score,
+int calcEditDistanceSimple(const char* query, int queryLength,
+                           const char* target, int targetLength,
+                           EdlibAlignMode mode, int* score,
                            int** positions_, int* numPositions_) {
     int* C = new int[queryLength];
     int* newC = new int[queryLength];

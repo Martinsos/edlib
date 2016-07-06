@@ -1,16 +1,29 @@
 EDLIB
 =====
 
-A lightweight and super fast C/C++ library for calculating [edit distance](https://en.wikipedia.org/wiki/Edit_distance) between two sequences(strings).
+A lightweight and super fast C/C++ library for sequence alignment using [edit distance](https://en.wikipedia.org/wiki/Edit_distance).
+
+Calculating edit distance of two strings is as simple as:
+```c
+edlibAlign("hello", 5, "world!", 6, edlibDefaultAlignConfig()).editDistance;
+```
 
 [![Build Status](https://travis-ci.org/Martinsos/edlib.svg?branch=master)](https://travis-ci.org/Martinsos/edlib)
+
+
+---
+
 
 ### Features
 * Calculates **edit distance**.
 * It can find **optimal alignment path** (instructions how to transform first sequence into the second sequence).
 * It can find just the **start and/or end locations of alignment path** - can be useful when speed is more important than having exact alignment path.
 * Supports **multiple alignment methods**: global(**NW**), prefix(**SHW**) and infix(**HW**), each of them useful for different scenarios.
-* It can easily handle small or very large sequences, even when finding alignment path.
+* It can easily handle small or **very large** sequences, even when finding alignment path.
+* **Super fast** thanks to Myers's bit-vector algorithm.
+
+
+---
 
 
 ### Usage
@@ -19,47 +32,81 @@ A lightweight and super fast C/C++ library for calculating [edit distance](https
 2. Include `edlib.h` in your source files as needed.
 3. Compile your code together with `edlib.cpp`.
 
-
-#### Example project
-To get you started quickly, here is a short example project that works.
+#### Hello World
+To get you started quickly, here is a short Hello World project that works.
 
 ```
 edlib.h   -> copied from edlib/src/library/
 edlib.cpp -> copied from edlib/src/library/
-example.c -> your program
+helloWorld.c -> your program
 ```
 
-example.c
+helloWorld.c
 ```c
 #include <stdio.h>
-#include <stdlib.h>
 #include "edlib.h"
 
 int main() {
-    unsigned char query[4] = {0,1,2,1};
-    unsigned char target[5] = {0,2,1,1,1};
-    int editDistance, numLocations, alignmentLength;
-    int* startLocations, * endLocations;
-    unsigned char* alignment;
-
-    edlibCalcEditDistance(query, 4, target, 5, 3,
-                          -1, EDLIB_MODE_NW, 0, 0,
-                          &editDistance, &endLocations, &startLocations, &numLocations,
-                          &alignment, &alignmentLength);
-    printf("%d\n", editDistance);
-    if (endLocations) free(endLocations);
+    EdlibAlignResult result = edlibAlign("hello", 5, "world!", 6, edlibDefaultAlignConfig());
+    printf("edit_distance('hello', 'world!') = %d\n", result.editDistance);
+    edlibFreeAlignResult(result);
 }
 ```
 
-Compile it with `g++ example.c edlib.cpp -o example` and that is it! Running `./example` should output `2`.
+Compile it with `g++ helloWorld.c edlib.cpp -o helloWorld` and that is it!
+Running `./helloWorld` should output `edit_distance('hello', 'world!') = 5`.
+
+For more example projects take a look at applications in [src/apps/](src/apps/).
+
+#### Examples
+Main function in edlib is `edlibAlign`. Given two sequences (and their lengths), it will find edit distance, alignment path or its end and start locations.
+
+##### EdlibAlignConfig
+`edlibAlign` takes config object (it is a struct), which allows you to further customize how alignment will be done. You can choose alignment method, tell edlib what to calculate (just edit distance or also path and locations) and set upper limit for edit distance.
+
+For example, if you want to use infix(HW) alignment method, want to find alignment path (and edit distance), and are interested in result only if edit distance is not larger than 42, you would call it like this:
+```c
+edlibAlign(seq1, seq1Length, seq2, seq2Length,
+           edlibNewAlignConfig(42, EDLIB_MODE_HW, EDLIB_TASK_PATH));
+```
+Or, if you want to use suffix(SHW) alignment method, want to find only edit distance, and do not have any limits on edit distance, you would call it like this:
+```c
+edlibAlign(seq1, seq1Length, seq2, seq2Length,
+           edlibNewAlignConfig(-1, EDLIB_MODE_SHW, EDLIB_TASK_DISTANCE));
+```
+
+We used `edlibNewAlignConfig` helper function to easily create config, however we could have also just created an instance of it and set its members accordingly.
+
+##### EdlibAlignResult
+`edlibAlign` function returns a result object, which will contain results of alignment (corresponding to the task that you passed in config).
+
+```c
+EdlibAlignResult result = edlibAlign(seq1, seq1Length, seq2, seq2Length,
+                                     edlibNewAlignConfig(-1, EDLIB_MODE_HW, EDLIB_TASK_PATH));
+printf("%d\n", result.editDistance);
+printf("%d\n", result.alignmentLength);
+printf("%d\n", result.endLocations[0]);
+edlibFreeAlignResult(result);
+```
+
+It is important to remember to free the result object using `edlibFreeAlignResult` function, since Edlib allocates memory on heap for certain members. If you decide to do the cleaning manually and not use `edlibFreeAlignResult`, do not forget to manually `free()` required members.
+
+##### Turning alignment to cigar
+Cigar is a standard way to represent alignment path.
+Edlib has helper function that transforms alignment path into cigar.
+```c
+char* cigar;
+edlibAlignmentToCigar(result.alignment, result.alignmentLength, EDLIB_CIGAR_STANDARD, &cigar);
+printf("%s", cigar);
+```
 
 
-For more examples take a look at applications in [src/apps/](src/apps/).
+---
 
 
 ### Alignment methods
 
-Edlib support 3 alignment methods:
+Edlib supports 3 alignment methods:
 * **global (NW)** - This is the standard method, when we say "edit distance" this is the method that is assumed.
   It tells us the smallest number of operations needed to transform first sequence into second sequence.
   This method is appropriate when you want to find out how similar is first sequence to second sequence.
@@ -72,15 +119,17 @@ Edlib support 3 alignment methods:
   In bioinformatics, this method is appropriate for aligning read to a sequence.
 
 
+---
 
-### Methods
-#### edlibCalcEditDistance(...)
-  TODO
-#### edlibAlignmentToCigar(...)
-  TODO
 
-    
-    
+### API
+
+Check [edlib.h](/src/library/edlib.h) for list of well commented public structures and functions.
+
+
+---
+
+
 ### Aligner
 Edlib comes with a standalone aligner, which can be found at [src/apps/aligner/](src/apps/aligner).
 
@@ -94,8 +143,14 @@ Example of usage (assuming you are positioned in [src/](src/) directory):
 `./aligner -p apps/aligner/test_data/query.fasta apps/aligner/test_data/target.fasta`
 
 
+---
+
+
 ### Running tests
 In order to run tests, position your self in [src/](src/) directory, run `make test`, and run `./test`. This will run random tests for each alignment method, and also some specific unit tests.
+
+
+---
 
 
 ### Time and space complexity
@@ -110,8 +165,14 @@ Space complexity: `O(T + Q)`.
 It is worth noting that Edlib works best for large, similar sequences, since such sequences get the highest speedup from banded approach and bit-vector parallelization.
 
 
+---
+
+
 ### Test data
 In [test_data/](test_data) directory there are different genome sequences, ranging from 10 kbp to 5 Mbp in length. They are ranging in length and similarity, so they can be useful for testing and measuring speed in different scenarios.
+
+
+---
 
 
 #### Nodejs
