@@ -1,6 +1,11 @@
 #ifndef EDLIB_H
 #define EDLIB_H
 
+/**
+ * @file
+ * @author Martin Sosic
+ * @brief Main header file, containing all public functions and structures.
+ */
 
 #ifdef __cplusplus
 extern "C" {
@@ -39,7 +44,7 @@ typedef enum {
 
 
     /**
-     * Configuration object for edlibAlign() function.
+     * @brief Configuration object for edlibAlign() function.
      */
     typedef struct {
         /**

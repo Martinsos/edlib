@@ -12,12 +12,15 @@
 *.la
 *.a
 
-callgrind.out.*
-
-core
-
 # Build directory
 build/*
 !build/README.md
+
+# Documentation
+docs/
+
+callgrind.out.*
+
+core
 
 TAGS
