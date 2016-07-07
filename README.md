@@ -154,7 +154,7 @@ printf("%s", cigar);
 
 ### API
 
-Visit [martinsos.github.io/edlib](martinsos.github.io/edlib) for online documentation with documented API (should be for the latest release).
+Visit [http://martinsos.github.io/edlib](https://martinsos.github.io/edlib) for online documentation with documented API (should be for the latest release).
 
 To generate latest API documentation, you need to have [doxygen](www.doxygen.org) installed.
 Position yourself in root directory and run `doxygen`, this will generate `docs/` directory. Then open `docs/html/index.html` file with you favorite browser.
