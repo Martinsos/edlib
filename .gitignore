@@ -16,11 +16,8 @@ callgrind.out.*
 
 core
 
-# Executables
-src/test
-src/aligner
-src/helloWorld
-
-local_tests
+# Build directory
+build/*
+!build/README.md
 
 TAGS

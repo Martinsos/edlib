@@ -19,7 +19,7 @@ edlibAlign("hello", 5, "world!", 6, edlibDefaultAlignConfig()).editDistance;
 * Calculates **edit distance**.
 * It can find **optimal alignment path** (instructions how to transform first sequence into the second sequence).
 * It can find just the **start and/or end locations of alignment path** - can be useful when speed is more important than having exact alignment path.
-* Supports **multiple alignment methods**: global(**NW**), prefix(**SHW**) and infix(**HW**), each of them useful for different scenarios.
+* Supports **multiple [alignment methods](#align-methods)**: global(**NW**), prefix(**SHW**) and infix(**HW**), each of them useful for different scenarios.
 * It can easily handle small or **very large** sequences, even when finding alignment path.
 * **Super fast** thanks to Myers's bit-vector algorithm.
 
@@ -27,22 +27,26 @@ edlibAlign("hello", 5, "world!", 6, edlibDefaultAlignConfig()).editDistance;
 ---
 
 
-### Usage
+### <a name="building">Building</a>
+Edlib uses CMAKE to build libraries (static and shared) and binaries (apps and tests).
+Execute following commands to build Edlib using CMAKE:
+* `cd build`
+* `cmake -D CMAKE_BUILD_TYPE=Release ..` - This will optimize compiled code, which is what you usually want. If you want to compile it for debugging, just run `cmake ..`.
+* `make` - This will create binaries in `bin/` directory and libraries (static and shared) in `lib/` directory. (Tip: run `make VERBOSE=1` to see what is exactly `make` doing.)
+* Optionally, you can run `sudo make install` to install edlib library on your machine (on Linux, this will usually install it to `usr/local/lib` and `usr/local/include`).
 
-1. Copy `edlib.h` and `edlib.cpp` from [src/library/](src/library/) directory to your project.
-2. Include `edlib.h` in your source files as needed.
-3. Compile your code together with `edlib.cpp`.
+
+---
+
+
+### Using Edlib in your project
+You can use Edlib in you project by either directly copying header and source files from [edlib/](edlib/), or by linking Edlib library (see [Building](#building) for instructions how to build Edlib libraries).
+In any case, only thing that you have to do in your source files is to include `edlib.h`.
 
 #### Hello World
-To get you started quickly, here is a short Hello World project that works.
+To get you started quickly, let's take a look at a few ways to get simple Hello World project working.
 
-```
-edlib.h   -> copied from edlib/src/library/
-edlib.cpp -> copied from edlib/src/library/
-helloWorld.c -> your program
-```
-
-helloWorld.c
+Our Hello World project has just one source file, helloWorld.c file, and it looks like this:
 ```c
 #include <stdio.h>
 #include "edlib.h"
@@ -54,16 +58,57 @@ int main() {
 }
 ```
 
-Compile it with `g++ helloWorld.c edlib.cpp -o helloWorld` and that is it!
-Running `./helloWorld` should output `edit_distance('hello', 'world!') = 5`.
+Running it should output `edit_distance('hello', 'world!') = 5`.
 
-For more example projects take a look at applications in [src/apps/](src/apps/).
+##### Directly copying edlib source and header files.
+Here we directly copied [edlib/](edlib/) directory to our project, to get following project structure:
+```
+edlib/  -> copied from edlib/
+  include/
+    edlib.h
+  src/
+    edlib.cpp
+helloWorld.c -> your program
+```
 
-#### Examples
+Compile it with `g++ helloWorld.c edlib/src/edlib.cpp -o helloWorld -I edlib/include` and that is it!
+
+##### Copying edlib header file and static library.
+Instead of copying edlib source files, you could copy static library (check [Building](#building) on how to create static library). We also need to copy edlib header files. We get following project structure:
+```
+edlib/  -> copied from edlib
+  include/
+    edlib.h
+  edlib.a
+helloWorld.c -> your program
+```
+
+Now you can compile it with `g++ helloWorld.c -o helloWorld -I edlib/include -L edlib -ledlib_static`.
+
+##### Install edlib library on machine.
+Alternatively, you could avoid copying any Edlib files and instead install libraries by running `sudo make install` (check [Building](#building)). Now, all you have to do to compile your project is `g++ helloWorld.c -o helloWorld -ledlib`.
+If you get error message like `cannot open shared object file: No such file or directory`, make sure that your linker includes path where edlib was installed.
+
+
+For more example projects take a look at applications in [apps/](apps/).
+
+
+---
+
+
+### Usage
 Main function in edlib is `edlibAlign`. Given two sequences (and their lengths), it will find edit distance, alignment path or its end and start locations.
 
+```c
+char* query = "ACCTCTG";
+char* target = "ACTCTGAAA"
+EdlibAlignResult result = edlibAlign(query, 7, target, 9, edlibDefaultAlignConfig());
+printf("%d", result.editDistance);
+edlibFreeAlignResult(result);
+```
+
 ##### EdlibAlignConfig
-`edlibAlign` takes config object (it is a struct), which allows you to further customize how alignment will be done. You can choose alignment method, tell edlib what to calculate (just edit distance or also path and locations) and set upper limit for edit distance.
+`edlibAlign` takes config object (it is a struct), which allows you to further customize how alignment will be done. You can choose [alignment method](#align-methods), tell edlib what to calculate (just edit distance or also path and locations) and set upper limit for edit distance.
 
 For example, if you want to use infix(HW) alignment method, want to find alignment path (and edit distance), and are interested in result only if edit distance is not larger than 42, you would call it like this:
 ```c
@@ -105,7 +150,15 @@ printf("%s", cigar);
 ---
 
 
-### Alignment methods
+### API
+
+Check [edlib.h](/src/library/edlib.h) for well commented public API.
+
+
+---
+
+
+### <a name="align-methods">Alignment methods</a>
 
 Edlib supports 3 alignment methods:
 * **global (NW)** - This is the standard method, when we say "edit distance" this is the method that is assumed.
@@ -123,24 +176,16 @@ Edlib supports 3 alignment methods:
 ---
 
 
-### API
-
-Check [edlib.h](/src/library/edlib.h) for list of well commented public structures and functions.
-
-
----
-
-
 ### Aligner
-Edlib comes with a standalone aligner, which can be found at [src/apps/aligner/](src/apps/aligner).
+Edlib comes with a standalone aligner, which can be found at [apps/aligner/](apps/aligner).
 
 Aligner reads sequences from fasta files, and it can display alignment path in graphical manner or as a cigar.
 It also measures calculation time, so it can be useful for testing speed and comparing Edlib with other tools.
 
-In order to compile aligner, position yourself in [src/](src/) directory and run `make aligner`.
+Check [Building](#building) to see how to build binaries (including `aligner`).
 Run `./aligner` for help and detailed instructions.
 
-Example of usage (assuming you are positioned in [src/](src/) directory):
+Example of usage:
 `./aligner -p apps/aligner/test_data/query.fasta apps/aligner/test_data/target.fasta`
 
 
@@ -148,7 +193,8 @@ Example of usage (assuming you are positioned in [src/](src/) directory):
 
 
 ### Running tests
-In order to run tests, position your self in [src/](src/) directory, run `make test`, and run `./test`. This will run random tests for each alignment method, and also some specific unit tests.
+Check [Building](#building) to see how to build binaries (including binary `runTests`).
+To run tests, just run `./runTests`. This will run random tests for each alignment method, and also some specific unit tests.
 
 
 ---
@@ -176,5 +222,14 @@ In [test_data/](test_data) directory there are different genome sequences, rangi
 ---
 
 
-#### Nodejs
+### Nodejs
 For those who want to use edlib in nodejs there is a nodejs addon, [node-edlib](https://www.npmjs.com/package/node-edlib)!
+
+
+---
+
+
+### Development
+Feel free to send pull requests and raise issues.
+
+When developing, you may want to use `-D CMAKE_BUILD_TYPE=Debug` flag when calling `cmake` in order to get debugging flags passed to compiler. This should also happen if you just run `cmake` with no flags, but I think I have noticed it does not always works as expected. To check which flags is compiler using, run `make` with `VERBOSE=1`.

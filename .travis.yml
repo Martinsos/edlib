@@ -4,7 +4,10 @@ compiler:
 os:
   - linux
   - osx
+
+before_script:
+  - cd build
+  - cmake ..
 script:
-  - cd src
-  - make test
-  - ./test
+  - make
+  - bin/runTests
