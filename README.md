@@ -1,6 +1,8 @@
 EDLIB
 =====
 
+[![Join the chat at https://gitter.im/Martinsos/edlib](https://badges.gitter.im/Martinsos/edlib.svg)](https://gitter.im/Martinsos/edlib?utm_source=badge&utm_medium=badge&utm_campaign=pr-badge&utm_content=badge)
+
 A lightweight and super fast C/C++ library for sequence alignment using [edit distance](https://en.wikipedia.org/wiki/Edit_distance).
 
 Calculating edit distance of two strings is as simple as:
