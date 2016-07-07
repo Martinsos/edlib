@@ -24,17 +24,21 @@ typedef enum {
     EDLIB_MODE_SHW
 } EdlibAlignMode;
 
-// Alignment tasks - what do you want Edlib to do?
+/**
+ *Alignment tasks - what do you want Edlib to do?
+ */
 typedef enum {
-    EDLIB_TASK_DISTANCE,  // Find edit distance and end locations.
-    EDLIB_TASK_LOC,       // Find edit distance, end locations and start locations.
-    EDLIB_TASK_PATH       // Find edit distance, end locations and start locations and alignment path.
+    EDLIB_TASK_DISTANCE,  //!< Find edit distance and end locations.
+    EDLIB_TASK_LOC,       //!< Find edit distance, end locations and start locations.
+    EDLIB_TASK_PATH       //!< Find edit distance, end locations and start locations and alignment path.
 } EdlibAlignTask;
 
-// Edit operations
+/**
+ * Edit operations
+ */
 #define EDLIB_EDOP_MATCH 0
-#define EDLIB_EDOP_INSERT 1  // Insertion to target = deletion from query.
-#define EDLIB_EDOP_DELETE 2  // Deletion from target = insertion to query.
+#define EDLIB_EDOP_INSERT 1  //!< Insertion to target = deletion from query.
+#define EDLIB_EDOP_DELETE 2  //!< Deletion from target = insertion to query.
 #define EDLIB_EDOP_MISMATCH 3
 
 // Cigar formats
