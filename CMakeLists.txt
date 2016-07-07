@@ -9,10 +9,12 @@ set(CMAKE_RUNTIME_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/bin)
 include_directories(edlib/include)
 file(GLOB SOURCES "edlib/src/*.cpp")
 
-# Create binaries.
+# Build binaries.
 add_executable(helloWorld apps/hello-world/helloWorld.c ${SOURCES})
-add_executable(aligner apps/aligner/aligner.cpp ${SOURCES})
 add_executable(runTests test/runTests.cpp ${SOURCES})
+if (NOT WIN32) # If on windows, do not build binaries that do not support windows.
+  add_executable(aligner apps/aligner/aligner.cpp ${SOURCES})
+endif()
 
 # Create libraries.
 add_library(edlib SHARED ${SOURCES})

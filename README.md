@@ -9,6 +9,7 @@ edlibAlign("hello", 5, "world!", 6, edlibDefaultAlignConfig()).editDistance;
 ```
 
 [![Build Status](https://travis-ci.org/Martinsos/edlib.svg?branch=master)](https://travis-ci.org/Martinsos/edlib)
+[![Build status](https://ci.appveyor.com/api/projects/status/7owowdwja516ydu3/branch/master?svg=true)](https://ci.appveyor.com/project/Martinsos/edlib/branch/master)
 [![Join the chat at https://gitter.im/Martinsos/edlib](https://badges.gitter.im/Martinsos/edlib.svg)](https://gitter.im/Martinsos/edlib?utm_source=badge&utm_medium=badge&utm_campaign=pr-badge&utm_content=badge)
 
 
@@ -188,6 +189,7 @@ Run `./aligner` for help and detailed instructions.
 Example of usage:
 `./aligner -p apps/aligner/test_data/query.fasta apps/aligner/test_data/target.fasta`
 
+NOTE: Aligner currently does not work on Windows, because it uses `getopt` to parse command line arguments, which is not supported on Windows.
 
 ---
 

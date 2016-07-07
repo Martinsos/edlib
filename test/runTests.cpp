@@ -25,6 +25,10 @@ bool checkAlignment(const char* query, int queryLength,
 int getAlignmentStart(const unsigned char* alignment, int alignmentLength,
                       int endLocation);
 
+int max(int a, int b) {
+    return a > b ? a : b;
+}
+
 int main() {
     srand(42);
     bool allTestsPassed = true;
@@ -82,8 +86,8 @@ bool runRandomTests(int numTests, EdlibAlignMode mode, bool findAlignment) {
         bool failed = false;
         int queryLength = 50 + rand() % 300;
         int targetLength = 500 + rand() % 10000;
-        char query[queryLength];
-        char target[targetLength];
+        char* query = (char *) malloc(sizeof(char) * queryLength);
+        char* target = (char *) malloc(sizeof(char) * targetLength);
         fillRandomly(query, queryLength, alphabetLength);
         fillRandomly(target, targetLength, alphabetLength);
 
@@ -182,6 +186,9 @@ bool runRandomTests(int numTests, EdlibAlignMode mode, bool findAlignment) {
 
         if (failed)
             numTestsFailed++;
+
+        free(query);
+        free(target);
     }
 
     printf(mode == EDLIB_MODE_HW ? "HW: " : mode == EDLIB_MODE_SHW ? "SHW: " : "NW: ");

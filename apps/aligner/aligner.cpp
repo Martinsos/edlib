@@ -27,7 +27,7 @@ void printSeq(const vector<char> &seq) {
 }
 
 int main(int argc, char * const argv[]) {
-    
+
     //----------------------------- PARSE COMMAND LINE ------------------------//
     // If true, there will be no output.
     bool silent = false;
