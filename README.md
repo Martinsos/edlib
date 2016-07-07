@@ -152,7 +152,7 @@ printf("%s", cigar);
 
 ### API
 
-Check [edlib.h](/src/library/edlib.h) for well commented public API.
+Check [edlib.h](edlib/include/edlib.h) for well commented public API.
 
 
 ---
