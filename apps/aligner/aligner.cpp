@@ -200,10 +200,9 @@ int main(int argc, char * const argv[]) {
                                    *(endLocations[i]), modeCode);
                 } else {
                     printf("Cigar:\n");
-                    char* cigar = NULL;
-                    int cigarFormat = !strcmp(alignmentFormat, "CIG_STD") ?
+                    EdlibCigarFormat cigarFormat = !strcmp(alignmentFormat, "CIG_STD") ?
                         EDLIB_CIGAR_STANDARD : EDLIB_CIGAR_EXTENDED;
-                    edlibAlignmentToCigar(alignment, alignmentLength, cigarFormat, &cigar);
+                    char* cigar =edlibAlignmentToCigar(alignment, alignmentLength, cigarFormat);
                     if (cigar) {
                         printf("%s\n", cigar);
                         free(cigar);

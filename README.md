@@ -148,9 +148,9 @@ It is important to remember to free the result object using `edlibFreeAlignResul
 Cigar is a standard way to represent alignment path.
 Edlib has helper function that transforms alignment path into cigar.
 ```c
-char* cigar;
-edlibAlignmentToCigar(result.alignment, result.alignmentLength, EDLIB_CIGAR_STANDARD, &cigar);
+char* cigar = edlibAlignmentToCigar(result.alignment, result.alignmentLength, EDLIB_CIGAR_STANDARD);
 printf("%s", cigar);
+free(cigar);
 ```
 
 

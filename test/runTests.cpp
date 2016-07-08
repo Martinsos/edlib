@@ -371,9 +371,7 @@ bool testCigar() {
     unsigned char alignment[] = {EDLIB_EDOP_MATCH, EDLIB_EDOP_MATCH, EDLIB_EDOP_INSERT, EDLIB_EDOP_INSERT,
                                  EDLIB_EDOP_INSERT, EDLIB_EDOP_DELETE, EDLIB_EDOP_INSERT, EDLIB_EDOP_INSERT,
                                  EDLIB_EDOP_MISMATCH, EDLIB_EDOP_MATCH, EDLIB_EDOP_MATCH};
-    char* cigar;
-
-    edlibAlignmentToCigar(alignment, 11, EDLIB_CIGAR_EXTENDED, &cigar);
+    char* cigar = edlibAlignmentToCigar(alignment, 11, EDLIB_CIGAR_EXTENDED);
     bool pass = true;
     char expected[] = "2=3I1D2I1X2=";
     if (strcmp(cigar, expected) != 0) {
@@ -383,7 +381,7 @@ bool testCigar() {
     printf(pass ? "\x1B[32m""OK""\x1B[0m\n" : "\x1B[31m""FAIL""\x1B[0m\n");
     if (cigar) free(cigar);
 
-    edlibAlignmentToCigar(alignment, 11, EDLIB_CIGAR_STANDARD, &cigar);
+    cigar = edlibAlignmentToCigar(alignment, 11, EDLIB_CIGAR_STANDARD);
     pass = true;
     char expected2[] = "2M3I1D2I3M";
     if (strcmp(cigar, expected2) != 0) {

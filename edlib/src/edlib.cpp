@@ -218,11 +218,10 @@ EdlibAlignResult edlibAlign(const char* queryOriginal, const int queryLength,
 }
 
 
-int edlibAlignmentToCigar(unsigned char* alignment, int alignmentLength,
-                          int cigarFormat, char** cigar_) {
-    *cigar_ = NULL;
+char* edlibAlignmentToCigar(unsigned char* alignment, int alignmentLength,
+                            EdlibCigarFormat cigarFormat) {
     if (cigarFormat != EDLIB_CIGAR_EXTENDED && cigarFormat != EDLIB_CIGAR_STANDARD) {
-        return EDLIB_STATUS_ERROR;
+        return 0;
     }
 
     // Maps move code from alignment to char in cigar.
@@ -252,7 +251,7 @@ int edlibAlignmentToCigar(unsigned char* alignment, int alignmentLength,
                 // Check if alignment has valid values.
                 if (alignment[i] > 3) {
                     delete cigar;
-                    return EDLIB_STATUS_ERROR;
+                    return 0;
                 }
                 numOfSameMoves = 0;
             }
@@ -263,11 +262,11 @@ int edlibAlignmentToCigar(unsigned char* alignment, int alignmentLength,
         }
     }
     cigar->push_back(0);  // Null character termination.
-    *cigar_ = (char*) malloc(cigar->size() * sizeof(char));
-    memcpy(*cigar_, &(*cigar)[0], cigar->size() * sizeof(char));
+    char* cigar_ = (char*) malloc(cigar->size() * sizeof(char));
+    memcpy(cigar_, &(*cigar)[0], cigar->size() * sizeof(char));
     delete cigar;
 
-    return EDLIB_STATUS_OK;
+    return cigar_;
 }
 
 /**

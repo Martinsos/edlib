@@ -11,21 +11,43 @@
 extern "C" {
 #endif
 
-    // TODO: turn all these defines into enums.
-
 // Status codes
 #define EDLIB_STATUS_OK 0
 #define EDLIB_STATUS_ERROR 1
 
-// Alignment modes - how should Edlib treat gaps before and after query?
+/**
+ * Alignment methods - how should Edlib treat gaps before and after query?
+ */
 typedef enum {
-    EDLIB_MODE_HW,
+    /**
+     * Global method. This is the standard method.
+     * Useful when you want to find out how similar is first sequence to second sequence.
+     */
     EDLIB_MODE_NW,
-    EDLIB_MODE_SHW
+    /**
+     * Prefix method. Similar to global method, but with a small twist - gap at query end is not penalized.
+     * What that means is that deleting elements from the end of second sequence is "free"!
+     * For example, if we had "AACT" and "AACTGGC", edit distance would be 0, because removing "GGC" from the end
+     * of second sequence is "free" and does not count into total edit distance. This method is appropriate
+     * when you want to find out how well first sequence fits at the beginning of second sequence.
+     */
+    EDLIB_MODE_SHW,
+    /**
+     * Infix method. Similar as prefix method, but with one more twist - gaps at query end and start are
+     * not penalized. What that means is that deleting elements from the start and end of second sequence is "free"!
+     * For example, if we had ACT and CGACTGAC, edit distance would be 0, because removing CG from the start
+     * and GAC from the end of second sequence is "free" and does not count into total edit distance.
+     * This method is appropriate when you want to find out how well first sequence fits at any part of
+     * second sequence.
+     * For example, if your second sequence was a long text and your first sequence was a sentence from that text,
+     * but slightly scrambled, you could use this method to discover how scrambled it is and where it fits in
+     * that text. In bioinformatics, this method is appropriate for aligning read to a sequence.
+     */
+    EDLIB_MODE_HW
 } EdlibAlignMode;
 
 /**
- *Alignment tasks - what do you want Edlib to do?
+ * Alignment tasks - what do you want Edlib to do?
  */
 typedef enum {
     EDLIB_TASK_DISTANCE,  //!< Find edit distance and end locations.
@@ -34,16 +56,22 @@ typedef enum {
 } EdlibAlignTask;
 
 /**
- * Edit operations
+ * Describes cigar format.
+ * @see http://samtools.github.io/hts-specs/SAMv1.pdf
+ * @see http://drive5.com/usearch/manual/cigar.html
  */
-#define EDLIB_EDOP_MATCH 0
-#define EDLIB_EDOP_INSERT 1  //!< Insertion to target = deletion from query.
-#define EDLIB_EDOP_DELETE 2  //!< Deletion from target = insertion to query.
-#define EDLIB_EDOP_MISMATCH 3
+typedef enum {
+    EDLIB_CIGAR_STANDARD,  //!< Match: 'M', Insertion: 'I', Deletion: 'D', Mismatch: 'M'.
+    EDLIB_CIGAR_EXTENDED   //!< Match: '=', Insertion: 'I', Deletion: 'D', Mismatch: 'X'.
+} EdlibCigarFormat;
 
-// Cigar formats
-#define EDLIB_CIGAR_EXTENDED 0
-#define EDLIB_CIGAR_STANDARD 1
+/**
+ * Edit operations.
+ */
+#define EDLIB_EDOP_MATCH 0    //!< Match.
+#define EDLIB_EDOP_INSERT 1   //!< Insertion to target = deletion from query.
+#define EDLIB_EDOP_DELETE 2   //!< Deletion from target = insertion to query.
+#define EDLIB_EDOP_MISMATCH 3 //!< Mismatch.
 
 
 
@@ -174,10 +202,8 @@ typedef enum {
      *     2 stands for insertion to query.
      *     3 stands for mismatch.
      * @param [in] alignmentLength
-     * @param [in] cigarFormat
-     *     If EDLIB_CIGAR_EXTENDED, extended cigar is returned.
-     *     If EDLIB_CIGAR_STANDARD, standard cigar is returned (contains only I, D and M).
-     * @param [out] cigar  Will contain cigar string.
+     * @param [in] cigarFormat  Cigar will be returned in specified format.
+     * @return Cigar string.
      *     I stands for insertion.
      *     D stands for deletion.
      *     X stands for mismatch. (used only in extended format)
@@ -186,10 +212,9 @@ typedef enum {
      *     String is null terminated.
      *     Needed memory is allocated and given pointer is set to it.
      *     Do not forget to free it later using free()!
-     * @return Status code.
      */
-    int edlibAlignmentToCigar(unsigned char* alignment, int alignmentLength,
-                              int cigarFormat, char** cigar);
+    char* edlibAlignmentToCigar(unsigned char* alignment, int alignmentLength,
+                                EdlibCigarFormat cigarFormat);
 
 
 
