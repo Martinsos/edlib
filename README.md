@@ -10,7 +10,9 @@ edlibAlign("hello", 5, "world!", 6, edlibDefaultAlignConfig()).editDistance;
 
 Supported on Linux / OSX [![Build Status](https://travis-ci.org/Martinsos/edlib.svg?branch=master)](https://travis-ci.org/Martinsos/edlib) and Windows [![Build status](https://ci.appveyor.com/api/projects/status/7owowdwja516ydu3/branch/master?svg=true)](https://ci.appveyor.com/project/Martinsos/edlib/branch/master).
 
-[![Join the chat at https://gitter.im/Martinsos/edlib](https://badges.gitter.im/Martinsos/edlib.svg)](https://gitter.im/Martinsos/edlib?utm_source=badge&utm_medium=badge&utm_campaign=pr-badge&utm_content=badge)
+Join the chat at [![Join the chat at https://gitter.im/Martinsos/edlib](https://badges.gitter.im/Martinsos/edlib.svg)](https://gitter.im/Martinsos/edlib?utm_source=badge&utm_medium=badge&utm_campaign=pr-badge&utm_content=badge).
+
+[Doxygen documentation](http://martinsos.github.io/edlib)
 
 
 ---
@@ -158,10 +160,10 @@ free(cigar);
 
 ### API
 
-Visit [http://martinsos.github.io/edlib](https://martinsos.github.io/edlib) for online documentation with documented API (should be for the latest release).
+For detailed documentation of Edlib library API, visit [http://martinsos.github.io/edlib](https://martinsos.github.io/edlib) (should be updated to the latest release).
 
-To generate latest API documentation, you need to have [doxygen](www.doxygen.org) installed.
-Position yourself in root directory and run `doxygen`, this will generate `docs/` directory. Then open `docs/html/index.html` file with you favorite browser.
+To generate the latest API documentation yourself, you need to have [doxygen](www.doxygen.org) installed.
+Position yourself in the root directory and run `doxygen`, this will generate `docs/` directory. Then open `docs/html/index.html` file with you favorite browser.
 
 
 ---
