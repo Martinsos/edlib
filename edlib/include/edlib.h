@@ -65,9 +65,7 @@ typedef enum {
     EDLIB_CIGAR_EXTENDED   //!< Match: '=', Insertion: 'I', Deletion: 'D', Mismatch: 'X'.
 } EdlibCigarFormat;
 
-/**
- * Edit operations.
- */
+// Edit operations.
 #define EDLIB_EDOP_MATCH 0    //!< Match.
 #define EDLIB_EDOP_INSERT 1   //!< Insertion to target = deletion from query.
 #define EDLIB_EDOP_DELETE 2   //!< Deletion from target = insertion to query.
