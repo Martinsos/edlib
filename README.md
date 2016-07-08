@@ -32,10 +32,15 @@ Windows: [![Build status](https://ci.appveyor.com/api/projects/status/7owowdwja5
 ### <a name="building">Building</a>
 Edlib uses CMAKE to build libraries (static and shared) and binaries (apps and tests).
 Execute following commands to build Edlib using CMAKE:
-* `cd build`
-* `cmake -D CMAKE_BUILD_TYPE=Release ..` - This will optimize compiled code, which is what you usually want. If you want to compile it for debugging, just run `cmake ..`.
-* `make` - This will create binaries in `bin/` directory and libraries (static and shared) in `lib/` directory. (Tip: run `make VERBOSE=1` to see what is exactly `make` doing.)
-* Optionally, you can run `sudo make install` to install edlib library on your machine (on Linux, this will usually install it to `usr/local/lib` and `usr/local/include`).
+
+1. `cd build`
+2. `cmake -D CMAKE_BUILD_TYPE=Release ..`
+3. `make`
+
+This will create binaries in `bin/` directory and libraries (static and shared) in `lib/` directory.
+You can run `./bin/runTests` to confirm that it works!
+
+Optionally, you can run `sudo make install` to install edlib library on your machine (on Linux, this will usually install it to `usr/local/lib` and `usr/local/include`).
 
 
 ---
@@ -238,4 +243,4 @@ For those who want to use edlib in nodejs there is a nodejs addon, [node-edlib](
 ### Development
 Feel free to send pull requests and raise issues.
 
-When developing, you may want to use `-D CMAKE_BUILD_TYPE=Debug` flag when calling `cmake` in order to get debugging flags passed to compiler. This should also happen if you just run `cmake` with no flags, but I think I have noticed it does not always works as expected. To check which flags is compiler using, run `make` with `VERBOSE=1`.
+When developing, you may want to use `-D CMAKE_BUILD_TYPE=Debug` flag when calling `cmake` in order to get debugging flags passed to compiler. This should also happen if you just run `cmake ..` with no flags, but I think I have noticed it does not always works as expected (probably has something to do with cmake cache). To check which flags is compiler using, run `make` with `VERBOSE=1`: `make VERBOSE=1`.
