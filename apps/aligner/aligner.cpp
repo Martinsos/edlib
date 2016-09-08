@@ -60,7 +60,7 @@ int main(int argc, char * const argv[]) {
     }
     if (optind + 2 != argc || invalidOption) {
         fprintf(stderr, "\n");
-        fprintf(stderr, "Usage: aligner [options...] <queries.fasta> <target.fasta>\n");
+        fprintf(stderr, "Usage: %s [options...] <queries.fasta> <target.fasta>\n", argv[0]);
         fprintf(stderr, "Options:\n");
         fprintf(stderr, "\t-s  If specified, there will be no score or alignment output (silent mode).\n");
         fprintf(stderr, "\t-m HW|NW|SHW  Alignment mode that will be used. [default: NW]\n");

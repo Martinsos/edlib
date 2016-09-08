@@ -13,7 +13,7 @@ file(GLOB SOURCES "edlib/src/*.cpp")
 add_executable(helloWorld apps/hello-world/helloWorld.c ${SOURCES})
 add_executable(runTests test/runTests.cpp ${SOURCES})
 if (NOT WIN32) # If on windows, do not build binaries that do not support windows.
-  add_executable(aligner apps/aligner/aligner.cpp ${SOURCES})
+  add_executable(edlib-aligner apps/aligner/aligner.cpp ${SOURCES})
 endif()
 
 # Create libraries.

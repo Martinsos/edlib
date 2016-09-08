@@ -193,11 +193,11 @@ Edlib comes with a standalone aligner, which can be found at [apps/aligner/](app
 Aligner reads sequences from fasta files, and it can display alignment path in graphical manner or as a cigar.
 It also measures calculation time, so it can be useful for testing speed and comparing Edlib with other tools.
 
-Check [Building](#building) to see how to build binaries (including `aligner`).
-Run `./aligner` for help and detailed instructions.
+Check [Building](#building) to see how to build binaries (including `edlib-aligner`).
+Run `./edlib-aligner` for help and detailed instructions.
 
 Example of usage:
-`./aligner -p apps/aligner/test_data/query.fasta apps/aligner/test_data/target.fasta`
+`./edlib-aligner -p apps/aligner/test_data/query.fasta apps/aligner/test_data/target.fasta`
 
 NOTE: Aligner currently does not work on Windows, because it uses `getopt` to parse command line arguments, which is not supported on Windows.
 
