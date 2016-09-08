@@ -12,6 +12,8 @@ Supported on Linux / OSX [![Build Status](https://travis-ci.org/Martinsos/edlib.
 
 Join the chat at [![Join the chat at https://gitter.im/Martinsos/edlib](https://badges.gitter.im/Martinsos/edlib.svg)](https://gitter.im/Martinsos/edlib?utm_source=badge&utm_medium=badge&utm_campaign=pr-badge&utm_content=badge).
 
+[![Anaconda-Server Badge](https://anaconda.org/bioconda/edlib/badges/installer/conda.svg)](https://conda.anaconda.org/bioconda)
+
 [Doxygen documentation](http://martinsos.github.io/edlib)
 
 
@@ -42,6 +44,8 @@ This will create binaries in `bin/` directory and libraries (static and shared) 
 You can run `./bin/runTests` to confirm that it works!
 
 Optionally, you can run `sudo make install` to install edlib library on your machine (on Linux, this will usually install it to `usr/local/lib` and `usr/local/include`).
+
+You may also install edlib using Conda: `conda install edlib`.
 
 
 ---
