@@ -330,7 +330,7 @@ void printAlignment(const char* query, const int queryLength,
     if (modeCode == EDLIB_MODE_HW) {
         tIdx = position;
         for (int i = 0; i < alignmentLength; i++) {
-            if (alignment[i] != 1)
+            if (alignment[i] != EDLIB_EDOP_INSERT)
                 tIdx--;
         }
     }
@@ -339,20 +339,28 @@ void printAlignment(const char* query, const int queryLength,
         printf("T: ");
         int startTIdx;
         for (int j = start; j < start + 50 && j < alignmentLength; j++) {
-            if (alignment[j] == 1)
-                printf("_");
+            if (alignment[j] == EDLIB_EDOP_INSERT)
+                printf("-");
             else
                 printf("%c", target[++tIdx]);
             if (j == start)
                 startTIdx = tIdx;
         }
         printf(" (%d - %d)\n", max(startTIdx, 0), tIdx);
+
+        // match / mismatch
+        printf("   ");
+        for (int j = start; j < start + 50 && j < alignmentLength; j++) {
+            printf(alignment[j] == EDLIB_EDOP_MATCH ? "|" : " ");
+        }
+        printf("\n");
+
         // query
         printf("Q: ");
         int startQIdx = qIdx;
         for (int j = start; j < start + 50 && j < alignmentLength; j++) {
-            if (alignment[j] == 2)
-                printf("_");
+            if (alignment[j] == EDLIB_EDOP_DELETE)
+                printf("-");
             else
                 printf("%c", query[++qIdx]);
             if (j == start)

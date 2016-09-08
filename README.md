@@ -197,7 +197,7 @@ Check [Building](#building) to see how to build binaries (including `edlib-align
 Run `./edlib-aligner` for help and detailed instructions.
 
 Example of usage:
-`./edlib-aligner -p apps/aligner/test_data/query.fasta apps/aligner/test_data/target.fasta`
+`./build/bin/edlib-aligner -p apps/aligner/test_data/query.fasta apps/aligner/test_data/target.fasta`
 
 NOTE: Aligner currently does not work on Windows, because it uses `getopt` to parse command line arguments, which is not supported on Windows.
 
