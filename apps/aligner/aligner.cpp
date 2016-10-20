@@ -68,7 +68,7 @@ int main(int argc, char * const argv[]) {
                 " If N = 0 then all sequences will be calculated."
                 " Specifying small N can make total calculation much faster. [default: 0]\n");
         fprintf(stderr, "\t-k K  Sequences with score > K will be discarded."
-                " Smaller k, faster calculation.\n");
+                " Smaller k, faster calculation. If -1, no sequences will be discarded. [default: -1]\n");
         fprintf(stderr, "\t-p  If specified, alignment path will be found and printed. "
                 "This may significantly slow down the calculation.\n");
         fprintf(stderr, "\t-l  If specified, start locations will be found and printed. "
