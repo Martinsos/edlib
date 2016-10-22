@@ -228,23 +228,12 @@ int main(int argc, char * const argv[]) {
                                                         seqan::Score<int, seqan::Simple>(0, -1, -1),
                                                         seqan::AlignConfig<false, false, false, true>(),
                                                         seqan::LinearGaps());
-                    // TODO: try to use finder interface here.
                 }
                 if (modeCode == EDLIB_MODE_HW) {
-                    // TODO: try to use finder interface here.
-                    seqan::Pattern<TSequence, seqan::MyersUkkonen> pattern(*querySeqAn);
-                    seqan::Finder<TSequence> finder(*targetSeqAn);
-                    seqan::find(finder, pattern, -1000);
-                    if (seqan::find(finder, pattern)) {
-                        score = seqan::getScore(pattern);
-                        cout << "\nFound pattern with score: " << score << endl;
-                    } else
-                        cout << "\nDidn't find pattern!" << endl;
-
-                    // score = seqan::globalAlignmentScore(*targetSeqAn, *querySeqAn,
-                    //                                     seqan::Score<int, seqan::Simple>(0, -1, -1),
-                    //                                     seqan::AlignConfig<true, false, false, true>(),
-                    //                                     seqan::LinearGaps());
+                    score = seqan::globalAlignmentScore(*targetSeqAn, *querySeqAn,
+                                                        seqan::Score<int, seqan::Simple>(0, -1, -1),
+                                                        seqan::AlignConfig<true, false, false, true>(),
+                                                        seqan::LinearGaps());
                 }
                 if (modeCode == EDLIB_MODE_NW) {
                     score = seqan::globalAlignmentScore(*querySeqAn, *targetSeqAn, seqan::MyersBitVector());
@@ -259,109 +248,13 @@ int main(int argc, char * const argv[]) {
                                   &alignment, &alignmentLength);
             cout << "\n Edlib Score: " << scores[i] << endl;
         }
+
         clock_t finish = clock();
         double cpuTime = ((double)(finish-start))/CLOCKS_PER_SEC;
         printf("\nCpu time of searching: %lf\n", cpuTime);
+        exit(0);
 
-        // If we want only numBestSeqs best sequences, update best scores 
-        // and adjust k to largest score.
-        if (numBestSeqs > 0) {
-            if (scores[i] >= 0) {
-                bestScores.push(scores[i]);
-                if (bestScores.size() > numBestSeqs) {
-                    bestScores.pop();
-                }
-                if (bestScores.size() == numBestSeqs) {
-                    k = bestScores.top() - 1;
-                    if (kArg >= 0 && kArg < k)
-                        k = kArg;
-                }
-            }
-        }
-        
-        if (!findAlignment || silent) {
-            printf("\r%d/%d", i + 1, numQueries);
-            fflush(stdout);
-        } else {
-            // Print alignment if it was found, use first position
-            if (alignment) {
-                printf("\n");
-                printf("Query #%d (%d residues): score = %d\n", i, queryLength, scores[i]);
-                if (!strcmp(alignmentFormat, "NICE")) {
-                    printAlignment(query, queryLength, target, targetLength,
-                                   alignment, alignmentLength,
-                                   *(endLocations[i]), modeCode, idxToLetter);
-                } else {
-                    printf("Cigar:\n");
-                    char* cigar = NULL;
-                    int cigarFormat = !strcmp(alignmentFormat, "CIG_STD") ?
-                        EDLIB_CIGAR_STANDARD : EDLIB_CIGAR_EXTENDED;
-                    edlibAlignmentToCigar(alignment, alignmentLength, cigarFormat, &cigar);
-                    if (cigar) {
-                        printf("%s\n", cigar);
-                        free(cigar);
-                    } else {
-                        printf("Error while printing cigar!\n");
-                    }
-                }
-            }
-        }
-
-        if (alignment)
-            free(alignment);
     }
-
-    if (!silent && !findAlignment) {
-        int scoreLimit = -1; // Only scores <= then scoreLimit will be printed (we consider -1 as infinity)
-        printf("\n");
-
-        if (bestScores.size() > 0) {
-            printf("%d best scores:\n", (int)bestScores.size());
-            scoreLimit = bestScores.top();
-        } else {
-            printf("Scores:\n");
-        }
-
-        printf("<query number>: <score>, <num_locations>, "
-               "[(<start_location_in_target>, <end_location_in_target>)]\n");
-        for (int i = 0; i < numQueries; i++) {
-            if (scores[i] > -1 && (scoreLimit == -1 || scores[i] <= scoreLimit)) {
-                printf("#%d: %d  %d", i, scores[i], numLocations[i]);
-                if (numLocations[i] > 0) {
-                    printf("  [");
-                    for (int j = 0; j < numLocations[i]; j++) {
-                        printf(" (");
-                        if (startLocations[i]) {
-                            printf("%d", *(startLocations[i] + j));
-                        } else {
-                            printf("?");
-                        }
-                        printf(", %d)", *(endLocations[i] + j));
-                    }
-                    printf(" ]");
-                }
-                printf("\n");
-            }
-        }
-        
-    }
-
-    clock_t finish = clock();
-    double cpuTime = ((double)(finish-start))/CLOCKS_PER_SEC;
-    printf("\nCpu time of searching: %lf\n", cpuTime);
-    // ---------------------------------------------------------------------------- //
-
-    // Free allocated space
-    for (int i = 0; i < numQueries; i++) {
-        free(endLocations[i]);
-        if (startLocations[i]) free(startLocations[i]);
-    }
-    delete[] endLocations;
-    delete[] startLocations;
-    delete[] numLocations;
-    delete querySequences;
-    delete targetSequences;
-    delete[] scores;
     
     return 0;
 }
