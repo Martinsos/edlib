@@ -208,16 +208,19 @@ int main(int argc, char * const argv[]) {
             int score;
             if (findAlignment) {
                 if (modeCode == EDLIB_MODE_SHW) {
+                    // Fails for larger sequences because it uses quadratic space. Nothing we can do about this.
                     score = seqan::globalAlignment(*align, seqan::Score<int, seqan::Simple>(0, -1, -1),
                                                    seqan::AlignConfig<false, false, false, true>(),
                                                    seqan::LinearGaps());
                 }
                 if (modeCode == EDLIB_MODE_HW) {
+                    // Fails for larger sequences because it uses quadratic space. Nothing we can do about this.
                     score = seqan::globalAlignment(*align, seqan::Score<int, seqan::Simple>(0, -1, -1),
                                                    seqan::AlignConfig<true, false, false, true>(),
                                                    seqan::LinearGaps());
                 }
                 if (modeCode == EDLIB_MODE_NW) {
+                    // Works well.
                     printf("\nStarted alignment\n");
                     score = seqan::globalAlignment(*align, seqan::MyersHirschberg());
                     printf("\nFinished alignment\n");
@@ -234,8 +237,19 @@ int main(int argc, char * const argv[]) {
                                                         seqan::Score<int, seqan::Simple>(0, -1, -1),
                                                         seqan::AlignConfig<true, false, false, true>(),
                                                         seqan::LinearGaps());
+                    // Finder interface works with error limit - it finds all matches that have score smaller
+                    // than given limit. To get this to work, we would need to start with small limit and increase
+                    // it until it gives first results, and then find the smallest among them.
+                    // That would still return a lot of scores that we would have to go through and find minimal.
+                    // seqan::Pattern<TSequence, seqan::Myers<FindInfix> > pattern(*querySeqAn);
+                    // seqan::Finder<TSequence> finder(*targetSeqAn);
+                    // if (seqan::find(finder, pattern, -1000))
+                    //     cout << "\nFound pattern with score: " << seqan::getScore(pattern) << endl;
+                    // else
+                    //     cout << "\nDidn't find pattern!" << endl;
                 }
                 if (modeCode == EDLIB_MODE_NW) {
+                    // Works well.
                     score = seqan::globalAlignmentScore(*querySeqAn, *targetSeqAn, seqan::MyersBitVector());
                 }
             }
