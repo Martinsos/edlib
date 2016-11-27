@@ -127,7 +127,7 @@ int main(int argc, char * const argv[]) {
     printf("Read %d queries, %d residues total.\n", numQueries, queriesTotalLength);
 
     // Read target
-    char* targetFilepath = argv[optind+1];    
+    char* targetFilepath = argv[optind+1];
     vector< vector<char> >* targetSequences = new vector< vector<char> >();
     printf("Reading target fasta file...\n");
     readResult = readFastaSequences(targetFilepath, targetSequences);
@@ -161,8 +161,8 @@ int main(int argc, char * const argv[]) {
         char* query = (*querySequences)[i].data();
         int queryLength = (*querySequences)[i].size();
         // Calculate score
-        EdlibAlignResult result = edlibAlign(query, queryLength, target, targetLength,
-                                             edlibNewAlignConfig(k, modeCode, alignTask));
+        EdlibAlignConfig config = edlibNewAlignConfig(k, modeCode, alignTask);
+        EdlibAlignResult result = edlibAlign(query, queryLength, target, targetLength, config);
         scores[i] = result.editDistance;
         endLocations[i] = result.endLocations;
         startLocations[i] = result.startLocations;
@@ -170,7 +170,7 @@ int main(int argc, char * const argv[]) {
         alignment = result.alignment;
         alignmentLength = result.alignmentLength;
 
-        // If we want only numBestSeqs best sequences, update best scores 
+        // If we want only numBestSeqs best sequences, update best scores
         // and adjust k to largest score.
         if (numBestSeqs > 0) {
             if (scores[i] >= 0) {
@@ -185,7 +185,7 @@ int main(int argc, char * const argv[]) {
                 }
             }
         }
-        
+
         if (!findAlignment || silent) {
             printf("\r%d/%d", i + 1, numQueries);
             fflush(stdout);
