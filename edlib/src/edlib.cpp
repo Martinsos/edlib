@@ -684,7 +684,7 @@ static int myersCalcEditDistanceNW(Word* Peq, int W, int maxNumBlocks,
         k = min(k, bl->score
                 + max(targetLength - c - 1, queryLength - ((1 + lastBlock) * WORD_SIZE - 1) - 1)
                 + (lastBlock == maxNumBlocks - 1 ? W : 0));
-        
+
         //---------- Adjust number of blocks according to Ukkonen ----------//
         //--- Adjust last block ---//
         // If block is not beneath band, calculate next block. Only next because others are certainly beneath band.
@@ -700,12 +700,14 @@ static int myersCalcEditDistanceNW(Word* Peq, int W, int maxNumBlocks,
             hout = newHout;
         }
 
-        // While block is out of band, move one block up. - This is optimal now, by my formula.
-        // NOTICE: I added + W, and now it works! This has to be added because query is padded with W cells.
+        // While block is out of band, move one block up.
+        // NOTE: Condition used here is more loose than the one from the article, since I simplified the max() part of it.
+        // I could consider adding that max part, for optimal performance.
         while (lastBlock >= firstBlock
                && (bl->score >= k + WORD_SIZE
-                   || ((lastBlock + 1) * WORD_SIZE - 1 > 
-                       k - bl->score + 2 * WORD_SIZE - 2 - targetLength + c + queryLength + W))) {
+                   || ((lastBlock + 1) * WORD_SIZE - 1 >
+                       // TODO: Does not work if do not put +1! Why???
+                       k - bl->score + 2 * WORD_SIZE - 2 - targetLength + c + queryLength + 1))) {
             lastBlock--; bl--;
         }
         //-------------------------//
@@ -720,19 +722,20 @@ static int myersCalcEditDistanceNW(Word* Peq, int W, int maxNumBlocks,
         }
         //--------------------------/
 
-        
+
         // TODO: consider if this part is useful, it does not seem to help much
         if (c % STRONG_REDUCE_NUM == 0) { // Every some columns do more expensive but more efficient reduction
             while (lastBlock >= firstBlock) {
                 // If all cells outside of band, remove block
                 vector<int> scores = getBlockCellValues(*bl);
-                int r = (lastBlock + 1) * WORD_SIZE - 1;
+                int numCells = lastBlock == maxNumBlocks - 1 ? WORD_SIZE - W : WORD_SIZE;
+                int r = lastBlock * WORD_SIZE + numCells - 1;
                 bool reduce = true;
-                for (int i = 0; i < WORD_SIZE; i++) {
+                for (int i = WORD_SIZE - numCells; i < WORD_SIZE; i++) {
                     // TODO: Does not work if do not put +1! Why???
-                    if (scores[i] <= k && r <= k - scores[i] - targetLength + c + queryLength + W + 1) {
+                    if (scores[i] <= k && r <= k - scores[i] - targetLength + c + queryLength + 1) {
                         reduce = false;
-                        break; 
+                        break;
                     }
                     r--;
                 }
@@ -743,9 +746,10 @@ static int myersCalcEditDistanceNW(Word* Peq, int W, int maxNumBlocks,
             while (firstBlock <= lastBlock) {
                 // If all cells outside of band, remove block
                 vector<int> scores = getBlockCellValues(blocks[firstBlock]);
-                int r = (firstBlock + 1) * WORD_SIZE - 1;
+                int numCells = firstBlock == maxNumBlocks - 1 ? WORD_SIZE - W : WORD_SIZE;
+                int r = firstBlock * WORD_SIZE + numCells - 1;
                 bool reduce = true;
-                for (int i = 0; i < WORD_SIZE; i++) {
+                for (int i = WORD_SIZE - numCells; i < WORD_SIZE; i++) {
                     if (scores[i] <= k && r >= scores[i] - k - targetLength + c + queryLength) {
                         reduce = false;
                         break;
@@ -780,7 +784,6 @@ static int myersCalcEditDistanceNW(Word* Peq, int W, int maxNumBlocks,
             }
         }
         //----------------------------------------------------------//
-
         //---- If this is stop column, save it and finish ----//
         if (c == targetStopPosition) {
             for (int b = firstBlock; b <= lastBlock; b++) {
@@ -1125,22 +1128,30 @@ static int obtainAlignmentHirschberg(
 
     // Calculate left half.
     AlignmentData* alignDataLeftHalf = NULL;
-    myersCalcEditDistanceNW(Peq, W, maxNumBlocks,
-                            query, queryLength,
-                            target, targetLength,
-                            alphabetLength, bestScore,
-                            &score_, &endLocation_, false, &alignDataLeftHalf, leftHalfWidth - 1);
+    int leftHalfCalcStatus = myersCalcEditDistanceNW(
+            Peq, W, maxNumBlocks,
+            query, queryLength,
+            target, targetLength,
+            alphabetLength, bestScore,
+            &score_, &endLocation_, false, &alignDataLeftHalf, leftHalfWidth - 1);
 
     // Calculate right half.
     AlignmentData* alignDataRightHalf = NULL;
-    myersCalcEditDistanceNW(rPeq, W, maxNumBlocks,
-                            rQuery, queryLength,
-                            rTarget, targetLength,
-                            alphabetLength, bestScore,
-                            &score_, &endLocation_, false, &alignDataRightHalf, rightHalfWidth - 1);
+    int rightHalfCalcStatus = myersCalcEditDistanceNW(
+            rPeq, W, maxNumBlocks,
+            rQuery, queryLength,
+            rTarget, targetLength,
+            alphabetLength, bestScore,
+            &score_, &endLocation_, false, &alignDataRightHalf, rightHalfWidth - 1);
 
     delete[] Peq;
     delete[] rPeq;
+
+    if (leftHalfCalcStatus == EDLIB_STATUS_ERROR || rightHalfCalcStatus == EDLIB_STATUS_ERROR) {
+        if (alignDataLeftHalf) delete alignDataLeftHalf;
+        if (alignDataRightHalf) delete alignDataRightHalf;
+        return EDLIB_STATUS_ERROR;
+    }
 
     // Unwrap the left half.
     int firstBlockIdxLeft = alignDataLeftHalf->firstBlocks[0];
