@@ -106,8 +106,6 @@ int main(int argc, char * const argv[]) {
     if (findAlignment) alignTask = EDLIB_TASK_PATH;
 
 
-    int alphabetLength = 0;
-
     int readResult;
     // Read queries
     char* queriesFilepath = argv[optind];
