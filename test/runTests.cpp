@@ -350,8 +350,7 @@ bool test7() {
 
     bool r = executeTest(query, queryLength, target, targetLength, EDLIB_MODE_HW);
     r = r && executeTest(query, queryLength, target, targetLength, EDLIB_MODE_NW);
-    // Fails but not sure if it should. TODO: check this.
-    //r = r && executeTest(query, queryLength, target, targetLength, EDLIB_MODE_SHW);
+    r = r && executeTest(query, queryLength, target, targetLength, EDLIB_MODE_SHW);
     return r;
 }
 
@@ -382,6 +381,18 @@ bool test9() {
                         8,2,6,7,5,8,6,7,8,7,4,5,6,6,9,0,1,1,1,9,4,9,1,9,9,2,2,4,8,0,6,6,4,4,4,2,2,2,9,3,1,
                         6,8,7,2,9,8,6,0,1,7,7,2,8,6,2,2,1,6,0,3,4,9,8,9,3,2,3,5,3,6,6,9,6,6,2,6,6,0,8,7,9,
                         5,9,7,4,3,1,7,2,1,0,6,0,0,7,5,2,1,2,6,9,1,5,6,7};
+
+    bool r = executeTest(query, queryLength, target, targetLength, EDLIB_MODE_HW);
+    r = r && executeTest(query, queryLength, target, targetLength, EDLIB_MODE_NW);
+    r = r && executeTest(query, queryLength, target, targetLength, EDLIB_MODE_SHW);
+    return r;
+}
+
+bool test10() {
+    int queryLength = 3;
+    int targetLength = 3;
+    char query[3] = {0,1,2};
+    char target[3] = {1,1,1};
 
     bool r = executeTest(query, queryLength, target, targetLength, EDLIB_MODE_HW);
     r = r && executeTest(query, queryLength, target, targetLength, EDLIB_MODE_NW);
@@ -420,9 +431,9 @@ bool testCigar() {
 
 bool runTests() {
     // TODO: make this global vector where tests have to add themselves.
-    int numTests = 10;
+    int numTests = 11;
     bool (* tests [])() = {test1, test2, test3, test4, test5, test6,
-                           test7, test8, test9, testCigar};
+                           test7, test8, test9, test10, testCigar};
 
     bool allTestsPassed = true;
     for (int i = 0; i < numTests; i++) {
@@ -502,7 +513,7 @@ int getAlignmentStart(const unsigned char* alignment, int alignmentLength,
             startLocation--;
         }
     }
-    if (startLocation == endLocation) {
+    if (startLocation > endLocation) {
         return -1;
     }
     return startLocation;

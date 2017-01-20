@@ -857,12 +857,17 @@ static int obtainAlignmentTraceback(const int queryLength, const int targetLengt
     currP <<= W;
     currM <<= W;
     int blockPos = WORD_SIZE - W - 1; // 0 based index of current cell in blockPos
-    if (c == 0) {
-         thereIsLeftBlock = true;
-         lScore = b * WORD_SIZE + blockPos + 1;
-         ulScore = lScore - 1;
-    }
+
+    // TODO(martin): refactor this whole piece of code. There are too many if-else statements,
+    // it is too easy for a bug to hide and to hard to effectively cover all the edge-cases.
+    // We need better separation of logic and responsibilities.
     while (true) {
+        if (c == 0) {
+            thereIsLeftBlock = true;
+            lScore = b * WORD_SIZE + blockPos + 1;
+            ulScore = lScore - 1;
+        }
+
         // TODO: improvement: calculate only those cells that are needed,
         //       for example if I calculate upper cell and can move up,
         //       there is no need to calculate left and upper left cell
@@ -922,6 +927,8 @@ static int obtainAlignmentTraceback(const int queryLength, const int targetLengt
                         lM = alignData->Ms[(c - 1) * maxNumBlocks + b];
                     } else {
                         thereIsLeftBlock = false;
+                        // TODO(martin): There may not be left block, but there can be left boundary - do we
+                        // handle this correctly then? Are l and ul score set correctly? I should check that / refactor this.
                     }
                 }
             } else {
