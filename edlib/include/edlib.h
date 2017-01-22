@@ -187,9 +187,9 @@ typedef enum {
      * @return  Result of alignment, which can contain edit distance, start and end locations and alignment path.
      *          Make sure to clean up the object using edlibFreeAlignResult() or by manually freeing needed members.
      */
-    EdlibAlignResult edlibAlign(const char* query, const int queryLength,
-                                const char* target, const int targetLength,
-                                EdlibAlignConfig config);
+    EdlibAlignResult edlibAlign(const char* query, int queryLength,
+                                const char* target, int targetLength,
+                                const EdlibAlignConfig config);
 
 
     /**
@@ -211,7 +211,7 @@ typedef enum {
      *     Needed memory is allocated and given pointer is set to it.
      *     Do not forget to free it later using free()!
      */
-    char* edlibAlignmentToCigar(unsigned char* alignment, int alignmentLength,
+    char* edlibAlignmentToCigar(const unsigned char* alignment, int alignmentLength,
                                 EdlibCigarFormat cigarFormat);
 
 
