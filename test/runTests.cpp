@@ -154,7 +154,7 @@ bool runRandomTests(int numTests, EdlibAlignMode mode, bool findAlignment) {
         }
 
         edlibFreeAlignResult(result);
-        if (endLocations2) free(endLocations2);
+        if (endLocations2) delete [] endLocations2;
 
         for (int k = max(score2 - 1, 0); k <= score2 + 1; k++) {
             int scoreExpected = score2 > k ? -1 : score2;
@@ -212,26 +212,26 @@ bool executeTest(const char* query, int queryLength,
 
     bool pass = true;
 
-    int score2; int numLocations2; int* endLocations2;
+    int scoreSimple; int numLocationsSimple; int* endLocationsSimple;
     calcEditDistanceSimple(query, queryLength, target, targetLength,
-                           mode, &score2, &endLocations2, &numLocations2);
+                           mode, &scoreSimple, &endLocationsSimple, &numLocationsSimple);
 
     EdlibAlignResult result = edlibAlign(query, queryLength, target, targetLength,
                                          edlibNewAlignConfig(-1, mode, EDLIB_TASK_PATH));
 
-    if (result.editDistance != score2) {
+    if (result.editDistance != scoreSimple) {
         pass = false;
-        printf("Scores: expected %d, got %d\n", score2, result.editDistance);
-    } else if (result.numLocations != numLocations2) {
+        printf("Scores: expected %d, got %d\n", scoreSimple, result.editDistance);
+    } else if (result.numLocations != numLocationsSimple) {
         pass = false;
         printf("Number of locations: expected %d, got %d\n",
-               numLocations2, result.numLocations);
+               numLocationsSimple, result.numLocations);
     } else {
         for (int i = 0; i < result.numLocations; i++) {
-            if (result.endLocations[i] != endLocations2[i]) {
+            if (result.endLocations[i] != endLocationsSimple[i]) {
                 pass = false;
                 printf("End locations at %d are not equal! Expected %d, got %d\n",
-                       i, endLocations2[i], result.endLocations[1]);
+                       i, endLocationsSimple[i], result.endLocations[1]);
                 break;
             }
         }
@@ -253,6 +253,7 @@ bool executeTest(const char* query, int queryLength,
 
     printf(pass ? "\x1B[32m OK \x1B[0m\n" : "\x1B[31m FAIL \x1B[0m\n");
 
+    delete [] endLocationsSimple;
     edlibFreeAlignResult(result);
     return pass;
 }
