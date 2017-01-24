@@ -29,32 +29,39 @@ int max(int a, int b) {
     return a > b ? a : b;
 }
 
-int main() {
+int main(int argc, char* argv[]) {
+    // This program has optional first parameter, which is number of random tests to run
+    // per each algorithm. Default is 100.
+    int numRandomTests = 100;
+    if (argc > 1) {
+        numRandomTests = (int) strtol(argv[1], NULL, 10);
+    }
+
     srand(42);
     bool allTestsPassed = true;
 
     printf("Testing HW with alignment...\n");
-    allTestsPassed &= runRandomTests(100, EDLIB_MODE_HW, true);
+    allTestsPassed &= runRandomTests(numRandomTests, EDLIB_MODE_HW, true);
     printf("\n");
 
     printf("Testing HW...\n");
-    allTestsPassed &= runRandomTests(100, EDLIB_MODE_HW, false);
+    allTestsPassed &= runRandomTests(numRandomTests, EDLIB_MODE_HW, false);
     printf("\n");
 
     printf("Testing NW with alignment...\n");
-    allTestsPassed &= runRandomTests(100, EDLIB_MODE_NW, true);
+    allTestsPassed &= runRandomTests(numRandomTests, EDLIB_MODE_NW, true);
     printf("\n");
 
     printf("Testing NW...\n");
-    allTestsPassed &= runRandomTests(100, EDLIB_MODE_NW, false);
+    allTestsPassed &= runRandomTests(numRandomTests, EDLIB_MODE_NW, false);
     printf("\n");
 
     printf("Testing SHW with alignment...\n");
-    allTestsPassed &= runRandomTests(100, EDLIB_MODE_SHW, true);
+    allTestsPassed &= runRandomTests(numRandomTests, EDLIB_MODE_SHW, true);
     printf("\n");
 
     printf("Testing SHW...\n");
-    allTestsPassed &= runRandomTests(100, EDLIB_MODE_SHW, false);
+    allTestsPassed &= runRandomTests(numRandomTests, EDLIB_MODE_SHW, false);
     printf("\n");
 
     printf("Specific tests:\n");

@@ -1,14 +1,23 @@
 language: cpp
+
 compiler:
   - gcc
+
 os:
   - linux
   - osx
 
 before_script:
+  - if [ $TRAVIS_OS_NAME == "linux" ]; then sudo apt-get install valgrind; fi
   - mkdir -p build
   - cd build
   - cmake ..
+
 script:
   - make
   - bin/runTests
+  # Check for memory leaks. Returns 2 if there was a memory leak/error, otherwise returns runTests exit code,
+  # which is 0 if all went fine or 1 if some of the tests failed. I test for memory leaks only on linux because
+  # osx returns errors from system libraries, which I would have to supress.
+  # This is run only on smaller number of tests, since executing on valgrind is slow.
+  - if [ $TRAVIS_OS_NAME == "linux" ]; then valgrind --quiet --error-exitcode=2 --tool=memcheck --leak-check=full bin/runTests 10; fi
