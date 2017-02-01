@@ -16,6 +16,15 @@ Join the chat at [![Join the chat at https://gitter.im/Martinsos/edlib](https://
 
 [Doxygen documentation](http://martinsos.github.io/edlib)
 
+---
+
+
+### Wrappers for other languages
+
+Edlib for Python: [![PyPI version](https://badge.fury.io/py/edlib.svg)](https://badge.fury.io/py/edlib)
+
+Edlib for Node.js: [![npm version](https://badge.fury.io/js/node-edlib.svg)](https://badge.fury.io/js/node-edlib)
+
 
 ---
 
@@ -233,13 +242,6 @@ It is worth noting that Edlib works best for large, similar sequences, since suc
 
 ### Test data
 In [test_data/](test_data) directory there are different genome sequences, ranging from 10 kbp to 5 Mbp in length. They are ranging in length and similarity, so they can be useful for testing and measuring speed in different scenarios.
-
-
----
-
-
-### Nodejs
-For those who want to use edlib in nodejs there is a nodejs addon, [node-edlib](https://www.npmjs.com/package/node-edlib)!
 
 
 ---

@@ -1392,7 +1392,7 @@ EdlibAlignConfig edlibNewAlignConfig(int k, EdlibAlignMode mode, EdlibAlignTask 
     return config;
 }
 
-EdlibAlignConfig edlibDefaultAlignConfig() {
+EdlibAlignConfig edlibDefaultAlignConfig(void) {
     return edlibNewAlignConfig(-1, EDLIB_MODE_NW, EDLIB_TASK_DISTANCE);
 }
 

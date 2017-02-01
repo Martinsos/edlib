@@ -112,7 +112,7 @@ typedef enum {
      * @return Default configuration object, with following defaults:
      *         k = -1, mode = EDLIB_MODE_NW, task = EDLIB_TASK_DISTANCE.
      */
-    EdlibAlignConfig edlibDefaultAlignConfig();
+    EdlibAlignConfig edlibDefaultAlignConfig(void);
 
 
     /**

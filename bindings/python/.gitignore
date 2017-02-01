@@ -1,0 +1,6 @@
+build/
+dist/
+*.egg-info/
+edlib/
+edlib.c
+edlib.*.so
