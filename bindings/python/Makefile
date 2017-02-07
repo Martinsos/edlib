@@ -12,7 +12,7 @@ sdist: ${FILES}
 	cp -R ../../edlib .
 	python setup.py sdist
 
-publish: sdist
+publish: clean sdist
 	twine upload dist/*
 
 clean:
