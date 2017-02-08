@@ -17,7 +17,7 @@ setup(
     author = "Martin Sosic",
     author_email = "sosic.martin@gmail.com",
     license = "MIT",
-    keywords = "edit distance levehnstein align sequence bioinformatics",
+    keywords = "edit distance levenshtein align sequence bioinformatics",
     # Build instructions
     ext_modules = [Extension("edlib",
                              ["edlib.pyx", "edlib/src/edlib.cpp"],
