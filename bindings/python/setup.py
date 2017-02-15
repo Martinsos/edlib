@@ -20,10 +20,10 @@ setup(
     keywords = "edit distance levenshtein align sequence bioinformatics",
     # Build instructions
     ext_modules = [Extension("edlib",
-                             ["edlib.pyx", "edlib/src/edlib.cpp"],
-                             include_dirs=["edlib/include"],
-                             depends=["edlib/include/edlib.h"],
+                             ["edlib.pyx", "../../edlib/src/edlib.cpp"],
+                             include_dirs=["../../edlib/include"],
+                             depends=["../../edlib/include/edlib.h"],
                              extra_compile_args=["-O3"])],
-    setup_requires = ['cython (>=0.25)'],
+    setup_requires = ['cython>=0.25'],
     cmdclass = {'build_ext': Cython.Build.build_ext}
 )
