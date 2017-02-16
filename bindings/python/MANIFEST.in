@@ -1,1 +1,2 @@
-include edlib/include/edlib.h
+recursive-include edlib/include *
+include *.pxd

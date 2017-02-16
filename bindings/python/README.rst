@@ -105,9 +105,10 @@ Check out `C/C++ Edlib docs <http://github.com/Martinsos/edlib>`_ for more infor
 Development
 -----------
 
-Run :code:`make build` to generate an extension module as .so file. You can test it then by importing it from python interpreter :code:`import edlib` and running :code:`edlib.align(...)` (you have to be positioned in the directory where .so was built). You can also run :code:`sudo pip install -e .` from that directory which makes editable install, and then you have edlib available globally. Use this methods for testing.
+Run :code:`make build` to generate an extension module as .so file. You can test it then by importing it from python interpreter :code:`import edlib` and running :code:`edlib.align(...)` (you have to be positioned in the directory where .so was built). This is useful for testing while developing.
 
-Run :code:`make sdist` to create a source distribution, but not publish it - it is a tarball in dist/. Use this to check that tarball is well structured, contains all needed files.
+Run :code:`make sdist` to create a source distribution, but not publish it - it is a tarball in dist/ that will be uploaded to pip on `publish`. Use this to check that tarball is well structured and contains all needed files, before you publish.
+Good way to test it is to run :code:`sudo pip install dist/edlib-*.tar.gz`, which will try to install edlib from it, same way as pip will do it when it is published.
 
 Run :code:`make publish` to create a source distribution and publish it to the PyPI. Use this to publish new version of package.
 

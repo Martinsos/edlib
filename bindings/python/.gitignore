@@ -4,3 +4,4 @@ dist/
 edlib/
 edlib.c
 edlib.*.so
+.eggs/

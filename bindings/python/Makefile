@@ -6,10 +6,9 @@ edlib: ../../edlib
 	cp -R ../../edlib .
 
 build: ${FILES}
-	OPT="" python setup.py build_ext -i
+	python setup.py build_ext -i
 
 sdist: ${FILES}
-	cp -R ../../edlib .
 	python setup.py sdist
 
 publish: clean sdist
