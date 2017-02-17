@@ -1,4 +1,4 @@
-cimport edlib
+cimport cedlib
 
 def align(query, target, mode="NW", task="distance", k=-1):
     """ Align query with target using edit distance.
@@ -31,17 +31,17 @@ def align(query, target, mode="NW", task="distance", k=-1):
     cdef char* ctarget = target_bytes;
 
     # Build an edlib config object based on given parameters.
-    cconfig = edlib.edlibDefaultAlignConfig()
+    cconfig = cedlib.edlibDefaultAlignConfig()
     if k is not None: cconfig.k = k
-    if mode == 'NW': cconfig.mode = edlib.EDLIB_MODE_NW
-    if mode == 'HW': cconfig.mode = edlib.EDLIB_MODE_HW
-    if mode == 'SHW': cconfig.mode = edlib.EDLIB_MODE_SHW
-    if task == 'distance': cconfig.task = edlib.EDLIB_TASK_DISTANCE
-    if task == 'locations': cconfig.task = edlib.EDLIB_TASK_LOC
-    if task == 'path': cconfig.task = edlib.EDLIB_TASK_PATH
+    if mode == 'NW': cconfig.mode = cedlib.EDLIB_MODE_NW
+    if mode == 'HW': cconfig.mode = cedlib.EDLIB_MODE_HW
+    if mode == 'SHW': cconfig.mode = cedlib.EDLIB_MODE_SHW
+    if task == 'distance': cconfig.task = cedlib.EDLIB_TASK_DISTANCE
+    if task == 'locations': cconfig.task = cedlib.EDLIB_TASK_LOC
+    if task == 'path': cconfig.task = cedlib.EDLIB_TASK_PATH
 
     # Run alignment.
-    cresult = edlib.edlibAlign(cquery, len(query), ctarget, len(target), cconfig)
+    cresult = cedlib.edlibAlign(cquery, len(query), ctarget, len(target), cconfig)
 
     # Build python dictionary with results from result object that edlib returned.
     locations = []
@@ -51,8 +51,8 @@ def align(query, target, mode="NW", task="distance", k=-1):
                               cresult.endLocations[i] if cresult.endLocations else None))
     cigar = None
     if cresult.alignment:
-        ccigar = edlib.edlibAlignmentToCigar(cresult.alignment, cresult.alignmentLength,
-                                              edlib.EDLIB_CIGAR_EXTENDED)
+        ccigar = cedlib.edlibAlignmentToCigar(cresult.alignment, cresult.alignmentLength,
+                                              cedlib.EDLIB_CIGAR_EXTENDED)
         cigar = <bytes> ccigar
         cigar = cigar.decode('UTF-8')
     result = {
@@ -61,6 +61,6 @@ def align(query, target, mode="NW", task="distance", k=-1):
         'locations': locations,
         'cigar': cigar
     }
-    edlib.edlibFreeAlignResult(cresult)
+    cedlib.edlibFreeAlignResult(cresult)
 
     return result

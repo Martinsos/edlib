@@ -5,3 +5,4 @@ edlib/
 edlib.c
 edlib.*.so
 .eggs/
+*.bycython.*
