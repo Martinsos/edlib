@@ -1,5 +1,10 @@
 Edlib
 =====
+[![Latest Github release](https://img.shields.io/github/release/Martinsos/edlib.svg)](https://github.com/Martinsos/edlib/releases/latest)
+[![Build status of the master branch on Linux/OSX](https://img.shields.io/travis/Martinsos/edlib/master.svg?label=Linux%20%2F%20OSX%20build)](https://travis-ci.org/Martinsos/edlib)
+[![Build status of the master branch on Windows](https://img.shields.io/appveyor/ci/Martinsos/edlib.svg?label=Windows%20build)](https://ci.appveyor.com/project/Martinsos/edlib/branch/master)
+[![Chat on Gitter](https://img.shields.io/gitter/room/Martinsos/edlib.svg?colorB=753a88)](https://gitter.im/Martinsos/edlib)
+[![Published in Bioinformatics](https://img.shields.io/badge/Published%20in-Bioinformatics-167DA4.svg)](https://doi.org/10.1093/bioinformatics/btw753)
 
 A lightweight and super fast C/C++ library for sequence alignment using [edit distance](https://en.wikipedia.org/wiki/Edit_distance).
 
@@ -8,43 +13,18 @@ Calculating edit distance of two strings is as simple as:
 edlibAlign("hello", 5, "world!", 6, edlibDefaultAlignConfig()).editDistance;
 ```
 
-Supported on **Linux / OSX** ([![Build Status](https://travis-ci.org/Martinsos/edlib.svg?branch=master)](https://travis-ci.org/Martinsos/edlib)) and **Windows** ([![Build status](https://ci.appveyor.com/api/projects/status/7owowdwja516ydu3/branch/master?svg=true)](https://ci.appveyor.com/project/Martinsos/edlib/branch/master)).
-Join the chat at [![Join the chat at https://gitter.im/Martinsos/edlib](https://badges.gitter.im/Martinsos/edlib.svg)](https://gitter.im/Martinsos/edlib?utm_source=badge&utm_medium=badge&utm_campaign=pr-badge&utm_content=badge).
-
----
-
-
-### Wrappers for other languages
-
-Edlib for **Python**: [![PyPI version](https://badge.fury.io/py/edlib.svg)](https://badge.fury.io/py/edlib).
-Edlib for **Node.js**: [![npm version](https://badge.fury.io/js/node-edlib.svg)](https://badge.fury.io/js/node-edlib)
-
-
----
-
-
-### Publication
-
-The details of Edlib's methods and performance evaluation are available in the following publication:
-
-Martin Šošić, Mile Šikić; Edlib: a C/C ++ library for fast, exact sequence alignment using edit distance. Bioinformatics 2017 btw753. doi: [10.1093/bioinformatics/btw753](https://doi.org/10.1093/bioinformatics/btw753)
-
----
-
-
 ### Features
-* Calculates **edit distance**.
+* Calculates **edit distance (Levehnstein distance)**.
 * It can find **optimal alignment path** (instructions how to transform first sequence into the second sequence).
 * It can find just the **start and/or end locations of alignment path** - can be useful when speed is more important than having exact alignment path.
 * Supports **multiple [alignment methods](#align-methods)**: global(**NW**), prefix(**SHW**) and infix(**HW**), each of them useful for different scenarios.
-* It can easily handle small or **very large** sequences, even when finding alignment path.
+* It can easily handle small or **very large** sequences, even when finding alignment path, while consuming very little memory.
 * **Super fast** thanks to Myers's bit-vector algorithm.
 
+Edlib is also available for **Python** [![PyPI version](https://img.shields.io/pypi/v/edlib.svg)](https://pypi.python.org/pypi/edlib) and **Node.js** [![npm version](https://img.shields.io/npm/v/node-edlib.svg)](https://www.npmjs.com/package/node-edlib).
 
----
 
-
-### <a name="building">Building</a>
+## <a name="building">Building</a>
 Edlib uses CMAKE to build libraries (static and shared) and binaries (apps and tests).
 Execute following commands to build Edlib using CMAKE:
 
@@ -60,14 +40,10 @@ Optionally, you can run `sudo make install` to install edlib library on your mac
 You may also install edlib using Conda [![Anaconda-Server Badge](https://anaconda.org/bioconda/edlib/badges/installer/conda.svg)](https://conda.anaconda.org/bioconda): `conda install edlib`.
 
 
----
-
-
-### Using Edlib in your project
+## Using Edlib in your project
 You can use Edlib in you project by either directly copying header and source files from [edlib/](edlib/), or by linking Edlib library (see [Building](#building) for instructions how to build Edlib libraries).
 In any case, only thing that you have to do in your source files is to include `edlib.h`.
 
-#### Hello World
 To get you started quickly, let's take a look at a few ways to get simple Hello World project working.
 
 Our Hello World project has just one source file, helloWorld.c file, and it looks like this:
@@ -84,7 +60,7 @@ int main() {
 
 Running it should output `edit_distance('hello', 'world!') = 5`.
 
-##### Directly copying edlib source and header files.
+### Approach #1: Directly copying edlib source and header files.
 Here we directly copied [edlib/](edlib/) directory to our project, to get following project structure:
 ```
 edlib/  -> copied from edlib/
@@ -97,7 +73,7 @@ helloWorld.c -> your program
 
 Compile it with `g++ helloWorld.c edlib/src/edlib.cpp -o helloWorld -I edlib/include` and that is it!
 
-##### Copying edlib header file and static library.
+### Approach #2: Copying edlib header file and static library.
 Instead of copying edlib source files, you could copy static library (check [Building](#building) on how to create static library). We also need to copy edlib header files. We get following project structure:
 ```
 edlib/  -> copied from edlib
@@ -109,7 +85,7 @@ helloWorld.c -> your program
 
 Now you can compile it with `g++ helloWorld.c -o helloWorld -I edlib/include -L edlib -ledlib_static`.
 
-##### Install edlib library on machine.
+### Approach #3: Install edlib library on machine.
 Alternatively, you could avoid copying any Edlib files and instead install libraries by running `sudo make install` (check [Building](#building)). Now, all you have to do to compile your project is `g++ helloWorld.c -o helloWorld -ledlib`.
 If you get error message like `cannot open shared object file: No such file or directory`, make sure that your linker includes path where edlib was installed.
 
@@ -117,10 +93,7 @@ If you get error message like `cannot open shared object file: No such file or d
 For more example projects take a look at applications in [apps/](apps/).
 
 
----
-
-
-### Usage
+## Usage and examples
 Main function in edlib is `edlibAlign`. Given two sequences (and their lengths), it will find edit distance, alignment path or its end and start locations.
 
 ```c
@@ -131,8 +104,8 @@ printf("%d", result.editDistance);
 edlibFreeAlignResult(result);
 ```
 
-##### EdlibAlignConfig
-`edlibAlign` takes config object (it is a struct), which allows you to further customize how alignment will be done. You can choose [alignment method](#align-methods), tell edlib what to calculate (just edit distance or also path and locations) and set upper limit for edit distance.
+### Configuring edlibAlign()
+`edlibAlign` takes configuration object (it is a struct `EdlibAlignConfig`), which allows you to further customize how alignment will be done. You can choose [alignment method](#align-methods), tell edlib what to calculate (just edit distance or also path and locations) and set upper limit for edit distance.
 
 For example, if you want to use infix(HW) alignment method, want to find alignment path (and edit distance), and are interested in result only if edit distance is not larger than 42, you would call it like this:
 ```c
@@ -147,8 +120,8 @@ edlibAlign(seq1, seq1Length, seq2, seq2Length,
 
 We used `edlibNewAlignConfig` helper function to easily create config, however we could have also just created an instance of it and set its members accordingly.
 
-##### EdlibAlignResult
-`edlibAlign` function returns a result object, which will contain results of alignment (corresponding to the task that you passed in config).
+### Handling result of edlibAlign()
+`edlibAlign` function returns a result object (`EdlibAlignResult`), which will contain results of alignment (corresponding to the task that you passed in config).
 
 ```c
 EdlibAlignResult result = edlibAlign(seq1, seq1Length, seq2, seq2Length,
@@ -161,7 +134,7 @@ edlibFreeAlignResult(result);
 
 It is important to remember to free the result object using `edlibFreeAlignResult` function, since Edlib allocates memory on heap for certain members. If you decide to do the cleaning manually and not use `edlibFreeAlignResult`, do not forget to manually `free()` required members.
 
-##### Turning alignment to cigar
+### Turning alignment to cigar
 Cigar is a standard way to represent alignment path.
 Edlib has helper function that transforms alignment path into cigar.
 ```c
@@ -170,22 +143,15 @@ printf("%s", cigar);
 free(cigar);
 ```
 
-
----
-
-
-### API
+## API documentation
 
 For complete documentation of Edlib library API, visit [http://martinsos.github.io/edlib](https://martinsos.github.io/edlib) (should be updated to the latest release).
 
-To generate the latest API documentation yourself, you need to have [doxygen](www.doxygen.org) installed.
+To generate the latest API documentation yourself from the source, you need to have [doxygen](www.doxygen.org) installed.
 Position yourself in the root directory and run `doxygen`, this will generate `docs/` directory. Then open `docs/html/index.html` file with you favorite browser.
 
 
----
-
-
-### <a name="align-methods">Alignment methods</a>
+## <a name="align-methods">Alignment methods</a>
 
 Edlib supports 3 alignment methods:
 * **global (NW)** - This is the standard method, when we say "edit distance" this is the method that is assumed.
@@ -200,35 +166,27 @@ Edlib supports 3 alignment methods:
   *In bioinformatics, this method is appropriate for aligning read to a sequence.*
 
 
----
-
-
-### Aligner
-Edlib comes with a standalone aligner, which can be found at [apps/aligner/](apps/aligner).
+## Aligner
+Edlib comes with a standalone aligner cli app, which can be found at [apps/aligner/](apps/aligner).
 
 Aligner reads sequences from fasta files, and it can display alignment path in graphical manner or as a cigar.
 It also measures calculation time, so it can be useful for testing speed and comparing Edlib with other tools.
 
 Check [Building](#building) to see how to build binaries (including `edlib-aligner`).
-Run `./edlib-aligner` for help and detailed instructions.
+Run `./build/bin/edlib-aligner` with no params for help and detailed instructions.
 
 Example of usage:
 `./build/bin/edlib-aligner -p apps/aligner/test_data/query.fasta apps/aligner/test_data/target.fasta`
 
-NOTE: Aligner currently does not work on Windows, because it uses `getopt` to parse command line arguments, which is not supported on Windows.
-
----
+**NOTE**: Aligner currently does not work on Windows, because it uses `getopt` to parse command line arguments, which is not supported on Windows.
 
 
-### Running tests
+## Running tests
 Check [Building](#building) to see how to build binaries (including binary `runTests`).
 To run tests, just run `./runTests`. This will run random tests for each alignment method, and also some specific unit tests.
 
 
----
-
-
-### Time and space complexity
+## Time and space complexity
 Edlib is based on [Myers's bit-vector algorithm](http://www.gersteinlab.org/courses/452/09-spring/pdf/Myers.pdf) and extends from it.
 It calculates a dynamic programming matrix of dimensions `Q x T`, where `Q` is the length of the first sequence (query), and `T` is the length of the second sequence (target). It uses Ukkonen's banded algorithm to reduce the space of search, and there is also parallelization from Myers's algorithm, however time complexity is still quadratic.
 Edlib uses Hirschberg's algorithm to find alignment path, therefore space complexity is linear.
@@ -240,26 +198,22 @@ Space complexity: `O(T + Q)`.
 It is worth noting that Edlib works best for large, similar sequences, since such sequences get the highest speedup from banded approach and bit-vector parallelization.
 
 
----
-
-
-### Test data
+## Test data
 In [test_data/](test_data) directory there are different genome sequences, ranging from 10 kbp to 5 Mbp in length. They are ranging in length and similarity, so they can be useful for testing and measuring speed in different scenarios.
 
 
----
-
-
-### Development
+## Development and contributing
 Feel free to send pull requests and raise issues.
 
 When developing, you may want to use `-D CMAKE_BUILD_TYPE=Debug` flag when calling `cmake` in order to get debugging flags passed to compiler. This should also happen if you just run `cmake ..` with no flags, but I think I have noticed it does not always works as expected (probably has something to do with cmake cache). To check which flags is compiler using, run `make` with `VERBOSE=1`: `make VERBOSE=1`.
 
 
----
+## Publication
+
+Martin Šošić, Mile Šikić; Edlib: a C/C ++ library for fast, exact sequence alignment using edit distance. Bioinformatics 2017 btw753. doi: [10.1093/bioinformatics/btw753](https://doi.org/10.1093/bioinformatics/btw753)
 
 
-### Acknowledgements
+## Acknowledgements
 
 Mile Šikić (@msikic) - Mentoring and guidance through whole project.
 
