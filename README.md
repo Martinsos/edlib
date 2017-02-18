@@ -8,23 +8,26 @@ Calculating edit distance of two strings is as simple as:
 edlibAlign("hello", 5, "world!", 6, edlibDefaultAlignConfig()).editDistance;
 ```
 
-Supported on Linux / OSX [![Build Status](https://travis-ci.org/Martinsos/edlib.svg?branch=master)](https://travis-ci.org/Martinsos/edlib) and Windows [![Build status](https://ci.appveyor.com/api/projects/status/7owowdwja516ydu3/branch/master?svg=true)](https://ci.appveyor.com/project/Martinsos/edlib/branch/master).
-
+Supported on **Linux / OSX** ([![Build Status](https://travis-ci.org/Martinsos/edlib.svg?branch=master)](https://travis-ci.org/Martinsos/edlib)) and **Windows** ([![Build status](https://ci.appveyor.com/api/projects/status/7owowdwja516ydu3/branch/master?svg=true)](https://ci.appveyor.com/project/Martinsos/edlib/branch/master)).
 Join the chat at [![Join the chat at https://gitter.im/Martinsos/edlib](https://badges.gitter.im/Martinsos/edlib.svg)](https://gitter.im/Martinsos/edlib?utm_source=badge&utm_medium=badge&utm_campaign=pr-badge&utm_content=badge).
-
-[![Anaconda-Server Badge](https://anaconda.org/bioconda/edlib/badges/installer/conda.svg)](https://conda.anaconda.org/bioconda)
-
-[Doxygen documentation](http://martinsos.github.io/edlib)
 
 ---
 
 
 ### Wrappers for other languages
 
-Edlib for Python: [![PyPI version](https://badge.fury.io/py/edlib.svg)](https://badge.fury.io/py/edlib)
+Edlib for **Python**: [![PyPI version](https://badge.fury.io/py/edlib.svg)](https://badge.fury.io/py/edlib).
+Edlib for **Node.js**: [![npm version](https://badge.fury.io/js/node-edlib.svg)](https://badge.fury.io/js/node-edlib)
 
-Edlib for Node.js: [![npm version](https://badge.fury.io/js/node-edlib.svg)](https://badge.fury.io/js/node-edlib)
 
+---
+
+
+### Publication
+
+The details of Edlib's methods and performance evaluation are available in the following publication:
+
+Martin Šošić, Mile Šikić; Edlib: a C/C ++ library for fast, exact sequence alignment using edit distance. Bioinformatics 2017 btw753. doi: [10.1093/bioinformatics/btw753](https://doi.org/10.1093/bioinformatics/btw753)
 
 ---
 
@@ -54,7 +57,7 @@ You can run `./bin/runTests` to confirm that it works!
 
 Optionally, you can run `sudo make install` to install edlib library on your machine (on Linux, this will usually install it to `usr/local/lib` and `usr/local/include`).
 
-You may also install edlib using Conda: `conda install edlib`.
+You may also install edlib using Conda [![Anaconda-Server Badge](https://anaconda.org/bioconda/edlib/badges/installer/conda.svg)](https://conda.anaconda.org/bioconda): `conda install edlib`.
 
 
 ---
@@ -173,7 +176,7 @@ free(cigar);
 
 ### API
 
-For detailed documentation of Edlib library API, visit [http://martinsos.github.io/edlib](https://martinsos.github.io/edlib) (should be updated to the latest release).
+For complete documentation of Edlib library API, visit [http://martinsos.github.io/edlib](https://martinsos.github.io/edlib) (should be updated to the latest release).
 
 To generate the latest API documentation yourself, you need to have [doxygen](www.doxygen.org) installed.
 Position yourself in the root directory and run `doxygen`, this will generate `docs/` directory. Then open `docs/html/index.html` file with you favorite browser.
@@ -187,14 +190,14 @@ Position yourself in the root directory and run `doxygen`, this will generate `d
 Edlib supports 3 alignment methods:
 * **global (NW)** - This is the standard method, when we say "edit distance" this is the method that is assumed.
   It tells us the smallest number of operations needed to transform first sequence into second sequence.
-  This method is appropriate when you want to find out how similar is first sequence to second sequence.
+  *This method is appropriate when you want to find out how similar is first sequence to second sequence.*
 * **prefix (SHW)** - Similar to global method, but with a small twist - gap at query end is not penalized. What that means is that deleting elements from the end of second sequence is "free"!
   For example, if we had `AACT` and `AACTGGC`, edit distance would be 0, because removing `GGC` from the end of second sequence is "free" and does not count into total edit distance.
-  This method is appropriate when you want to find out how well first sequence fits at the beginning of second sequence.
+  *This method is appropriate when you want to find out how well first sequence fits at the beginning of second sequence.*
 * **infix (HW)**: Similar as prefix method, but with one more twist - gaps at query end **and start** are not penalized. What that means is that deleting elements from the start and end of second sequence is "free"!
   For example, if we had `ACT` and `CGACTGAC`, edit distance would be 0, because removing `CG` from the start and `GAC` from the end of second sequence is "free" and does not count into total edit distance.
-  This method is appropriate when you want to find out how well first sequence fits at any part of second sequence. For example, if your second sequence was a long text and your first sequence was a sentence from that text, but slightly scrambled, you could use this method to discover how scrambled it is and where it fits in that text.
-  In bioinformatics, this method is appropriate for aligning read to a sequence.
+  *This method is appropriate when you want to find out how well first sequence fits at any part of second sequence.* For example, if your second sequence was a long text and your first sequence was a sentence from that text, but slightly scrambled, you could use this method to discover how scrambled it is and where it fits in that text.
+  *In bioinformatics, this method is appropriate for aligning read to a sequence.*
 
 
 ---
