@@ -150,6 +150,7 @@ For complete documentation of Edlib library API, visit [http://martinsos.github.
 To generate the latest API documentation yourself from the source, you need to have [doxygen](www.doxygen.org) installed.
 Position yourself in the root directory and run `doxygen`, this will generate `docs/` directory. Then open `docs/html/index.html` file with you favorite browser.
 
+Alternatively, you can directly check [edlib.h](edlib/include/edlib.h).
 
 ## <a name="align-methods">Alignment methods</a>
 
