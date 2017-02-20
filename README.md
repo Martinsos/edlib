@@ -186,6 +186,8 @@ Edlib supports 3 alignment methods:
 ## Aligner
 Edlib comes with a standalone aligner cli app, which can be found at [apps/aligner/](apps/aligner).
 
+![Edlib aligner screenshot](images/edlib-aligner-screenshot.png)
+
 Aligner reads sequences from fasta files, and it can display alignment path in graphical manner or as a cigar.
 It also measures calculation time, so it can be useful for testing speed and comparing Edlib with other tools.
 
