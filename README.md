@@ -13,18 +13,34 @@ Calculating edit distance of two strings is as simple as:
 edlibAlign("hello", 5, "world!", 6, edlibDefaultAlignConfig()).editDistance;
 ```
 
-### Features
+## Features
 * Calculates **edit distance (Levehnstein distance)**.
 * It can find **optimal alignment path** (instructions how to transform first sequence into the second sequence).
 * It can find just the **start and/or end locations of alignment path** - can be useful when speed is more important than having exact alignment path.
-* Supports **multiple [alignment methods](#align-methods)**: global(**NW**), prefix(**SHW**) and infix(**HW**), each of them useful for different scenarios.
-* It can easily handle small or **very large** sequences, even when finding alignment path, while consuming very little memory.
+* Supports **multiple [alignment methods](#alignment-methods)**: global(**NW**), prefix(**SHW**) and infix(**HW**), each of them useful for different scenarios.
+* It can easily handle small or **very large sequences**, even when finding alignment path, while consuming very little memory.
 * **Super fast** thanks to Myers's bit-vector algorithm.
 
 Edlib is also available for **Python** [![PyPI version](https://img.shields.io/pypi/v/edlib.svg)](https://pypi.python.org/pypi/edlib) and **Node.js** [![npm version](https://img.shields.io/npm/v/node-edlib.svg)](https://www.npmjs.com/package/node-edlib).
 
 
-## <a name="building">Building</a>
+## Contents
+- [Features](#features)
+- [Building](#building)
+- [Using Edlib in your project](#using-edlib-in-your-project)
+- [Usage and examples](#usage-and-examples)
+- [API documentation](#api-documentation)
+- [Alignment methods](#alignment-methods)
+- [Aligner](#aligner)
+- [Running tests](#running-tests)
+- [Time and space complexity](#time-and-space-complexity)
+- [Test data](#test-data)
+- [Development and contributing](#development-and-contributing)
+- [Publication](#publication)
+- [Acknowledgements](#acknowledgements)
+
+
+## Building
 Edlib uses CMAKE to build libraries (static and shared) and binaries (apps and tests).
 Execute following commands to build Edlib using CMAKE:
 
@@ -105,7 +121,7 @@ edlibFreeAlignResult(result);
 ```
 
 ### Configuring edlibAlign()
-`edlibAlign` takes configuration object (it is a struct `EdlibAlignConfig`), which allows you to further customize how alignment will be done. You can choose [alignment method](#align-methods), tell edlib what to calculate (just edit distance or also path and locations) and set upper limit for edit distance.
+`edlibAlign` takes configuration object (it is a struct `EdlibAlignConfig`), which allows you to further customize how alignment will be done. You can choose [alignment method](#alignment-methods), tell edlib what to calculate (just edit distance or also path and locations) and set upper limit for edit distance.
 
 For example, if you want to use infix(HW) alignment method, want to find alignment path (and edit distance), and are interested in result only if edit distance is not larger than 42, you would call it like this:
 ```c
@@ -152,7 +168,7 @@ Position yourself in the root directory and run `doxygen`, this will generate `d
 
 Alternatively, you can directly check [edlib.h](edlib/include/edlib.h).
 
-## <a name="align-methods">Alignment methods</a>
+## Alignment methods
 
 Edlib supports 3 alignment methods:
 * **global (NW)** - This is the standard method, when we say "edit distance" this is the method that is assumed.
