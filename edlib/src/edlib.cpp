@@ -887,7 +887,10 @@ static int obtainAlignmentTraceback(const int queryLength, const int targetLengt
     Word currM = alignData->Ms[c * maxNumBlocks + b]; // M of current block
     // True if block to left exists and is in band
     bool thereIsLeftBlock = c > 0 && b >= alignData->firstBlocks[c-1] && b <= alignData->lastBlocks[c-1];
-    Word lP, lM;
+    // We set initial values of lP and lM to 0 only to avoid compiler warnings, they should not affect the
+    // calculation as both lP and lM should be initialized at some moment later (but compiler can not
+    // detect it since this initialization is guaranteed by "business" logic).
+    Word lP = 0, lM = 0;
     if (thereIsLeftBlock) {
         lP = alignData->Ps[(c - 1) * maxNumBlocks + b]; // P of block to the left
         lM = alignData->Ms[(c - 1) * maxNumBlocks + b]; // M of block to the left
@@ -1356,13 +1359,13 @@ static int transformSequences(const char* const queryOriginal, const int queryLe
     *targetTransformed = (unsigned char *) malloc(sizeof(unsigned char) * targetLength);
 
     // Alphabet information, it is constructed on fly while transforming sequences.
-    unsigned char letterIdx[128]; //!< letterIdx[c] is index of letter c in alphabet
-    bool inAlphabet[128]; // inAlphabet[c] is true if c is in alphabet
-    for (int i = 0; i < 128; i++) inAlphabet[i] = false;
+    unsigned char letterIdx[256]; //!< letterIdx[c] is index of letter c in alphabet
+    bool inAlphabet[256]; // inAlphabet[c] is true if c is in alphabet
+    for (int i = 0; i < 256; i++) inAlphabet[i] = false;
     int alphabetLength = 0;
 
     for (int i = 0; i < queryLength; i++) {
-        char c = queryOriginal[i];
+        unsigned char c = static_cast<unsigned char>(queryOriginal[i]);
         if (!inAlphabet[c]) {
             inAlphabet[c] = true;
             letterIdx[c] = alphabetLength;
@@ -1371,7 +1374,7 @@ static int transformSequences(const char* const queryOriginal, const int queryLe
         (*queryTransformed)[i] = letterIdx[c];
     }
     for (int i = 0; i < targetLength; i++) {
-        char c = targetOriginal[i];
+        unsigned char c = static_cast<unsigned char>(targetOriginal[i]);
         if (!inAlphabet[c]) {
             inAlphabet[c] = true;
             letterIdx[c] = alphabetLength;

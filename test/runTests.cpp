@@ -408,6 +408,19 @@ bool test10() {
     return r;
 }
 
+// Check if edlib works for whole range of char values.
+bool test11() {
+    int queryLength = 8;
+    int targetLength = 8;
+    char query[8] =  {-127, 127, -55, 0, 42, 0,      127, -55};
+    char target[8] = {-127, 127,      0, 42, 0, -55, 127,  42};
+
+    bool r = executeTest(query, queryLength, target, targetLength, EDLIB_MODE_HW);
+    r = r && executeTest(query, queryLength, target, targetLength, EDLIB_MODE_NW);
+    r = r && executeTest(query, queryLength, target, targetLength, EDLIB_MODE_SHW);
+    return r;
+}
+
 bool testCigar() {
     unsigned char alignment[] = {EDLIB_EDOP_MATCH, EDLIB_EDOP_MATCH, EDLIB_EDOP_INSERT, EDLIB_EDOP_INSERT,
                                  EDLIB_EDOP_INSERT, EDLIB_EDOP_DELETE, EDLIB_EDOP_INSERT, EDLIB_EDOP_INSERT,
@@ -439,9 +452,9 @@ bool testCigar() {
 
 bool runTests() {
     // TODO: make this global vector where tests have to add themselves.
-    int numTests = 11;
+    int numTests = 12;
     bool (* tests [])() = {test1, test2, test3, test4, test5, test6,
-                           test7, test8, test9, test10, testCigar};
+                           test7, test8, test9, test10, test11, testCigar};
 
     bool allTestsPassed = true;
     for (int i = 0; i < numTests; i++) {

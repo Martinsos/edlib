@@ -179,9 +179,9 @@ typedef enum {
      * It always returns edit distance and end locations of optimal alignment in target.
      * It optionally returns start locations of optimal alignment in target and alignment path,
      * if you choose appropriate tasks.
-     * @param [in] query  First sequence. Character codes should be in range [0, 127].
+     * @param [in] query  First sequence.
      * @param [in] queryLength  Number of characters in first sequence.
-     * @param [in] target  Second sequence. Character codes should be in range [0, 127].
+     * @param [in] target  Second sequence.
      * @param [in] targetLength  Number of characters in second sequence.
      * @param [in] config  Additional alignment parameters, like alignment method and wanted results.
      * @return  Result of alignment, which can contain edit distance, start and end locations and alignment path.
