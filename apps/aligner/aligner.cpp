@@ -158,9 +158,16 @@ int main(int argc, char * const argv[]) {
     for (int i = 0; i < numQueries; i++) {
         char* query = (*querySequences)[i].data();
         int queryLength = (*querySequences)[i].size();
+
+        EdlibAlignResult result;
+        int numRuns = 1;
         // Calculate score
-        EdlibAlignResult result = edlibAlign(query, queryLength, target, targetLength,
-                                             edlibNewAlignConfig(k, modeCode, alignTask));
+        for (int j = 0; j < numRuns; j++) {
+            result = edlibAlign(query, queryLength, target, targetLength,
+                                edlibNewAlignConfig(k, modeCode, alignTask));
+            if (j < numRuns - 1) edlibFreeAlignResult(result);
+        }
+        
         scores[i] = result.editDistance;
         endLocations[i] = result.endLocations;
         startLocations[i] = result.startLocations;
