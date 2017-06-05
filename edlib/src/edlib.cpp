@@ -98,9 +98,9 @@ static inline Word* buildPeq(int alphabetLength, const unsigned char* query,
 /**
  * Main edlib method.
  */
-EdlibAlignResult edlibAlign(const char* const queryOriginal, const int queryLength,
-                            const char* const targetOriginal, const int targetLength,
-                            const EdlibAlignConfig config) {
+extern "C" EdlibAlignResult edlibAlign(const char* const queryOriginal, const int queryLength,
+                                       const char* const targetOriginal, const int targetLength,
+                                       const EdlibAlignConfig config) {
     EdlibAlignResult result;
     result.editDistance = -1;
     result.endLocations = result.startLocations = NULL;
@@ -221,8 +221,8 @@ EdlibAlignResult edlibAlign(const char* const queryOriginal, const int queryLeng
 }
 
 
-char* edlibAlignmentToCigar(const unsigned char* const alignment, const int alignmentLength,
-                            const EdlibCigarFormat cigarFormat) {
+extern "C" char* edlibAlignmentToCigar(const unsigned char* const alignment, const int alignmentLength,
+                                       const EdlibCigarFormat cigarFormat) {
     if (cigarFormat != EDLIB_CIGAR_EXTENDED && cigarFormat != EDLIB_CIGAR_STANDARD) {
         return 0;
     }
@@ -1387,7 +1387,7 @@ static int transformSequences(const char* const queryOriginal, const int queryLe
 }
 
 
-EdlibAlignConfig edlibNewAlignConfig(int k, EdlibAlignMode mode, EdlibAlignTask task) {
+extern "C" EdlibAlignConfig edlibNewAlignConfig(int k, EdlibAlignMode mode, EdlibAlignTask task) {
     EdlibAlignConfig config;
     config.k = k;
     config.mode = mode;
@@ -1395,11 +1395,11 @@ EdlibAlignConfig edlibNewAlignConfig(int k, EdlibAlignMode mode, EdlibAlignTask 
     return config;
 }
 
-EdlibAlignConfig edlibDefaultAlignConfig(void) {
+extern "C" EdlibAlignConfig edlibDefaultAlignConfig(void) {
     return edlibNewAlignConfig(-1, EDLIB_MODE_NW, EDLIB_TASK_DISTANCE);
 }
 
-void edlibFreeAlignResult(EdlibAlignResult result) {
+extern "C" void edlibFreeAlignResult(EdlibAlignResult result) {
     if (result.endLocations) free(result.endLocations);
     if (result.startLocations) free(result.startLocations);
     if (result.alignment) free(result.alignment);
