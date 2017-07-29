@@ -160,7 +160,7 @@ int main(int argc, char * const argv[]) {
         int queryLength = (*querySequences)[i].size();
         // Calculate score
         EdlibAlignResult result = edlibAlign(query, queryLength, target, targetLength,
-                                             edlibNewAlignConfig(k, modeCode, alignTask));
+                                             edlibNewAlignConfig(k, modeCode, alignTask, NULL, 0));
         scores[i] = result.editDistance;
         endLocations[i] = result.endLocations;
         startLocations[i] = result.startLocations;

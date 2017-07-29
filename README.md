@@ -18,6 +18,7 @@ edlibAlign("hello", 5, "world!", 6, edlibDefaultAlignConfig()).editDistance;
 * It can find **optimal alignment path** (instructions how to transform first sequence into the second sequence).
 * It can find just the **start and/or end locations of alignment path** - can be useful when speed is more important than having exact alignment path.
 * Supports **multiple [alignment methods](#alignment-methods)**: global(**NW**), prefix(**SHW**) and infix(**HW**), each of them useful for different scenarios.
+* You can **extend character equality definition**, enabling you to e.g. have wildcard characters, to have case insensitive alignment or to work with degenerate nucleotides.
 * It can easily handle small or **very large sequences**, even when finding alignment path, while consuming very little memory.
 * **Super fast** thanks to Myers's bit-vector algorithm.
 
@@ -69,7 +70,9 @@ Our Hello World project has just one source file, `helloWorld.cpp` file, and it 
 
 int main() {
     EdlibAlignResult result = edlibAlign("hello", 5, "world!", 6, edlibDefaultAlignConfig());
-    printf("edit_distance('hello', 'world!') = %d\n", result.editDistance);
+    if (result.status == EDLIB_STATUS_OK) {
+        printf("edit_distance('hello', 'world!') = %d\n", result.editDistance);
+    }
     edlibFreeAlignResult(result);
 }
 ```
@@ -123,22 +126,25 @@ Main function in edlib is `edlibAlign`. Given two sequences (and their lengths),
 char* query = "ACCTCTG";
 char* target = "ACTCTGAAA"
 EdlibAlignResult result = edlibAlign(query, 7, target, 9, edlibDefaultAlignConfig());
-printf("%d", result.editDistance);
+if (result.status == EDLIB_STATUS_OK) {
+    printf("%d", result.editDistance);
+}
 edlibFreeAlignResult(result);
 ```
 
 ### Configuring edlibAlign()
 `edlibAlign` takes configuration object (it is a struct `EdlibAlignConfig`), which allows you to further customize how alignment will be done. You can choose [alignment method](#alignment-methods), tell edlib what to calculate (just edit distance or also path and locations) and set upper limit for edit distance.
 
-For example, if you want to use infix(HW) alignment method, want to find alignment path (and edit distance), and are interested in result only if edit distance is not larger than 42, you would call it like this:
+For example, if you want to use infix(HW) alignment method, want to find alignment path (and edit distance), are interested in result only if edit distance is not larger than 42 and do not want to extend character equality definition, you would call it like this:
 ```c
 edlibAlign(seq1, seq1Length, seq2, seq2Length,
-           edlibNewAlignConfig(42, EDLIB_MODE_HW, EDLIB_TASK_PATH));
+           edlibNewAlignConfig(42, EDLIB_MODE_HW, EDLIB_TASK_PATH, NULL, 0));
 ```
-Or, if you want to use suffix(SHW) alignment method, want to find only edit distance, and do not have any limits on edit distance, you would call it like this:
+Or, if you want to use suffix(SHW) alignment method, want to find only edit distance, do not have any limits on edit distance and want character '?' to match both itself and characters 'X' and 'Y', you would call it like this:
 ```c
+EdlibEqualityPair additionalEqualities[2] = {{'?', 'X'}, {'?', 'Y'}};
 edlibAlign(seq1, seq1Length, seq2, seq2Length,
-           edlibNewAlignConfig(-1, EDLIB_MODE_SHW, EDLIB_TASK_DISTANCE));
+           edlibNewAlignConfig(-1, EDLIB_MODE_SHW, EDLIB_TASK_DISTANCE, additionalEqualities, 2));
 ```
 
 We used `edlibNewAlignConfig` helper function to easily create config, however we could have also just created an instance of it and set its members accordingly.
@@ -148,10 +154,12 @@ We used `edlibNewAlignConfig` helper function to easily create config, however w
 
 ```c
 EdlibAlignResult result = edlibAlign(seq1, seq1Length, seq2, seq2Length,
-                                     edlibNewAlignConfig(-1, EDLIB_MODE_HW, EDLIB_TASK_PATH));
-printf("%d\n", result.editDistance);
-printf("%d\n", result.alignmentLength);
-printf("%d\n", result.endLocations[0]);
+                                     edlibNewAlignConfig(-1, EDLIB_MODE_HW, EDLIB_TASK_PATH, NULL, 0));
+if (result.status == EDLIB_STATUS_OK) {
+    printf("%d\n", result.editDistance);
+    printf("%d\n", result.alignmentLength);
+    printf("%d\n", result.endLocations[0]);
+}
 edlibFreeAlignResult(result);
 ```
 

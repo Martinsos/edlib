@@ -113,7 +113,7 @@ bool runRandomTests(int numTests, EdlibAlignMode mode, bool findAlignment) {
         start = clock();
         EdlibAlignResult result = edlibAlign(
                 query, queryLength, target, targetLength,
-                edlibNewAlignConfig(-1, mode, findAlignment ? EDLIB_TASK_PATH : EDLIB_TASK_DISTANCE));
+                edlibNewAlignConfig(-1, mode, findAlignment ? EDLIB_TASK_PATH : EDLIB_TASK_DISTANCE, NULL, 0));
         timeEdlib += clock() - start;
         if (result.alignment) {
             if (!checkAlignment(query, queryLength, target, targetLength,
@@ -167,7 +167,7 @@ bool runRandomTests(int numTests, EdlibAlignMode mode, bool findAlignment) {
             int scoreExpected = score2 > k ? -1 : score2;
             EdlibAlignResult result3 = edlibAlign(
                     query, queryLength, target, targetLength,
-                    edlibNewAlignConfig(k, mode, findAlignment ? EDLIB_TASK_PATH : EDLIB_TASK_DISTANCE));
+                    edlibNewAlignConfig(k, mode, findAlignment ? EDLIB_TASK_PATH : EDLIB_TASK_DISTANCE, NULL, 0));
             if (result3.editDistance != scoreExpected) {
                 failed = true;
                 printf("For k = %d score was %d but it should have been %d\n",
@@ -224,7 +224,7 @@ bool executeTest(const char* query, int queryLength,
                            mode, &scoreSimple, &endLocationsSimple, &numLocationsSimple);
 
     EdlibAlignResult result = edlibAlign(query, queryLength, target, targetLength,
-                                         edlibNewAlignConfig(-1, mode, EDLIB_TASK_PATH));
+                                         edlibNewAlignConfig(-1, mode, EDLIB_TASK_PATH, NULL, 0));
 
     if (result.editDistance != scoreSimple) {
         pass = false;
@@ -450,11 +450,40 @@ bool testCigar() {
     return pass;
 }
 
+bool testCustomEqualityRelation() {
+    vector<EdlibEqualityPair> additionalEqualities;
+
+    additionalEqualities.push_back({'R', 'A'});
+    additionalEqualities.push_back({'R', 'G'});
+
+    additionalEqualities.push_back({'N', 'A'});
+    additionalEqualities.push_back({'N', 'C'});
+    additionalEqualities.push_back({'N', 'T'});
+    additionalEqualities.push_back({'N', 'G'});
+
+    bool allPass = true;
+
+    const char* query =  "GTGNRTCARCGAANCTTTN";
+    const char* target = "GTGAGTCATCGAATCTTTGAACGCACCTTGCGCTCCTTGGT";
+
+    printf("Degenerate nucleotides (HW): ");
+    EdlibAlignResult result = edlibAlign(query, 19, target, 41,
+                                         edlibNewAlignConfig(-1, EDLIB_MODE_HW, EDLIB_TASK_PATH,
+                                                             additionalEqualities.data(),
+                                                             additionalEqualities.size()));
+    bool pass = result.status == EDLIB_STATUS_OK && result.editDistance == 1;
+    edlibFreeAlignResult(result);
+    printf(pass ? "\x1B[32m""OK""\x1B[0m\n" : "\x1B[31m""FAIL""\x1B[0m\n");
+    allPass = allPass && pass;
+
+    return allPass;
+}
+
 bool runTests() {
     // TODO: make this global vector where tests have to add themselves.
-    int numTests = 12;
+    int numTests = 13;
     bool (* tests [])() = {test1, test2, test3, test4, test5, test6,
-                           test7, test8, test9, test10, test11, testCigar};
+                           test7, test8, test9, test10, test11, testCigar, testCustomEqualityRelation};
 
     bool allTestsPassed = true;
     for (int i = 0; i < numTests; i++) {

@@ -1,13 +1,13 @@
 default: build
 
 ############### FILES #################
-FILES=edlib pyedlib.bycython.c setup.py MANIFEST.in README.rst
+FILES=edlib pyedlib.bycython.cpp setup.py MANIFEST.in README.rst
 
 edlib: ../../edlib
 	cp -R ../../edlib .
 
-pyedlib.bycython.c: edlib.pyx cedlib.pxd
-	cython edlib.pyx -o edlib.bycython.c
+pyedlib.bycython.cpp: edlib.pyx cedlib.pxd
+	cython --cplus edlib.pyx -o edlib.bycython.cpp
 #######################################
 
 ############## COMMANDS ###############

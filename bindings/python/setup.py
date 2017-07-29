@@ -15,7 +15,7 @@ if USE_CYTHON:
     edlib_module_src = "edlib.pyx"
     cmdclass['build_ext'] = build_ext
 else:
-    edlib_module_src = "edlib.bycython.c"
+    edlib_module_src = "edlib.bycython.cpp"
 
 # Load README into long description.
 here = os.path.abspath(os.path.dirname(__file__))
@@ -27,7 +27,7 @@ setup(
     name = "edlib",
     description = "Lightweight, super fast library for sequence alignment using edit (Levenshtein) distance.",
     long_description = long_description,
-    version = "1.1.2-2",
+    version = "1.2.0",
     url = "https://github.com/Martinsos/edlib",
     author = "Martin Sosic",
     author_email = "sosic.martin@gmail.com",
@@ -38,6 +38,7 @@ setup(
                              [edlib_module_src, "edlib/src/edlib.cpp"],
                              include_dirs=["edlib/include"],
                              depends=["edlib/include/edlib.h"],
-                             extra_compile_args=["-O3"])],
+                             language="c++",
+                             extra_compile_args=["-O3", "-std=c++11"])],
     cmdclass = cmdclass
 )
