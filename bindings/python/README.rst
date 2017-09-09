@@ -112,5 +112,6 @@ Run :code:`make sdist` to create a source distribution, but not publish it - it 
 Good way to test it is to run :code:`sudo pip install dist/edlib-*.tar.gz`, which will try to install edlib from it, same way as pip will do it when it is published.
 
 Run :code:`make publish` to create a source distribution and publish it to the PyPI. Use this to publish new version of package.
+Make sure to bump the version in `setup.py` before publishing, if needed.
 
 :code:`make clean` removes all generated files.
