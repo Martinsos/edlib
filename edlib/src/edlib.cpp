@@ -578,13 +578,24 @@ static int myersCalcEditDistanceSemiGlobal(
             }
         }
 
-        // Every some columns, do some expensive but also more efficient block reducing -> this is important!
+        // Every some columns, do some expensive but also more efficient block reducing.
+        // This is important!
+        //
+        // Reduce the band by decreasing last block if possible.
         if (c % STRONG_REDUCE_NUM == 0) {
-            while (lastBlock >= firstBlock && allBlockCellsLarger(*bl, k)) {
+            while (lastBlock >= 0 && lastBlock >= firstBlock && allBlockCellsLarger(*bl, k)) {
                 lastBlock--; bl--; Peq_c--;
             }
         }
+        // For HW, even if all cells are > k, there still may be solution in next
+        // column because starting conditions at upper boundary are 0.
+        // That means that first block is always candidate for solution,
+        // and we can never end calculation before last column.
+        if (mode == EDLIB_MODE_HW && lastBlock == -1) {
+            lastBlock++; bl++; Peq_c++;
+        }
 
+        // Reduce band by increasing first block if possible. Not applicable to HW.
         if (mode != EDLIB_MODE_HW) {
             while (firstBlock <= lastBlock && blocks[firstBlock].score >= k + WORD_SIZE) {
                 firstBlock++;
@@ -594,14 +605,6 @@ static int myersCalcEditDistanceSemiGlobal(
                     firstBlock++;
                 }
             }
-        }
-
-        // For HW, even if all cells are > k, there still may be solution in next
-        // column because starting conditions at upper boundary are 0.
-        // That means that first block is always candidate for solution,
-        // and we can never end calculation before last column.
-        if (mode == EDLIB_MODE_HW) {
-            lastBlock = max(0, lastBlock);
         }
 
         // If band stops to exist finish
