@@ -14,14 +14,13 @@ using namespace std;
 
 int readFastaSequences(const char* path, vector< vector<char> >* seqs);
 
-void printAlignment(const char* query, const int queryLength,
-                    const char* target, const int targetLength,
+void printAlignment(const char* query, const char* target,
                     const unsigned char* alignment, const int alignmentLength,
                     const int position, const EdlibAlignMode modeCode);
 
 // For debugging
 void printSeq(const vector<char> &seq) {
-    for (int i = 0; i < seq.size(); i++)
+    for (int i = 0; i < (int) seq.size(); i++)
         printf("%d ", seq[i]);
     printf("\n");
 }
@@ -173,10 +172,10 @@ int main(int argc, char * const argv[]) {
         if (numBestSeqs > 0) {
             if (scores[i] >= 0) {
                 bestScores.push(scores[i]);
-                if (bestScores.size() > numBestSeqs) {
+                if ((int) bestScores.size() > numBestSeqs) {
                     bestScores.pop();
                 }
-                if (bestScores.size() == numBestSeqs) {
+                if ((int) bestScores.size() == numBestSeqs) {
                     k = bestScores.top() - 1;
                     if (kArg >= 0 && kArg < k)
                         k = kArg;
@@ -193,8 +192,7 @@ int main(int argc, char * const argv[]) {
                 printf("\n");
                 printf("Query #%d (%d residues): score = %d\n", i, queryLength, scores[i]);
                 if (!strcmp(alignmentFormat, "NICE")) {
-                    printAlignment(query, queryLength, target, targetLength,
-                                   alignment, alignmentLength,
+                    printAlignment(query, target, alignment, alignmentLength,
                                    *(endLocations[i]), modeCode);
                 } else {
                     printf("Cigar:\n");
@@ -287,7 +285,7 @@ int readFastaSequences(const char* path, vector< vector<char> >* seqs) {
 
     bool inHeader = false;
     bool inSequence = false;
-    int buffSize = 4096;
+    const int buffSize = 4096;
     char buffer[buffSize];
     while (!feof(file)) {
         int read = fread(buffer, sizeof(char), buffSize, file);
@@ -319,8 +317,7 @@ int readFastaSequences(const char* path, vector< vector<char> >* seqs) {
 }
 
 
-void printAlignment(const char* query, const int queryLength,
-                    const char* target, const int targetLength,
+void printAlignment(const char* query, const char* target,
                     const unsigned char* alignment, const int alignmentLength,
                     const int position, const EdlibAlignMode modeCode) {
     int tIdx = -1;

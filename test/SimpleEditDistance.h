@@ -79,7 +79,7 @@ int calcEditDistanceSimple(const char* query, int queryLength,
     *score = bestScore;
     if (positions.size() > 0) {
         *positions_ = new int[positions.size()];
-        *numPositions_ = positions.size();
+        *numPositions_ = (int) positions.size();
         copy(positions.begin(), positions.end(), *positions_);
     } else {
         *positions_ = NULL;

@@ -18,7 +18,7 @@ int calcEditDistanceSimple(const char* query, int queryLength,
                            int** positions, int* numPositions);
 
 bool checkAlignment(const char* query, int queryLength,
-                    const char* target, int targetLength,
+                    const char* target,
                     int score, int pos, EdlibAlignMode mode,
                     unsigned char* alignment, int alignmentLength);
 
@@ -78,7 +78,7 @@ int main(int argc, char* argv[]) {
 
 void fillRandomly(char* seq, int seqLength, int alphabetLength) {
     for (int i = 0; i < seqLength; i++)
-        seq[i] = rand() % alphabetLength;
+        seq[i] = (char) rand() % alphabetLength;
 }
 
 // Returns true if all tests passed, false otherwise.
@@ -116,7 +116,7 @@ bool runRandomTests(int numTests, EdlibAlignMode mode, bool findAlignment) {
                 edlibNewAlignConfig(-1, mode, findAlignment ? EDLIB_TASK_PATH : EDLIB_TASK_DISTANCE, NULL, 0));
         timeEdlib += clock() - start;
         if (result.alignment) {
-            if (!checkAlignment(query, queryLength, target, targetLength,
+            if (!checkAlignment(query, queryLength, target,
                                 result.editDistance, result.endLocations[0], mode,
                                 result.alignment, result.alignmentLength)) {
                 failed = true;
@@ -174,7 +174,7 @@ bool runRandomTests(int numTests, EdlibAlignMode mode, bool findAlignment) {
                        k, result3.editDistance, scoreExpected);
             }
             if (result3.alignment) {
-                if (!checkAlignment(query, queryLength, target, targetLength,
+                if (!checkAlignment(query, queryLength, target,
                                     result3.editDistance, result3.endLocations[0],
                                     mode, result3.alignment, result3.alignmentLength)) {
                     failed = true;
@@ -244,7 +244,7 @@ bool executeTest(const char* query, int queryLength,
         }
     }
     if (result.alignment) {
-        if (!checkAlignment(query, queryLength, target, targetLength,
+        if (!checkAlignment(query, queryLength, target,
                             result.editDistance, result.endLocations[0], mode,
                             result.alignment, result.alignmentLength)) {
             pass = false;
@@ -468,15 +468,7 @@ bool testCigar() {
 }
 
 bool testCustomEqualityRelation() {
-    vector<EdlibEqualityPair> additionalEqualities;
-
-    additionalEqualities.push_back({'R', 'A'});
-    additionalEqualities.push_back({'R', 'G'});
-
-    additionalEqualities.push_back({'N', 'A'});
-    additionalEqualities.push_back({'N', 'C'});
-    additionalEqualities.push_back({'N', 'T'});
-    additionalEqualities.push_back({'N', 'G'});
+    EdlibEqualityPair additionalEqualities[6] = {{'R','A'},{'R','G'},{'N','A'},{'N','C'},{'N','T'},{'N','G'}};
 
     bool allPass = true;
 
@@ -486,8 +478,7 @@ bool testCustomEqualityRelation() {
     printf("Degenerate nucleotides (HW): ");
     EdlibAlignResult result = edlibAlign(query, 19, target, 41,
                                          edlibNewAlignConfig(-1, EDLIB_MODE_HW, EDLIB_TASK_PATH,
-                                                             additionalEqualities.data(),
-                                                             additionalEqualities.size()));
+                                                             additionalEqualities, 6));
     bool pass = result.status == EDLIB_STATUS_OK && result.editDistance == 1;
     edlibFreeAlignResult(result);
     printf(pass ? "\x1B[32m""OK""\x1B[0m\n" : "\x1B[31m""FAIL""\x1B[0m\n");
@@ -516,7 +507,7 @@ bool runTests() {
  * Checks if alignment is correct.
  */
 bool checkAlignment(const char* query, int queryLength,
-                    const char* target, int targetLength,
+                    const char* target,
                     int score, int pos, EdlibAlignMode mode,
                     unsigned char* alignment, int alignmentLength) {
     int alignScore = 0;

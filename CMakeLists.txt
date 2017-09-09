@@ -5,18 +5,32 @@ set(MACOSX (${CMAKE_SYSTEM_NAME} MATCHES "Darwin"))
 
 if(CMAKE_BUILD_TYPE MATCHES Debug)
   message("Debug mode")
-  if(CMAKE_COMPILER_IS_GNUCC OR CMAKE_COMPILER_IS_GNUCXX)
-    set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wall -Wextra -pedantic")
-  endif()
 endif()
 
+# Set strict warnings.
+if(MSVC)
+  # Force to always compile with W4
+  if(CMAKE_CXX_FLAGS MATCHES "/W[0-4]")
+    string(REGEX REPLACE "/W[0-4]" "/W4" CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS}")
+  else()
+    set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} /W4")
+  endif()
+else()
+  message("Setting warning flags")
+  set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wall -Wextra -pedantic")
+endif()
+
+# Define macro for setting cxx11 as standard for building a target.
 macro(use_cxx11 target)
-    if ((CMAKE_VERSION VERSION_LESS "3.2") AND MACOSX)
-        # Because CXX_STANDARD is not supported for OSX in Cmake 3.1.
-        target_compile_options(${target} PRIVATE "-std=c++11")
-    else()
-	set_property(TARGET ${target} PROPERTY CXX_STANDARD 11)
-    endif()
+  if ((CMAKE_VERSION VERSION_LESS "3.2") AND MACOSX)
+    # Because CXX_STANDARD is not supported for OSX in Cmake 3.1.
+    target_compile_options(${target} PRIVATE "-std=c++11")
+  else()
+    set_target_properties(${target} PROPERTIES
+      CXX_STANDARD 11
+      CXX_STANDARD_REQUIRED ON
+      CXX_EXENSIONS NO)
+  endif()
 endmacro(use_cxx11)
 
 
