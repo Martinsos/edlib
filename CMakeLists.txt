@@ -7,6 +7,10 @@ if(CMAKE_BUILD_TYPE MATCHES Debug)
   message("Debug mode")
 endif()
 
+set(CMAKE_CXX_STANDARD 11)
+set(CMAKE_CXX_STANDARD_REQUIRED ON)  # Falling back to different standard it not allowed.
+set(CMAKE_CXX_EXTENSIONS NO)  # Make sure no compiler-specific features are used.
+
 # Set strict warnings.
 if(MSVC)
   # Force to always compile with W4
@@ -19,8 +23,6 @@ else()
   message("Setting warning flags")
   set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wall -Wextra -pedantic")
 endif()
-
-set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -std=c++11")
 
 # Define output directories for created binaries and libraries.
 set(CMAKE_ARCHIVE_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/lib)
