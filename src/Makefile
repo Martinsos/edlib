@@ -1,5 +1,6 @@
-CC = g++
-CFLAGS = -O3 -I/home/martin/git/seqan/include/ -std=c++14
+CC = clang++
+SEQAN_INCLUDE_PATH = ../../seqan-v2.2.0/include/
+CFLAGS = -O3 -I$(SEQAN_INCLUDE_PATH) -std=c++14
 
 DEBUG ?= 0
 ifeq ($(DEBUG), 1)
