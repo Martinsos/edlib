@@ -24,9 +24,23 @@ Channel.fromPath(params.inputDataDir + '/E_coli_DH1/mason_illumina_read_10kbp/*.
   .tap{eColiInfixEdlib}
   .filter{it[4] == 0}.tap{eColiInfixSeqan}  // Seqan takes too much memory to find path, so skip.
 
-edlibTasks = enterobacteriaEdlib.mix(eColiInfixEdlib)
+Channel.from([[file(params.inputDataDir + '/E_coli_DH1/mason_illumina_read_10kbp/e_coli_DH1_illumina_1x10000.fasta'),
+               file(params.inputDataDir + '/E_coli_DH1/e_coli_DH1.fasta'), 'HW', 100, 0]])
+  .mix(
+    Channel.from(file(params.inputDataDir + '/E_coli_DH1/mason_illumina_read_10kbp/e_coli_DH1_illumina_1x10000.fasta'),
+                 file(params.inputDataDir + '/E_coli_DH1/mason_illumina_read_10kbp/mutated_97_perc.fasta'),
+                 file(params.inputDataDir + '/E_coli_DH1/mason_illumina_read_10kbp/mutated_94_perc.fasta'),
+                 file(params.inputDataDir + '/E_coli_DH1/mason_illumina_read_10kbp/mutated_90_perc.fasta'))
+      .combine([[file(params.inputDataDir + '/E_coli_DH1/e_coli_DH1.fasta'), 'HW', 1000, 0]]),
+    Channel.fromPath(params.inputDataDir + '/E_coli_DH1/mason_illumina_read_10kbp/*.fasta')
+      .combine([[file(params.inputDataDir + '/E_coli_DH1/e_coli_DH1.fasta'), 'HW', 10000, 0]])
+    )
+  .tap{eColiInfixFixedKEdlib}.tap{eColiInfixFixedKMyers}
+
+edlibTasks = enterobacteriaEdlib.mix(eColiInfixEdlib, eColiInfixFixedKEdlib)
 seqanTasks = enterobacteriaSeqan.mix(eColiInfixSeqan)
 parasailTasks = enterobacteriaParasail
+myersTasks = eColiInfixFixedKMyers
 //-----------------------------------------//
 
 // TODO: Maybe have just one process, take aligner as an extra parameter, and then
