@@ -82,3 +82,28 @@ process parasail {
 parasailResults.subscribe {
   println "parasail: $it"
 }
+
+process seqan {
+  input:
+  set file(query), file(target), mode, k, path from seqanTasks
+
+  output:
+  set file(query), file(target), mode, k, path, stdout into seqanResults
+
+  shell:
+  '''
+  if [ !{path} = 0 ]; then
+      output=$(seqan-aligner -m !{mode} -t !{query} !{target})
+  else
+      output=$(seqan-aligner -m !{mode} -t -p -s !{query} !{target})
+  fi
+  time=$(echo "$output" | grep "Cpu time of searching" | cut -d " " -f5)
+  score=$(echo "$output" | grep "Seqan Score:" | cut -d " " -f4)
+  score=$(($score * -1))
+  echo $time $score
+  '''
+}
+
+seqanResults.subscribe {
+  println "seqan: $it"
+}

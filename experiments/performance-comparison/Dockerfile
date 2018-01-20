@@ -21,3 +21,9 @@ COPY edlib-aligner /bin
 RUN git clone -b v1.1 https://github.com/jeffdaily/parasail.git parasail-v1.1 && \
     cd parasail-v1.1 && mkdir build && cd build && cmake .. && make parasail_aligner && \
     cp parasail_aligner /bin
+
+# Install Seqan. We use it through modified edlib aligner.
+RUN git clone -b seqan-v2.2.0 https://github.com/seqan/seqan.git seqan-v2.2.0 && \
+    git clone -b seqan-test https://github.com/martinsos/edlib.git edlib-seqan && \
+    cd edlib-seqan/src && make aligner SEQAN_INCLUDE_PATH=../../seqan-v2.2.0/include/ CXX=clang++ && \
+    cp aligner /bin/seqan-aligner
