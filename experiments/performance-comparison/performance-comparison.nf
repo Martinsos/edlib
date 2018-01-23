@@ -31,9 +31,10 @@ Channel.from([[file(params.inputDataDir + '/E_coli_DH1/mason_illumina_read_10kbp
                  file(params.inputDataDir + '/E_coli_DH1/mason_illumina_read_10kbp/mutated_97_perc.fasta'),
                  file(params.inputDataDir + '/E_coli_DH1/mason_illumina_read_10kbp/mutated_94_perc.fasta'),
                  file(params.inputDataDir + '/E_coli_DH1/mason_illumina_read_10kbp/mutated_90_perc.fasta'))
-      .combine([[file(params.inputDataDir + '/E_coli_DH1/e_coli_DH1.fasta'), 'HW', 1000, 0]]),
-    Channel.fromPath(params.inputDataDir + '/E_coli_DH1/mason_illumina_read_10kbp/*.fasta')
-      .combine([[file(params.inputDataDir + '/E_coli_DH1/e_coli_DH1.fasta'), 'HW', 10000, 0]])
+      .combine([[file(params.inputDataDir + '/E_coli_DH1/e_coli_DH1.fasta'), 'HW', 1000, 0]])
+    // TODO: for some reason Myers fails for this one, figure out why.
+    // ,Channel.fromPath(params.inputDataDir + '/E_coli_DH1/mason_illumina_read_10kbp/*')
+    //   .combine([[file(params.inputDataDir + '/E_coli_DH1/e_coli_DH1.fasta'), 'HW', 10000, 0]])
     )
   .tap{eColiInfixFixedKEdlib}.tap{eColiInfixFixedKMyers}
 
@@ -46,78 +47,104 @@ myersTasks = eColiInfixFixedKMyers
 // TODO: Maybe have just one process, take aligner as an extra parameter, and then
 //       have IF clauses to choose aligner?
 
-process edlib {
+// process edlib {
+//   input:
+//   set file(query), file(target), mode, k, path from edlibTasks
+//
+//   output:
+//   set file(query), file(target), mode, k, path, stdout into edlibResults
+//
+//   shell:
+//   // TODO: Now I print CIG_STD because there is no other way to get score. If I had something like
+//   // -f NONE that still prints score I could avoid printing alignment, which can be very big.
+//   '''
+//   if [ !{path} = 0 ]; then
+//       output=$(edlib-aligner -m !{mode} -k !{k} !{query} !{target})
+//       score=$(echo "$output" | grep "#0:" | cut -d " " -f2)
+//   else
+//       output=$(edlib-aligner -m !{mode} -p -f CIG_STD -k !{k} !{query} !{target})
+//       score=$(echo "$output" | grep "score =" | cut -d "=" -f2)
+//   fi
+//   time=$(echo "$output" | grep "Cpu time of searching" | cut -d " " -f5)
+//   echo $time $score
+//   '''
+// }
+//
+// edlibResults.subscribe {
+//   println "edlib: $it"
+// }
+//
+// process parasail {
+//   input:
+//   set file(query), file(target), mode, k, path from parasailTasks
+//
+//   output:
+//   set file(query), file(target), mode, k, path, stdout into parasailResults
+//
+//   when:
+//   path == 0 && mode == 'NW'  // Parasail 1.1 can not find alignment path and supports only 'NW' mode.
+//
+//   shell:
+//   '''
+//   output=$(parasail_aligner -t 1 -d -e 1 -o 1 -M 0 -X 1 -a nw_striped_32 -f !{target} -q !{query})
+//   time=$(echo "$output" | grep "alignment time" | cut -d ":" -f2 | cut -d " " -f2)
+//   score=$(($(head -n 1 parasail.csv | cut -d "," -f5) * -1))
+//   rm parasail.csv
+//   echo $time $score
+//   '''
+// }
+//
+// parasailResults.subscribe {
+//   println "parasail: $it"
+// }
+//
+// process seqan {
+//   input:
+//   set file(query), file(target), mode, k, path from seqanTasks
+//
+//   output:
+//   set file(query), file(target), mode, k, path, stdout into seqanResults
+//
+//   shell:
+//   '''
+//   if [ !{path} = 0 ]; then
+//       output=$(seqan-aligner -m !{mode} -t !{query} !{target})
+//   else
+//       output=$(seqan-aligner -m !{mode} -t -p -s !{query} !{target})
+//   fi
+//   time=$(echo "$output" | grep "Cpu time of searching" | cut -d " " -f5)
+//   score=$(echo "$output" | grep "Seqan Score:" | cut -d " " -f4)
+//   score=$(($score * -1))
+//   echo $time $score
+//   '''
+// }
+//
+// seqanResults.subscribe {
+//   println "seqan: $it"
+// }
+
+process myers {
   input:
-  set file(query), file(target), mode, k, path from edlibTasks
+  set file(query), file(target), mode, k, path from myersTasks
 
   output:
-  set file(query), file(target), mode, k, path, stdout into edlibResults
-
-  shell:
-  // TODO: Now I print CIG_STD because there is no other way to get score. If I had something like
-  // -f NONE that still prints score I could avoid printing alignment, which can be very big.
-  '''
-  if [ !{path} = 0 ]; then
-      output=$(edlib-aligner -m !{mode} -k !{k} !{query} !{target})
-      score=$(echo "$output" | grep "#0:" | cut -d " " -f2)
-  else
-      output=$(edlib-aligner -m !{mode} -p -f CIG_STD -k !{k} !{query} !{target})
-      score=$(echo "$output" | grep "score =" | cut -d "=" -f2)
-  fi
-  time=$(echo "$output" | grep "Cpu time of searching" | cut -d " " -f5)
-  echo $time $score
-  '''
-}
-
-edlibResults.subscribe {
-  println "edlib: $it"
-}
-
-process parasail {
-  input:
-  set file(query), file(target), mode, k, path from parasailTasks
-
-  output:
-  set file(query), file(target), mode, k, path, stdout into parasailResults
+  set file(query), file(target), mode, k, path, stdout into myersResults
 
   when:
-  path == 0 && mode == 'NW'  // Parasail 1.1 can not find alignment path and supports only 'NW' mode.
+  path == 0 && mode == 'HW'  // Myers can not find alignment path and supports only 'HW' mode.
 
   shell:
   '''
-  output=$(parasail_aligner -t 1 -d -e 1 -o 1 -M 0 -X 1 -a nw_striped_32 -f !{target} -q !{query})
-  time=$(echo "$output" | grep "alignment time" | cut -d ":" -f2 | cut -d " " -f2)
-  score=$(($(head -n 1 parasail.csv | cut -d "," -f5) * -1))
-  rm parasail.csv
-  echo $time $score
+  tail -n +2 !{query} | tr -d '\n' > queryMyers.fasta
+  tail -n +2 !{target} | tr -d '\n' > targetMyers.fasta
+  output=$({ time -p myers $(cat queryMyers.fasta) !{k} targetMyers.fasta; } 2>&1)
+  rm queryMyers.fasta targetMyers.fasta
+  echo $output
+  time=$(echo "$output" | grep "real" | cut -d " " -f2)
+  echo $time
   '''
 }
 
-parasailResults.subscribe {
-  println "parasail: $it"
-}
-
-process seqan {
-  input:
-  set file(query), file(target), mode, k, path from seqanTasks
-
-  output:
-  set file(query), file(target), mode, k, path, stdout into seqanResults
-
-  shell:
-  '''
-  if [ !{path} = 0 ]; then
-      output=$(seqan-aligner -m !{mode} -t !{query} !{target})
-  else
-      output=$(seqan-aligner -m !{mode} -t -p -s !{query} !{target})
-  fi
-  time=$(echo "$output" | grep "Cpu time of searching" | cut -d " " -f5)
-  score=$(echo "$output" | grep "Seqan Score:" | cut -d " " -f4)
-  score=$(($score * -1))
-  echo $time $score
-  '''
-}
-
-seqanResults.subscribe {
-  println "seqan: $it"
+myersResults.subscribe {
+  println "myers: $it"
 }
