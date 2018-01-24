@@ -1,7 +1,9 @@
 #!/usr/bin/env nextflow
 
-params.numTests = 1  // TODO: actually use this. Generate duplicate tasks, and then average them later.
-params.inputDataDir = '../../test_data'
+// TODO: put more comments in file!
+
+params.numTests = 2
+params.inputDataDir = '../../test_data'  // Is there a better way to define a path to this data?
 
 //------- Experiments to conduct. --------//
 // Experiment is of shape: [
@@ -14,24 +16,36 @@ params.inputDataDir = '../../test_data'
 //             Could be 'edlib', 'seqan', 'parasail' or 'myers'.
 // ]
 
-// enterobacteriaExperiments = Channel.fromPath(params.inputDataDir + '/Enterobacteria_Phage_1/mutated_*_perc.fasta')
-//   .combine([[file(params.inputDataDir + '/Enterobacteria_Phage_1/Enterobacteria_phage_1.fasta'), 'NW', -1]])
-//   .combine([0, 1])  // Both with path and without.
-//   .combine(['edlib', 'seqan', 'parasail'])
+// TODO: add more experiments, these are not all.
 
-// eColiExperiments = Channel.fromPath(params.inputDataDir + '/E_coli_DH1/mason_illumina_read_10kbp/*.fasta')
-//   .combine([[file(params.inputDataDir + '/E_coli_DH1/e_coli_DH1.fasta'), 'HW', -1]])
-//   .combine([0, 1])  // Both with path and without.
-//   .combine(['edlib', 'seqan', 'parasail'])
-//   .filter{!(it[4] == 1 && it[5] == 'seqan')}  // Seqan takes too much memory to find path, so skip.
-//
+chromosomeExperiments = Channel.fromPath(params.inputDataDir + '/Chromosome_2890043_3890042_0/mutated_*_perc.fasta')
+  .combine([[file(params.inputDataDir + '/Chromosome_2890043_3890042_0/Chromosome_2890043_3890042_0.fasta'), 'NW', -1]])
+  .combine([0, 1])  // Both with path and without.
+  .combine(['edlib', 'seqan', 'parasail'])
+
+enterobacteriaExperiments = Channel.fromPath(params.inputDataDir + '/Enterobacteria_Phage_1/mutated_*_perc.fasta')
+  .combine([[file(params.inputDataDir + '/Enterobacteria_Phage_1/Enterobacteria_phage_1.fasta'), 'NW', -1]])
+  .combine([0, 1])  // Both with path and without.
+  .combine(['edlib', 'seqan', 'parasail'])
+
+eColiExperiments = Channel.fromPath(params.inputDataDir + '/E_coli_DH1/mason_illumina_read_10kbp/*.fasta')
+  .combine([[file(params.inputDataDir + '/E_coli_DH1/e_coli_DH1.fasta'), 'HW', -1]])
+  .combine([0, 1])  // Both with path and without.
+  .combine(['edlib', 'seqan'])
+  .filter{!(it[4] == 1 && it[5] == 'seqan')}  // Seqan takes too much memory to find path, so skip.
+
+eColiPrefixExperiments = Channel.fromPath(params.inputDataDir + '/E_coli_DH1/prefix_10kbp/mutated_*_perc.fasta')
+  .combine([[file(params.inputDataDir + '/E_coli_DH1/e_coli_DH1.fasta'), 'SHW', -1]])
+  .combine([0, 1])  // Both with path and without.
+  .combine(['edlib', 'seqan'])
+  .filter{!(it[4] == 1 && it[5] == 'seqan')}  // Seqan takes too much memory to find path, so skip.
+
 fixedKExperiments = Channel.from([[file(params.inputDataDir + '/E_coli_DH1/mason_illumina_read_10kbp/e_coli_DH1_illumina_1x10000.fasta'),
                                    file(params.inputDataDir + '/E_coli_DH1/e_coli_DH1.fasta'), 'HW', 100, 0]])
   .mix(
     Channel.from(file(params.inputDataDir + '/E_coli_DH1/mason_illumina_read_10kbp/e_coli_DH1_illumina_1x10000.fasta'),
                  file(params.inputDataDir + '/E_coli_DH1/mason_illumina_read_10kbp/mutated_97_perc.fasta'),
-                 file(params.inputDataDir + '/E_coli_DH1/mason_illumina_read_10kbp/mutated_94_perc.fasta'),
-                 file(params.inputDataDir + '/E_coli_DH1/mason_illumina_read_10kbp/mutated_90_perc.fasta'))
+                 file(params.inputDataDir + '/E_coli_DH1/mason_illumina_read_10kbp/mutated_94_perc.fasta'))
       .combine([[file(params.inputDataDir + '/E_coli_DH1/e_coli_DH1.fasta'), 'HW', 1000, 0]])
     // TODO: for some reason Myers fails for this one, figure out why.
     // ,Channel.fromPath(params.inputDataDir + '/E_coli_DH1/mason_illumina_read_10kbp/*')
@@ -39,11 +53,13 @@ fixedKExperiments = Channel.from([[file(params.inputDataDir + '/E_coli_DH1/mason
     )
   .combine(['edlib', 'myers'])
 
-experiments = //Channel.create().mix(
+experiments = Channel.empty().mix(
+  chromosomeExperiments,
 //  enterobacteriaExperiments,
 //  eColiExperiments,
-  fixedKExperiments
-//)
+//  eColiPrefixExperiments,
+//  fixedKExperiments
+  ).flatMap{ it -> Collections.nCopies(params.numTests, it) }  // Do each experiment numTest times.
 //-----------------------------------------//
 
 
@@ -65,6 +81,7 @@ process align {
   if (aligner == 'edlib')
     // TODO: Now I print CIG_STD because there is no other way to get score. If I had something like
     // -f NONE that still prints score I could avoid printing alignment, which can be very big.
+    // Also, why don't I have standardized output for both cases?
     '''
     if [ !{path} = 0 ]; then
         output=$(edlib-aligner -m !{mode} -k !{k} !{query} !{target})
@@ -103,15 +120,50 @@ process align {
     output=$({ time -p myers $(cat queryMyers.fasta) !{k} targetMyers.fasta; } 2>&1)
     rm queryMyers.fasta targetMyers.fasta
     time=$(echo "$output" | grep "real" | cut -d " " -f2)
-    echo $time ?  # TODO: Find score!
+    echo $time -1  # TODO: Find score!
     '''
   else
     error "Invalid aligner: ${aligner}."
 }
 
+// TODO: add some way to track progress?
+
 results
-  .map{ [it[0].baseName, it[1].baseName, it[2], it[3], it[4], it[5], *(it[6].split(" "))] }
-  .map{ [it.take(5).join('-'), *it] }
+  // [query, target, mode, k, path, aligner, time, score]
+  .map{ it.take(6) + [it[6].split(" ")[0], it[6].split(" ")[1]] }
+  // [target, mode, k, query, path, aligner, score, time]
+  .map{ [it[1].baseName, it[2], it[3], it[0].baseName, it[4], it[5], it[7].toInteger(), Double.parseDouble(it[6])] }
+
+  // Calculate average execution time for each specific task.
+  .map{ [it.take(7).join('-'), *it] }
   .groupTuple()
-  .map{ it.drop(1) }
-  .view()
+  .map{ it.drop(1).take(7).collect{it[0]} + [it[8].sum() / it[8].size()] }
+
+  .toSortedList({ a, b ->
+    for (int i : (0..<a.size())) {
+      if (a[i] <=> b[i]) return a[i] <=> b[i]
+    }
+    return 0
+  })
+  .subscribe{
+    prevTargetModeK = ''
+    prevQuery = ''
+
+    it.each {
+      newTargetModeK = it[0] + '-' + it[1] + '-' + it[2]
+      if (newTargetModeK != prevTargetModeK) {
+        println ('Target: ' + it[0] + ', mode: ' + it[1] + ', k: ' + it[2])
+      }
+
+      newQuery = it[3]
+      if (!(newTargetModeK == prevTargetModeK && newQuery == prevQuery)) {
+        println ('  Query: ' + it[3])
+      }
+
+      println ('    Path: ' + it[4].toString() + ', aligner: ' + it[5]
+               + ', score: ' + it[6].toString() + ', time: ' + it[7].toString())
+
+      prevTargetModeK = newTargetModeK
+      prevQuery = newQuery
+    }
+  }
