@@ -438,6 +438,68 @@ bool test12() {
     return pass;
 }
 
+bool test13() {
+    // In this test, one of optimal solutions is:
+    //         B
+    //       AA
+    // which brings us into interesting situation where one of end locations is -1.
+    const char* query = "AA";
+    const char* target = "B";
+
+    EdlibAlignResult result = edlibAlign(query, (int) std::strlen(query),
+                                         target, (int) std::strlen(target),
+                                         edlibNewAlignConfig(-1, EDLIB_MODE_HW, EDLIB_TASK_PATH, NULL, 0));
+    bool pass = result.status == EDLIB_STATUS_OK && result.editDistance == 2;
+    printf(pass ? "\x1B[32m""OK""\x1B[0m\n" : "\x1B[31m""FAIL""\x1B[0m\n");
+    edlibFreeAlignResult(result);
+    return pass;
+}
+
+bool test14() {
+    // In this test, one of optimal solutions is:
+    //         B
+    //       AA
+    // which brings us into interesting situation where one of end locations is -1.
+    const char* query = "AA";
+    const char* target = "B";
+
+    EdlibAlignResult result = edlibAlign(query, (int) std::strlen(query),
+                                         target, (int) std::strlen(target),
+                                         edlibNewAlignConfig(-1, EDLIB_MODE_SHW, EDLIB_TASK_PATH, NULL, 0));
+    bool pass = result.status == EDLIB_STATUS_OK && result.editDistance == 2;
+    printf(pass ? "\x1B[32m""OK""\x1B[0m\n" : "\x1B[31m""FAIL""\x1B[0m\n");
+    edlibFreeAlignResult(result);
+    return pass;
+}
+
+bool test15() {
+    // In this test, optimal alignment is when query and target overlap, query end with target start, HW.
+    const char* query = "AAABBB";
+    const char* target = "BBBC";
+
+    EdlibAlignResult result = edlibAlign(query, (int) std::strlen(query),
+                                         target, (int) std::strlen(target),
+                                         edlibNewAlignConfig(-1, EDLIB_MODE_HW, EDLIB_TASK_LOC, NULL, 0));
+    bool pass = result.status == EDLIB_STATUS_OK && result.editDistance == 3;
+    printf(pass ? "\x1B[32m""OK""\x1B[0m\n" : "\x1B[31m""FAIL""\x1B[0m\n");
+    edlibFreeAlignResult(result);
+    return pass;
+}
+
+bool test16() {
+    // In this test, optimal alignment is when query and target overlap, query start with target end, HW.
+    const char* query = "BBBAAA";
+    const char* target = "CBBB";
+
+    EdlibAlignResult result = edlibAlign(query, (int) std::strlen(query),
+                                         target, (int) std::strlen(target),
+                                         edlibNewAlignConfig(-1, EDLIB_MODE_HW, EDLIB_TASK_LOC, NULL, 0));
+    bool pass = result.status == EDLIB_STATUS_OK && result.editDistance == 3;
+    printf(pass ? "\x1B[32m""OK""\x1B[0m\n" : "\x1B[31m""FAIL""\x1B[0m\n");
+    edlibFreeAlignResult(result);
+    return pass;
+}
+
 bool testCigar() {
     unsigned char alignment[] = {EDLIB_EDOP_MATCH, EDLIB_EDOP_MATCH, EDLIB_EDOP_INSERT, EDLIB_EDOP_INSERT,
                                  EDLIB_EDOP_INSERT, EDLIB_EDOP_DELETE, EDLIB_EDOP_INSERT, EDLIB_EDOP_INSERT,
@@ -489,9 +551,10 @@ bool testCustomEqualityRelation() {
 
 bool runTests() {
     // TODO: make this global vector where tests have to add themselves.
-    int numTests = 14;
+    int numTests = 18;
     bool (* tests [])() = {test1, test2, test3, test4, test5, test6,
-                           test7, test8, test9, test10, test11, test12, testCigar, testCustomEqualityRelation};
+                           test7, test8, test9, test10, test11, test12, test13, test14, test15, test16,
+                           testCigar, testCustomEqualityRelation};
 
     bool allTestsPassed = true;
     for (int i = 0; i < numTests; i++) {
