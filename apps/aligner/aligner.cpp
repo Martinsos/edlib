@@ -39,13 +39,14 @@ int main(int argc, char * const argv[]) {
     bool findStartLocations = false;
     int option;
     int kArg = -1;
+    int numRepeats = 1;
 
     // If "STD" or "EXT", cigar string will be printed. if "NICE" nice representation
     // of alignment will be printed.
     char alignmentFormat[16] = "NICE";
 
     bool invalidOption = false;
-    while ((option = getopt(argc, argv, "m:n:k:f:spl")) >= 0) {
+    while ((option = getopt(argc, argv, "m:n:k:f:r:spl")) >= 0) {
         switch (option) {
         case 'm': strcpy(mode, optarg); break;
         case 'n': numBestSeqs = atoi(optarg); break;
@@ -54,6 +55,7 @@ int main(int argc, char * const argv[]) {
         case 's': silent = true; break;
         case 'p': findAlignment = true; break;
         case 'l': findStartLocations = true; break;
+        case 'r': numRepeats = atoi(optarg); break;
         default: invalidOption = true;
         }
     }
@@ -77,6 +79,9 @@ int main(int argc, char * const argv[]) {
         fprintf(stderr, "\t-f NICE|CIG_STD|CIG_EXT  Format that will be used to print alignment path,"
                 " can be used only with -p. NICE will give visually attractive format, CIG_STD will "
                 " give standard cigar format and CIG_EXT will give extended cigar format. [default: NICE]\n");
+        fprintf(stderr, "\t-r N  Core part of calculation will be repeated N times."
+                " This is useful only for performance measurement, when single execution is too short to measure."
+                " [default: 1]\n");
         return 1;
     }
     //-------------------------------------------------------------------------//
@@ -124,7 +129,7 @@ int main(int argc, char * const argv[]) {
     printf("Read %d queries, %d residues total.\n", numQueries, queriesTotalLength);
 
     // Read target
-    char* targetFilepath = argv[optind+1];    
+    char* targetFilepath = argv[optind+1];
     vector< vector<char> >* targetSequences = new vector< vector<char> >();
     printf("Reading target fasta file...\n");
     readResult = readFastaSequences(targetFilepath, targetSequences);
@@ -157,9 +162,15 @@ int main(int argc, char * const argv[]) {
     for (int i = 0; i < numQueries; i++) {
         char* query = (*querySequences)[i].data();
         int queryLength = (*querySequences)[i].size();
+
         // Calculate score
-        EdlibAlignResult result = edlibAlign(query, queryLength, target, targetLength,
-                                             edlibNewAlignConfig(k, modeCode, alignTask, NULL, 0));
+        EdlibAlignResult result;
+        for (int rep = 0; rep < numRepeats; rep++) {  // Redundant repetition, for performance measurements.
+            result = edlibAlign(query, queryLength, target, targetLength,
+                                edlibNewAlignConfig(k, modeCode, alignTask, NULL, 0));
+            if (rep < numRepeats - 1) edlibFreeAlignResult(result);
+        }
+
         scores[i] = result.editDistance;
         endLocations[i] = result.endLocations;
         startLocations[i] = result.startLocations;

@@ -154,7 +154,7 @@ done
 #E coli and its illumina read, HW
 echo -e "\nE coli and its illumina read, HW"
 target=$TEST_DATA/E_coli_DH1/e_coli_DH1.fasta
-for query in $(ls $TEST_DATA/E_coli_DH1/mason_illumina_read_10kbp/*.fasta); do
+for query in $(ls $TEST_DATA/E_coli_DH1/mason_illumina_reads/10kbp/*.fasta); do
     echo $query
 
     edlib HW $query $target 3 -1
@@ -167,7 +167,7 @@ done
 #E coli and its prefix, SHW
 echo -e "\nE coli and its prefix, SHW"
 target=$TEST_DATA/E_coli_DH1/e_coli_DH1.fasta
-for query in $(ls $TEST_DATA/E_coli_DH1/prefix_10kbp/mutated_*_perc.fasta); do
+for query in $(ls $TEST_DATA/E_coli_DH1/prefixes/10kbp/mutated_*_perc.fasta); do
     echo $query
 
     edlib SHW $query $target 3 -1
@@ -197,7 +197,7 @@ target=$TEST_DATA/E_coli_DH1/e_coli_DH1.fasta
 
 k=100
 for query_file in e_coli_DH1_illumina_1x10000.fasta; do
-    query=$TEST_DATA/E_coli_DH1/mason_illumina_read_10kbp/$query_file
+    query=$TEST_DATA/E_coli_DH1/mason_illumina_reads/10kbp/$query_file
     echo $query $k
     edlib HW $query $target 3 $k
     myers $query $target 3 $k
@@ -205,14 +205,14 @@ done
 
 k=1000
 for query_file in e_coli_DH1_illumina_1x10000.fasta mutated_97_perc.fasta mutated_94_perc.fasta mutated_90_perc.fasta; do
-    query=$TEST_DATA/E_coli_DH1/mason_illumina_read_10kbp/$query_file
+    query=$TEST_DATA/E_coli_DH1/mason_illumina_reads/10kbp/$query_file
     echo $query $k
     edlib HW $query $target 3 $k
     myers $query $target 3 $k
 done
 
 k=10000
-for query in $(ls $TEST_DATA/E_coli_DH1/mason_illumina_read_10kbp/*); do
+for query in $(ls $TEST_DATA/E_coli_DH1/mason_illumina_reads/10kbp/*); do
     echo $query $k
     edlib HW $query $target 3 $k
     myers $query $target 3 $k
