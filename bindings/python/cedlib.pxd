@@ -1,4 +1,4 @@
-cdef extern from "edlib.h":
+cdef extern from "edlib.h" nogil:
 
      ctypedef enum EdlibAlignMode: EDLIB_MODE_NW, EDLIB_MODE_SHW, EDLIB_MODE_HW
      ctypedef enum EdlibAlignTask: EDLIB_TASK_DISTANCE, EDLIB_TASK_LOC, EDLIB_TASK_PATH

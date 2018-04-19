@@ -1,12 +1,12 @@
 cimport cython
-from libc.stdlib cimport malloc, free
+from cpython.mem cimport PyMem_Malloc, PyMem_Free
 
 cimport cedlib
 
 def align(query, target, mode="NW", task="distance", k=-1, additionalEqualities=None):
     """ Align query with target using edit distance.
-    @param {string} query
-    @param {string} target
+    @param {string or bytes array} query
+    @param {string or bytes array} target
     @param {string} mode  Optional. Alignment method do be used. Possible values are:
             - 'NW' for global (default)
             - 'HW' for infix
@@ -35,9 +35,9 @@ def align(query, target, mode="NW", task="distance", k=-1, additionalEqualities=
                 e.g. cigar of "5=1X1=1I" means "5 matches, 1 mismatch, 1 match, 1 insertion (to target)".
     """
     # Transform python strings into c strings.
-    cdef bytes query_bytes = query.encode();
+    cdef bytes query_bytes = query.encode('utf-8') if type(query) != bytes else query;
     cdef char* cquery = query_bytes;
-    cdef bytes target_bytes = target.encode();
+    cdef bytes target_bytes = target.encode('utf-8') if type(target) != bytes else target;
     cdef char* ctarget = target_bytes;
 
     # Build an edlib config object based on given parameters.
@@ -59,21 +59,19 @@ def align(query, target, mode="NW", task="distance", k=-1, additionalEqualities=
         cconfig.additionalEqualities = NULL
         cconfig.additionalEqualitiesLength = 0
     else:
-        cconfig.additionalEqualities = <cedlib.EdlibEqualityPair*> malloc(len(additionalEqualities)
+        cconfig.additionalEqualities = <cedlib.EdlibEqualityPair*> PyMem_Malloc(len(additionalEqualities)
                                                                           * cython.sizeof(cedlib.EdlibEqualityPair))
         for i in range(len(additionalEqualities)):
-            # TODO(martin): Is there a better way to do this conversion? There must be.
-            tmp_bytes = additionalEqualities[i][0].encode();
-            tmp_cstring = tmp_bytes;
-            cconfig.additionalEqualities[i].first = tmp_cstring[0]
-            tmp_bytes = additionalEqualities[i][1].encode();
-            tmp_cstring = tmp_bytes;
-            cconfig.additionalEqualities[i].second = tmp_cstring[0]
+            cconfig.additionalEqualities[i].first = bytearray(additionalEqualities[i][0].encode('utf-8'))[0]
+            cconfig.additionalEqualities[i].second = bytearray(additionalEqualities[i][1].encode('utf-8'))[0]
         cconfig.additionalEqualitiesLength = len(additionalEqualities)
 
-    # Run alignment.
-    cresult = cedlib.edlibAlign(cquery, len(query), ctarget, len(target), cconfig)
-    if cconfig.additionalEqualities != NULL: free(cconfig.additionalEqualities)
+    # Run alignment -- need to get len before disabling the GIL
+    query_len = len(query)
+    target_len = len(target)
+    with nogil:
+        cresult = cedlib.edlibAlign(cquery, query_len, ctarget, target_len, cconfig)
+    if cconfig.additionalEqualities != NULL: PyMem_Free(cconfig.additionalEqualities)
 
     if cresult.status == 1:
         raise Exception("There was an error.")
