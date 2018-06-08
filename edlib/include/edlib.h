@@ -249,8 +249,6 @@ extern "C" {
     char* edlibAlignmentToCigar(const unsigned char* alignment, int alignmentLength,
                                 EdlibCigarFormat cigarFormat);
 
-
-
 #ifdef __cplusplus
 }
 #endif

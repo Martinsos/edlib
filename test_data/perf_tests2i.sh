@@ -4,7 +4,8 @@
 # Here we run Edlib with different sizes of queries, with special focus on short queries,
 # since that is where Edlib needs to improve.
 
-EDLIB=~/git/edlib/build/bin/edlib-aligner
+EDLIB=$(dirname $(pwd))/build/bin/edlib-aligner
+LVALG2=~/Git/Zavrsni_Rad/build/bin/main
 
 TEST_DATA=.
 
@@ -48,6 +49,47 @@ function edlib {
     echo -e "    => Edlib, $r repetition(s): time=${F_YELLOW}${avg_time}${F_NONE}s, score=$score"
 }
 
+function landauVishkin {
+    mode=$1
+    query=$2
+    target=$3
+    num_tests=$4
+    r=$5
+        
+    time_sum=0
+    for i in $(seq $num_tests); do
+        sleep 0.25
+        output=$($LVALG2 $mode $query $target $r)
+        time=$(echo "$output" | grep "Cpu time of searching" | cut -d " " -f5)
+        score=$(echo "$output" | grep "#0:" | cut -d " " -f2)
+        time_sum=$(python -c "print($time_sum + $time)")
+        #echo ">" "#"$i $score $time
+    done
+    avg_time=$(python -c "print($time_sum / $num_tests)")
+    echo -e "    => LandauVishkin, $r repetition(s): time=${avg_time}s, score=$score"
+}
+
+function landauVishkinPath {
+    mode=$1
+    query=$2
+    target=$3
+    num_tests=$4
+    r=$5
+    p=$6
+        
+    time_sum=0
+    for i in $(seq $num_tests); do
+        sleep 0.25
+        output=$($LVALG2 $mode $query $target $r $p)
+        time=$(echo "$output" | grep "Cpu time of searching" | cut -d " " -f5)
+        score=$(echo "$output" | grep "#0:" | cut -d " " -f2)
+        time_sum=$(python -c "print($time_sum + $time)")
+        #echo ">" "#"$i $score $time
+    done
+    avg_time=$(python -c "print($time_sum / $num_tests)")
+    echo -e "    => LandauVishkin, $r repetition(s): time=${avg_time}s, score=$score"
+}
+
 function edlib_path {
     mode=$1
     query=$2
@@ -64,7 +106,7 @@ function edlib_path {
         #echo ">" "#"$i $time
     done
     avg_time=$(python -c "print($time_sum / $num_tests)")
-    echo -e "    => Edlib (path), $r repetition(s): time=${F_YELLOW}${avg_time}${F_NONE}s, score=$score"
+    echo -e "    => Edlib (path), $r repetition(s): time=${avg_time}s, score=$score"
 }
 
 
@@ -73,19 +115,6 @@ function edlib_path {
 
 
 # ---------------------- Short reads ----------------------- #
-
-# SHW (prefix).
-echo_bolded "\nSHW, short query (<= 500bp) and long target."
-target=$TEST_DATA/E_coli_DH1/e_coli_DH1.fasta
-for query_length in 50 100 250 500; do
-    echo_underlined "Query length: $query_length"
-    for query in $(ls $TEST_DATA/E_coli_DH1/prefixes/${query_length}bp/mutated_*_perc.fasta); do
-        echo "  Query: $query"
-        edlib      SHW $query $target 3 -1 100  # Last number here is num repetitions, tweak it if times are too small.
-        edlib_path SHW $query $target 3    100
-    done
-done
-
 # HW (infix).
 echo_bolded "\nHW, short query (<= 500bp) and long target."
 target=$TEST_DATA/E_coli_DH1/e_coli_DH1.fasta
@@ -95,22 +124,10 @@ for query_length in 50 100 250 500; do
         echo "  Query: $query"
         edlib      HW $query $target 3 -1
         edlib_path HW $query $target 3
+        landauVishkin HW $query $target 3 1
     done
 done
-
-# NW (global).
-echo_bolded "\nNW, query and target of equal size, both short (<= 500bp)."
-for seq_length in 50 100 250 500; do
-    reads_dir=$TEST_DATA/E_coli_DH1/mason_illumina_reads/${seq_length}bp
-    target=$reads_dir/e_coli_DH1_illumina_1x${seq_length}.fasta
-    echo_underlined "Query and target length: $seq_length"
-    echo_underlined "Target: $target"
-    for query in $(ls $reads_dir/*.fasta); do
-        echo "  Query: $query"
-        edlib      HW $query $target 3 -1 100000  # Last number here is num repetitions, tweak it if times are too small.
-        edlib_path HW $query $target 3    10000
-    done
-done
+exit 0
 
 # ----------------------- Long reads ----------------------- #
 

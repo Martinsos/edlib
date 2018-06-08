@@ -2,9 +2,9 @@
 
 # Runs performance tests - compares Edlib with other aligners (Parasail, Seqan, Myers).
 
-EDLIB=~/git/edlib/build/bin/edlib-aligner
+EDLIB=~/Git/edlib/build/bin/edlib-aligner
 
-PARASAIL=~/git/parasail/apps/parasail_aligner
+PARASAIL=~/Git/parasail/apps/parasail_aligner
 PARASAIL_FLAGS="-t 1 -d -e 1 -o 1 -M 0 -X 1"
 
 # Here I am using Seqan through modified edlib aligner. It can be found in seqan-test branch of edlib repo.
