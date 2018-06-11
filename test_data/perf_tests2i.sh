@@ -46,7 +46,7 @@ function edlib {
         #echo ">" "#"$i $score $time
     done
     avg_time=$(python -c "print($time_sum / $num_tests)")
-    echo -e "    => Edlib, $r repetition(s): time=${F_YELLOW}${avg_time}${F_NONE}s, score=$score"
+    echo -e "    => Edlib, $r repetition(s): time=${avg_time}s, score=$score"
 }
 
 function landauVishkin {
@@ -121,10 +121,30 @@ target=$TEST_DATA/E_coli_DH1/e_coli_DH1.fasta
 for query_length in 50 100 250 500; do
     echo_underlined "Query length: $query_length"
     for query in $(ls $TEST_DATA/E_coli_DH1/mason_illumina_reads/${query_length}bp/*.fasta); do
+        if [ $query == $TEST_DATA/E_coli_DH1/mason_illumina_reads/${query_length}bp/e_coli_DH1_illumina_1x${query_length}.fasta ]; then
         echo "  Query: $query"
         edlib      HW $query $target 3 -1
         edlib_path HW $query $target 3
-        landauVishkin HW $query $target 3 1
+        landauVishkin HW $query $target 1 1
+        fi
+        if [ $query == $TEST_DATA/E_coli_DH1/mason_illumina_reads/${query_length}bp/mutated_90_perc.fasta ]; then
+        echo "  Query: $query"
+        edlib      HW $query $target 3 -1
+        edlib_path HW $query $target 3
+        landauVishkin HW $query $target 1 1
+        fi
+        if [ $query == $TEST_DATA/E_coli_DH1/mason_illumina_reads/${query_length}bp/mutated_94_perc.fasta ]; then
+        echo "  Query: $query"
+        edlib      HW $query $target 3 -1
+        edlib_path HW $query $target 3
+        landauVishkin HW $query $target 1 1
+        fi
+        if [ $query == $TEST_DATA/E_coli_DH1/mason_illumina_reads/${query_length}bp/mutated_97_perc.fasta ]; then
+        echo "  Query: $query"
+        edlib      HW $query $target 3 -1
+        edlib_path HW $query $target 3
+        landauVishkin HW $query $target 1 1
+        fi
     done
 done
 exit 0

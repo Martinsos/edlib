@@ -46,7 +46,7 @@ function edlib {
         #echo ">" "#"$i $score $time
     done
     avg_time=$(python -c "print($time_sum / $num_tests)")
-    echo -e "    => Edlib, $r repetition(s): time=${F_YELLOW}${avg_time}${F_NONE}s, score=$score"
+    echo -e "    => Edlib, $r repetition(s): time=${avg_time}s, score=$score"
 }
 
 function landauVishkin {
