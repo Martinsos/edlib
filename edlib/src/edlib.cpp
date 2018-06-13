@@ -171,7 +171,7 @@ int landauVishkinAlignAlgorithm(const std::vector<unsigned char>& R,
                                 EqualityDefinition& equality, 
                                 const bool cigar, 
                                 vector<unsigned char>& cigarVector, 
-                                int* endLocation)
+                                int* endLocation);
 
 
 int landauVishkinAlignPrefix(const std::vector<unsigned char>& R, 
