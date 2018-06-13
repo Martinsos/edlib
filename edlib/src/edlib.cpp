@@ -1641,6 +1641,6 @@ int landauVishkinAlignPrefix(const std::vector<unsigned char>& R,
     int m = R.size();
     int n = B.size();
     std::unordered_map<L, int, Hasher, EqualFn> D;
-    int res = landauVishkinAlignAlgorithm(R,B,D,m,n,0,k, 0, equality, false, cigar, cigarVector, endLocation);
+    int res = landauVishkinAlignAlgorithm(R,B,D,m,n,0,k, 0, equality, cigar, cigarVector, endLocation);
     return res;
 }
