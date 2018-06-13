@@ -170,8 +170,8 @@ int landauVishkinAlignAlgorithm(const std::vector<unsigned char>& R,
                                 const int nk, 
                                 EqualityDefinition& equality, 
                                 const bool cigar, 
-                                vector<unsigned char>& cigarVector, i
-                                nt* endLocation)
+                                vector<unsigned char>& cigarVector, 
+                                int* endLocation)
 
 
 int landauVishkinAlignPrefix(const std::vector<unsigned char>& R, 
@@ -1570,13 +1570,13 @@ int landauVishkinAlignAlgorithm(const std::vector<unsigned char>& R,
 
     for (int d = -(k); d <= k; d++) {
         if (d >= -nk && d <= nk && d != 0) continue;
-        D[L{d, abs(d) - 2}] = -5;
+        D[L{d, std::abs(d) - 2}] = -5;
         if (d < 0) D[L{d, -d - 1}] = -d - 1;
         else D[L{d, d - 1}] = -1;
 
         if (cigar) {
-            cigarDict[L{d, abs(d) - 2}] = cv;
-            cigarDict[L{d, abs(d) - 1}] = cv;
+            cigarDict[L{d, std::abs(d) - 2}] = cv;
+            cigarDict[L{d, std::abs(d) - 1}] = cv;
         }
     }
 
