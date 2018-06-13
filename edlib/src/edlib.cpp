@@ -1620,6 +1620,7 @@ int landauVishkinAlignAlgorithm(const std::vector<unsigned char>& R,
 
             if (row == m) {
                 if (cigar) cigarVector = cv;
+                endLocation = (int *) malloc(sizeof(int) * 1);
                 *endLocation = row + d + bStart;
                 return  e;
             }
