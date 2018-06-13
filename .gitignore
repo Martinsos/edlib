@@ -19,6 +19,14 @@ build/*
 # Documentation
 docs/
 
+### VisualStudioCode ###
+.vscode/*
+!.vscode/settings.json
+!.vscode/tasks.json
+!.vscode/launch.json
+!.vscode/extensions.json
+.history
+
 callgrind.out.*
 
 core

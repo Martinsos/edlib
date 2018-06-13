@@ -2,7 +2,7 @@
 
 # Runs performance tests - compares Edlib with other aligners (Parasail, Seqan, Myers).
 
-EDLIB=~/Git/edlib/build/bin/edlib-aligner
+EDLIB=$(dirname $(pwd))/build/bin/edlib-aligner
 
 PARASAIL=~/Git/parasail/apps/parasail_aligner
 PARASAIL_FLAGS="-t 1 -d -e 1 -o 1 -M 0 -X 1"

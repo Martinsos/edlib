@@ -46,7 +46,7 @@ function edlib {
         #echo ">" "#"$i $score $time
     done
     avg_time=$(python -c "print($time_sum / $num_tests)")
-    echo -e "    => Edlib, $r repetition(s): time=${avg_time}s, score=$score"
+    echo -e "    => Edlib, $r repetition(s): time=${F_YELLOW}${avg_time}${F_NONE}s, score=$score"
 }
 
 function landauVishkin {
@@ -66,7 +66,7 @@ function landauVishkin {
         #echo ">" "#"$i $score $time
     done
     avg_time=$(python -c "print($time_sum / $num_tests)")
-    echo -e "    => LandauVishkin, $r repetition(s): time=${avg_time}s, score=$score"
+    echo -e "    => LandauVishkin, $r repetition(s): time=${F_YELLOW}${avg_time}${F_NONE}s, score=$score"
 }
 
 function landauVishkinPath {
@@ -87,7 +87,7 @@ function landauVishkinPath {
         #echo ">" "#"$i $score $time
     done
     avg_time=$(python -c "print($time_sum / $num_tests)")
-    echo -e "    => LandauVishkin, $r repetition(s): time=${avg_time}s, score=$score"
+    echo -e "    => LandauVishkin, $r repetition(s): time=${F_YELLOW}${avg_time}${F_NONE}s, score=$score"
 }
 
 function edlib_path {
@@ -106,7 +106,7 @@ function edlib_path {
         #echo ">" "#"$i $time
     done
     avg_time=$(python -c "print($time_sum / $num_tests)")
-    echo -e "    => Edlib (path), $r repetition(s): time=${avg_time}s, score=$score"
+    echo -e "    => Edlib (path), $r repetition(s): time=${F_YELLOW}${avg_time}${F_NONE}s, score=$score"
 }
 
 
@@ -119,7 +119,7 @@ function edlib_path {
 
 # SHW (prefix).
 echo_bolded "\nSHW, short query (<= 500bp) and long target."
-target=$TEST_DATA/E_0coli_DH1/e_coli_DH1.fasta
+target=$TEST_DATA/E_coli_DH1/e_coli_DH1.fasta
 for query_length in 50 100 250 500; do
     echo_underlined "Query length: $query_length"
     for query in $(ls $TEST_DATA/E_coli_DH1/prefixes/${query_length}bp/mutated_*_perc.fasta); do
@@ -130,7 +130,34 @@ for query_length in 50 100 250 500; do
     done
 done
 
-exit 0
+# HW (infix).
+echo_bolded "\nHW, short query (<= 500bp) and long target."
+target=$TEST_DATA/E_coli_DH1/e_coli_DH1.fasta
+for query_length in 50 100 250 500; do
+    echo_underlined "Query length: $query_length"
+    for query in $(ls $TEST_DATA/E_coli_DH1/mason_illumina_reads/${query_length}bp/*.fasta); do
+        echo "  Query: $query"
+        edlib      HW $query $target 3 -1
+        edlib_path HW $query $target 3
+        landauVishkin HW $query $target 1 1
+    done
+done
+
+# NW (global).
+echo_bolded "\nNW, query and target of equal size, both short (<= 500bp)."
+for seq_length in 50 100 250 500; do
+    reads_dir=$TEST_DATA/E_coli_DH1/mason_illumina_reads/${seq_length}bp
+    target=$reads_dir/e_coli_DH1_illumina_1x${seq_length}.fasta
+    echo_underlined "Query and target length: $seq_length"
+    echo_underlined "Target: $target"
+    for query in $(ls $reads_dir/*.fasta); do
+        echo "  Query: $query"
+        edlib      NW $query $target 3 -1 100000  # Last number here is num repetitions, tweak it if times are too small.
+        edlib_path NW $query $target 3    10000
+        landauVishkin NW $query $target 3 100000
+    done
+done
+
 # ----------------------- Long reads ----------------------- #
 
 # HW (infix).

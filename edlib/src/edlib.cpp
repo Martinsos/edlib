@@ -163,23 +163,24 @@ bool operator==(const L& lhs ,const L& rhs);
 int landauVishkinAlignAlgorithm(const std::vector<unsigned char>& R, 
                                 const std::vector<unsigned char>& B, 
                                 std::unordered_map<L, int, Hasher, EqualFn>& D, 
-                                unsigned int m, 
-                                unsigned int n, 
-                                int bStart, 
-                                int k, 
-                                int nk, 
+                                const unsigned int m, 
+                                const unsigned int n, 
+                                const int bStart, 
+                                const int k, 
+                                const int nk, 
                                 EqualityDefinition& equality, 
-                                bool global, 
-                                bool cigar, 
-                                vector<unsigned char>& cigarVector);
+                                const bool cigar, 
+                                vector<unsigned char>& cigarVector, i
+                                nt* endLocation)
 
 
 int landauVishkinAlignPrefix(const std::vector<unsigned char>& R, 
-                             const std::vector<unsigned char>& B,
-                             int k, 
+                             const std::vector<unsigned char>& B, 
+                             const int k, 
                              EqualityDefinition& equality, 
-                             bool cigar, 
-                             vector<unsigned char>& cigarVector);
+                             const bool cigar, 
+                             vector<unsigned char>& cigarVector, 
+                             int* endLocation);
 
 /*-------------------------------------------------------*/
 
@@ -214,20 +215,27 @@ extern "C" EdlibAlignResult edlibAlign(const char* const queryOriginal, const in
     /*-------------------------------------------------------*/
 
     /*------------ CALCULATE USING LANDAU VISHKIN-----------*/
-    bool useLV = queryLength < 500 && config.mode == EDLIB_MODE_SHW;
-    useLV = false;
+    const bool useLV = queryLength < 500 && config.mode == EDLIB_MODE_SHW;
     if (useLV) {
-        vector<unsigned char> R(query, query + queryLength); vector<unsigned char> B(target, target + targetLength); vector<unsigned char> cigarVector;
+        vector<unsigned char> R(query, query + queryLength); 
+        vector<unsigned char> B(target, target + targetLength); 
+        vector<unsigned char> cigarVector;
         
         int k = config.k < 0 ? queryLength : config.k;
         result.endLocations = (int *) malloc(sizeof(int) * 1);
-        result.editDistance = landauVishkinAlignPrefix(R, B, k, equalityDefinition, config.task == EDLIB_TASK_PATH, cigarVector, result.endLocations);
+        result.editDistance = landauVishkinAlignPrefix( R, 
+                                                        B, 
+                                                        k, 
+                                                        equalityDefinition, 
+                                                        config.task == EDLIB_TASK_PATH, 
+                                                        cigarVector, 
+                                                        result.endLocations);
 
-        if(result.editDistance>=0) {
-            if(config.task == EDLIB_TASK_PATH) {
+        if (result.editDistance >= 0) {
+            if (config.task == EDLIB_TASK_PATH) {
                 result.alignmentLength = cigarVector.size();
-                unsigned char* alignment = new unsigned char[result.alignmentLength];
-                for(int i=0;i<result.alignmentLength;i++) alignment[i] = cigarVector[i];
+                unsigned char* alignment = (unsigned char *) malloc(sizeof(unsigned char) + result.alignmentLength);
+                for (int i=0; i<result.alignmentLength; i++) alignment[i] = cigarVector[i];
                 result.alignment = alignment;
             }
 
@@ -1535,81 +1543,85 @@ extern "C" void edlibFreeAlignResult(EdlibAlignResult result) {
     if (result.alignment) free(result.alignment);
 }
 
-inline int max(int i1, int i2, int i3, int* num)
+inline int max3WithIndex(const int i1, const int i2, const int i3, int* index)
 {
-    //printf("%d,%d,%d\n", i1,i2,i3);
-    if(i1>=i2 && i1>=i3) {*num = 1; return i1;}
-    if(i2>=i1 && i2>=i3) {*num = 2; return i2;}
-    *num = 3;
+    if (i1 >= i2 && i1 >= i3) { *index = 1; return i1; }
+    if(i2 >= i1 && i2 >= i3) { *index = 2; return i2; }
+    *index = 3;
     return i3;
 }
 
 bool operator==(const L& lhs ,const L& rhs)
 {
-        return lhs.d==rhs.d && lhs.e==rhs.e;
+        return lhs.d == rhs.d && lhs.e == rhs.e;
 }
 
-int landauVishkinAlignAlgorithm(const std::vector<unsigned char>& R, const std::vector<unsigned char>& B, std::unordered_map<L, int, Hasher, EqualFn>& D, unsigned int m, unsigned int n, int bStart, int k, int nk, EqualityDefinition& equality, bool global, bool cigar, vector<unsigned char>& cigarVector, int* endLocation)
+int landauVishkinAlignAlgorithm(const std::vector<unsigned char>& R, 
+                                const std::vector<unsigned char>& B, 
+                                std::unordered_map<L, int, Hasher, EqualFn>& D, 
+                                const unsigned int m, const unsigned int n, 
+                                const int bStart, const int k, const int nk, 
+                                EqualityDefinition& equality, 
+                                const bool cigar, 
+                                vector<unsigned char>& cigarVector, int* endLocation)
 {
     unordered_map<L,vector<unsigned char>, Hasher, EqualFn> cigarDict;
     vector<unsigned char> cv;
 
-    for (int d = -(k); d<=k; d++){
-        if(d>=-nk && d<=nk && d!=0) continue;
-        D[L{d,abs(d)-2}] = -5;
-        if(d<0) D[L{d, -d-1}] = -d-1;
-        else D[L{d, d-1}] = -1;
+    for (int d = -(k); d <= k; d++) {
+        if (d >= -nk && d <= nk && d != 0) continue;
+        D[L{d, abs(d) - 2}] = -5;
+        if (d < 0) D[L{d, -d - 1}] = -d - 1;
+        else D[L{d, d - 1}] = -1;
 
-        if(cigar){
-            cigarDict[L{d,abs(d)-1}] = cv;
-            cigarDict[L{d,abs(d)-1}] = cv;
+        if (cigar) {
+            cigarDict[L{d, abs(d) - 2}] = cv;
+            cigarDict[L{d, abs(d) - 1}] = cv;
         }
     }
 
     unsigned int row = 0;
     int num = 0;
-    for (int e = nk; e<=k; e++){
-        for(int d = -e; d<=e; d++){
-            if(d==-e){
-                row = max(D[L{d,e-1}]+1, D[L{d+1,e-1}]+1, -5, &num);
-            } else if (d==e) {
-                row = max(D[L{d,e-1}]+1, -5, D[L{d-1,e-1}], &num);
+    for (int e = nk; e <= k; e++) {
+        for (int d = -e; d <= e; d++) {
+            if (d == -e) {
+                row = max3WithIndex(D[L{d, e - 1}] + 1, D[L{d + 1, e - 1}] + 1, -5, &num);
+            } else if (d == e) {
+                row = max3WithIndex(D[L{d, e - 1}] + 1, -5, D[L{d - 1, e - 1}], &num);
             } else {
-                row = max(D[L{d,e-1}]+1, D[L{d+1,e-1}]+1, D[L{d-1,e-1}], &num);
+                row = max3WithIndex(D[L{d, e - 1}] + 1, D[L{d + 1, e - 1}]+1, D[L{d - 1, e - 1}], &num);
             }
             
             
-            if(cigar){
-                switch (num){
+            if (cigar) {
+                switch (num) {
                     case 1:
-                        cv = cigarDict[L{d,e-1}];
-                        if(e!=0)
+                        cv = cigarDict[L{d, e - 1}];
+                        if (e != 0)
                             cv.push_back(EDLIB_EDOP_INSERT);
                         break;
                     case 2:
-                        cv = cigarDict[L{d+1,e-1}];
+                        cv = cigarDict[L{d + 1, e - 1}];
                         cv.push_back(EDLIB_EDOP_MISMATCH);
                         break;
                     case 3:
-                        cv = cigarDict[L{d-1,e-1}];
+                        cv = cigarDict[L{d - 1,e - 1}];
                         cv.push_back(EDLIB_EDOP_DELETE);
                         break;
                 }
             }
 
-            while(equality.areEqual(R[row], B[row+d+bStart]) && row<m) {
+            while (equality.areEqual(R[row], B[row + d + bStart]) && row < m) {
                 if (cigar) cv.push_back(EDLIB_EDOP_MATCH);
                 row++;
             }
-            D[L{d,e}] = row;
-            if (cigar) cigarDict[L{d,e}] = cv;
+            D[L{d, e}] = row;
+            if (cigar) cigarDict[L{d, e}] = cv;
 
-            if(row == m){
+            if (row == m) {
                 if (cigar) cigarVector = cv;
-                *endLocation = row+d+bStart;
-                return global ? e+abs(n-m)+abs(d) : e;
-            } else if (global && row+d == n) {
-                return global ? e+abs(n-m)+abs(d) : e;
+                *endLocation = row + d + bStart;
+                return  e;
             }
         }
     }
@@ -1618,15 +1630,17 @@ int landauVishkinAlignAlgorithm(const std::vector<unsigned char>& R, const std::
 }
 
 
-int landauVishkinAlignPrefix(const std::vector<unsigned char>& R, const std::vector<unsigned char>& B, int k, EqualityDefinition& equality, bool cigar, vector<unsigned char>& cigarVector, int* endLocation)
+int landauVishkinAlignPrefix(const std::vector<unsigned char>& R, 
+                             const std::vector<unsigned char>& B, 
+                             const int k, 
+                             EqualityDefinition& equality, 
+                             const bool cigar, 
+                             vector<unsigned char>& cigarVector, 
+                             int* endLocation)
 {
     int m = R.size();
     int n = B.size();
     std::unordered_map<L, int, Hasher, EqualFn> D;
     int res = landauVishkinAlignAlgorithm(R,B,D,m,n,0,k, 0, equality, false, cigar, cigarVector, endLocation);
-    if (res!=-1) {
-        return res; 
-    } 
-    
-    return -1;
+    return res;
 }
