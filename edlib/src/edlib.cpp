@@ -160,22 +160,20 @@ class EqualFn
 
 bool operator==(const L& lhs ,const L& rhs);
 
-int landauVishkinAlignAlgorithm(const std::vector<unsigned char>& R, 
-                                const std::vector<unsigned char>& B, 
+int landauVishkinAlignAlgorithm(const unsigned char* const R, 
+                                const  unsigned char* const B,
                                 std::unordered_map<L, int, Hasher, EqualFn>& D, 
-                                const unsigned int m, 
-                                const unsigned int n, 
-                                const int bStart, 
-                                const int k, 
-                                const int nk, 
+                                const unsigned int m, const unsigned int n, 
+                                const int bStart, const int k, const int nk, 
                                 EqualityDefinition& equality, 
                                 const bool cigar, 
                                 vector<unsigned char>& cigarVector, 
                                 int* endLocation);
 
 
-int landauVishkinAlignPrefix(const std::vector<unsigned char>& R, 
-                             const std::vector<unsigned char>& B, 
+int landauVishkinAlignPrefix(const unsigned char* const R, 
+                             const  unsigned char* const B,
+                             const int m, const int n, 
                              const int k, 
                              EqualityDefinition& equality, 
                              const bool cigar, 
@@ -217,15 +215,13 @@ extern "C" EdlibAlignResult edlibAlign(const char* const queryOriginal, const in
     /*------------ CALCULATE USING LANDAU VISHKIN-----------*/
     const bool useLV = queryLength < 500 && config.mode == EDLIB_MODE_SHW;
     if (useLV) {
-        vector<unsigned char> R(query, query + queryLength); 
-        vector<unsigned char> B(target, target + targetLength); 
         vector<unsigned char> cigarVector;
         
         int k = config.k < 0 ? queryLength : config.k;
         result.endLocations = (int *) malloc(sizeof(int) * 1);
-        result.editDistance = landauVishkinAlignPrefix( R, 
-                                                        B, 
-                                                        k, 
+        result.editDistance = landauVishkinAlignPrefix( query, 
+                                                        target, 
+                                                        queryLength, targetLength, k, 
                                                         equalityDefinition, 
                                                         config.task == EDLIB_TASK_PATH, 
                                                         cigarVector, 
@@ -1556,8 +1552,8 @@ bool operator==(const L& lhs ,const L& rhs)
         return lhs.d == rhs.d && lhs.e == rhs.e;
 }
 
-int landauVishkinAlignAlgorithm(const std::vector<unsigned char>& R, 
-                                const std::vector<unsigned char>& B, 
+int landauVishkinAlignAlgorithm(const unsigned char* const R, 
+                                const  unsigned char* const B,
                                 std::unordered_map<L, int, Hasher, EqualFn>& D, 
                                 const unsigned int m, const unsigned int n, 
                                 const int bStart, const int k, const int nk, 
@@ -1631,16 +1627,15 @@ int landauVishkinAlignAlgorithm(const std::vector<unsigned char>& R,
 }
 
 
-int landauVishkinAlignPrefix(const std::vector<unsigned char>& R, 
-                             const std::vector<unsigned char>& B, 
+int landauVishkinAlignPrefix(const unsigned char* const R, 
+                             const  unsigned char* const B,
+                             const int m, const int n, 
                              const int k, 
                              EqualityDefinition& equality, 
                              const bool cigar, 
                              vector<unsigned char>& cigarVector, 
                              int* endLocation)
 {
-    int m = R.size();
-    int n = B.size();
     std::unordered_map<L, int, Hasher, EqualFn> D;
     int res = landauVishkinAlignAlgorithm(R,B,D,m,n,0,k, 0, equality, cigar, cigarVector, endLocation);
     return res;
