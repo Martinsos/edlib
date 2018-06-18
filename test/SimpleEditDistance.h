@@ -3,6 +3,7 @@
 
 #include <cstdio>
 #include <vector>
+#include <stdexcept>
 #include "edlib.h"
 
 using namespace std;
@@ -22,14 +23,29 @@ int min3(int x, int y, int z) {
 
 int calcEditDistanceSimple(const char* query, int queryLength,
                            const char* target, int targetLength,
-                           EdlibAlignMode mode, int* score,
+                           const EdlibAlignMode mode, int* score,
                            int** positions_, int* numPositions_) {
-    int* C = new int[queryLength];
-    int* newC = new int[queryLength];
-
     int bestScore = -1;
     vector<int> positions;
-    int numPositions = 0;
+
+    // Handle as a special situation when one of the sequences has length 0.
+    if (queryLength == 0 || targetLength == 0) {
+        if (mode == EDLIB_MODE_NW) {
+            *score = std::max(queryLength, targetLength);
+            *positions_ = new int[1] {targetLength - 1};
+            *numPositions_ = 1;
+        } else if (mode == EDLIB_MODE_SHW || mode == EDLIB_MODE_HW) {
+            *score = queryLength;
+            *positions_ = new int[1] {-1};
+            *numPositions_ = 1;
+        } else {
+            throw std::invalid_argument("Received invalid edlib mode.");
+        }
+        return EDLIB_STATUS_OK;
+    }
+
+    int* C = new int[queryLength];
+    int* newC = new int[queryLength];
 
     // set first column (column zero)
     for (int i = 0; i < queryLength; i++) {
@@ -60,11 +76,9 @@ int calcEditDistanceSimple(const char* query, int queryLength,
             if (bestScore == -1 || newScore <= bestScore) {
                 if (newScore < bestScore) {
                     positions.clear();
-                    numPositions = 0;
                 }
                 bestScore = newScore;
                 positions.push_back(c);
-                numPositions++;
             }
         }
 

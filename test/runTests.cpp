@@ -552,12 +552,29 @@ bool testCustomEqualityRelation() {
     return allPass;
 }
 
+bool testEmptySequences() {
+    printf("Empty query or target:\n");
+
+    const char* emptySeq =  "";
+    const char* nonEmptySeq = "ACTG";
+    const int nonEmptySeqLength = 4;
+
+    bool r = true;
+    r = r && executeTest(emptySeq, 0, nonEmptySeq, nonEmptySeqLength, EDLIB_MODE_NW);
+    r = r && executeTest(nonEmptySeq, nonEmptySeqLength, emptySeq, 0, EDLIB_MODE_NW);
+    r = r && executeTest(emptySeq, 0, nonEmptySeq, nonEmptySeqLength, EDLIB_MODE_SHW);
+    r = r && executeTest(nonEmptySeq, nonEmptySeqLength, emptySeq, 0, EDLIB_MODE_SHW);
+    r = r && executeTest(emptySeq, 0, nonEmptySeq, nonEmptySeqLength, EDLIB_MODE_HW);
+    r = r && executeTest(nonEmptySeq, nonEmptySeqLength, emptySeq, 0, EDLIB_MODE_HW);
+    return r;
+}
+
 bool runTests() {
     // TODO: make this global vector where tests have to add themselves.
-    int numTests = 18;
+    int numTests = 19;
     bool (* tests [])() = {test1, test2, test3, test4, test5, test6,
                            test7, test8, test9, test10, test11, test12, test13, test14, test15, test16,
-                           testCigar, testCustomEqualityRelation};
+                           testCigar, testCustomEqualityRelation, testEmptySequences};
 
     bool allTestsPassed = true;
     for (int i = 0; i < numTests; i++) {

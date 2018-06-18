@@ -6,6 +6,7 @@
 #include <vector>
 #include <cstring>
 #include <string>
+#include <stdexcept>
 
 using namespace std;
 
@@ -156,6 +157,27 @@ extern "C" EdlibAlignResult edlibAlign(const char* const queryOriginal, const in
                                          &query, &target);
     result.alphabetLength = static_cast<int>(alphabet.size());
     /*-------------------------------------------------------*/
+
+    // Handle special situation when at least one of the sequences has length 0.
+    if (queryLength == 0 || targetLength == 0) {
+        if (config.mode == EDLIB_MODE_NW) {
+            result.editDistance = std::max(queryLength, targetLength);
+            result.endLocations = (int *) malloc(sizeof(int) * 1);
+            result.endLocations[0] = targetLength - 1;
+            result.numLocations = 1;
+        } else if (config.mode == EDLIB_MODE_SHW || config.mode == EDLIB_MODE_HW) {
+            result.editDistance = queryLength;
+            result.endLocations = (int *) malloc(sizeof(int) * 1);
+            result.endLocations[0] = -1;
+            result.numLocations = 1;
+        } else {
+            throw std::invalid_argument("Received invalid edlib mode.");
+        }
+
+        free(query);
+        free(target);
+        return result;
+    }
 
     /*--------------------- INITIALIZATION ------------------*/
     int maxNumBlocks = ceilDiv(queryLength, WORD_SIZE); // bmax in Myers
