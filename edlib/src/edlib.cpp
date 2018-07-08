@@ -230,7 +230,7 @@ extern "C" EdlibAlignResult edlibAlign(const char* const queryOriginal, const in
         if (result.editDistance >= 0) {
             if (config.task == EDLIB_TASK_PATH) {
                 result.alignmentLength = cigarVector.size();
-                unsigned char* alignment = (unsigned char *) malloc(sizeof(unsigned char) + result.alignmentLength);
+                unsigned char* alignment = (unsigned char *) malloc(sizeof(unsigned char) * result.alignmentLength);
                 for (int i=0; i<result.alignmentLength; i++) alignment[i] = cigarVector[i];
                 result.alignment = alignment;
             }
@@ -1552,6 +1552,7 @@ bool operator==(const L& lhs ,const L& rhs)
         return lhs.d == rhs.d && lhs.e == rhs.e;
 }
 
+//------------------------- Landau-Vishkin main prefix method ----------------------//
 int landauVishkinAlignAlgorithm(const unsigned char* const R, 
                                 const  unsigned char* const B,
                                 std::unordered_map<L, int, Hasher, EqualFn>& D, 
@@ -1561,10 +1562,11 @@ int landauVishkinAlignAlgorithm(const unsigned char* const R,
                                 const bool cigar, 
                                 vector<unsigned char>& cigarVector, int* endLocation)
 {
+    //Structures used to store the CIGAR alignment
     unordered_map<L,vector<unsigned char>, Hasher, EqualFn> cigarDict;
     vector<unsigned char> cv;
 
-    for (int d = -(k); d <= k; d++) {
+    for (int d = -(k); d <= k; d++) { //Initialization of values outside of the main alignment matrix
         if (d >= -nk && d <= nk && d != 0) continue;
         D[L{d, std::abs(d) - 2}] = -5;
         if (d < 0) D[L{d, -d - 1}] = -d - 1;
@@ -1578,9 +1580,11 @@ int landauVishkinAlignAlgorithm(const unsigned char* const R,
 
     unsigned int row = 0;
     int num = 0;
+
+    //Main loop used to calculate the alignment
     for (int e = nk; e <= k; e++) {
         for (int d = -e; d <= e; d++) {
-            if (d == -e) {
+            if (d == -e) { //Determine which is of previous L{d,e}s is the one with the highest position in the query
                 row = max3WithIndex(D[L{d, e - 1}] + 1, D[L{d + 1, e - 1}] + 1, -5, &num);
             } else if (d == e) {
                 row = max3WithIndex(D[L{d, e - 1}] + 1, -5, D[L{d - 1, e - 1}], &num);
@@ -1607,13 +1611,17 @@ int landauVishkinAlignAlgorithm(const unsigned char* const R,
                 }
             }
 
-            while (equality.areEqual(R[row], B[row + d + bStart]) && row < m) {
+            //Increase the current row as long as there is a match
+            while (equality.areEqual(R[row], B[row + d + bStart]) && row < m) { 
                 if (cigar) cv.push_back(EDLIB_EDOP_MATCH);
                 row++;
             }
+
+            //Store the current L{d,e}
             D[L{d, e}] = row;
             if (cigar) cigarDict[L{d, e}] = cv;
 
+            //End of the algorithm if the end of the query was reached
             if (row == m) {
                 if (cigar) cigarVector = cv;
                 endLocation = (int *) malloc(sizeof(int) * 1);
@@ -1626,7 +1634,22 @@ int landauVishkinAlignAlgorithm(const unsigned char* const R,
     return -1;
 }
 
-
+/**
+ * Method that returns the prefix aligment score for the given query and target. 
+ * It can also return CIGAR representation of the alignment through the cigarVector parameter 
+ * @param [in] R Query
+ * @param [in] B Target
+ * @param [in] m Length of the query
+ * @param [in] n Length of the target
+ * @param [in] k Maximum allowed distance
+ * @param [in] equality Reference to instance of EqualityDefinition class used to determine which 
+ *                      characters are considered equal
+ * @param [in] cigar Boolean which signals whether CIGAR output should be generated
+ * @param [out] cigarVector Vector in which the CIGAR output will be stored 
+ * @param [out] endLocation End location of the alignment
+ * @return  Edit distance between the query and target, or -1 if there is no alignment
+ *          with edit distance that is less or equal to k
+ */
 int landauVishkinAlignPrefix(const unsigned char* const R, 
                              const  unsigned char* const B,
                              const int m, const int n, 
