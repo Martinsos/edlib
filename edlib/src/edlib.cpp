@@ -223,7 +223,7 @@ extern "C" EdlibAlignResult edlibAlign(const char* const queryOriginal, const in
         k = WORD_SIZE; // Gives better results than smaller k.
     }
 
-    const bool useLV = queryLength < 500 && config.mode == EDLIB_MODE_SHW && config.task != EDLIB_TASK_PATH; //Determines whether or not to use Landau-Vishkin
+    const bool useLV = queryLength < 500 && config.mode == EDLIB_MODE_SHW; //Determines whether or not to use Landau-Vishkin
     vector<unsigned char> cigarVector;
     do {
         if (useLV) {
@@ -309,12 +309,12 @@ extern "C" EdlibAlignResult edlibAlign(const char* const queryOriginal, const in
         // Find alignment -> all comes down to finding alignment for NW.
         // Currently we return alignment only for first pair of locations.
         if (config.task == EDLIB_TASK_PATH) {
-            if (useLV) {
-                result.alignmentLength = cigarVector.size();
-                unsigned char* alignment = (unsigned char *) malloc(sizeof(unsigned char) * result.alignmentLength);
-                for (int i=0; i<result.alignmentLength; i++) alignment[i] = cigarVector[i];
-                result.alignment = alignment;
-            } else {
+            // if (useLV) {
+            //     result.alignmentLength = cigarVector.size();
+            //     unsigned char* alignment = (unsigned char *) malloc(sizeof(unsigned char) * result.alignmentLength);
+            //     for (int i=0; i<result.alignmentLength; i++) alignment[i] = cigarVector[i];
+            //     result.alignment = alignment;
+            // } else {
                 int alnStartLocation = result.startLocations[0];
                 int alnEndLocation = result.endLocations[0];
                 const unsigned char* alnTarget = target + alnStartLocation;
@@ -327,7 +327,7 @@ extern "C" EdlibAlignResult edlibAlign(const char* const queryOriginal, const in
                                 &(result.alignment), &(result.alignmentLength));
                 delete[] rAlnTarget;
                 delete[] rQuery;
-            }
+            // }
         }
     }
     /*-------------------------------------------------------*/
@@ -1570,7 +1570,7 @@ int landauVishkinAlignAlgorithm(const unsigned char* const R,
 
     unsigned int row = 0;
     int num = 0;
-    int startPosition = 0;
+    int startPosition = -1;
 
     //Main loop used to calculate the alignment
     for (int e = nk; e <= k; e++) {

@@ -123,7 +123,7 @@ bool runRandomTests(int numTests, EdlibAlignMode mode, bool findAlignment) {
                 // //Print alignment 
                 // for (int i = 0; i < result.alignmentLength; i++) printf("%d", result.alignment[i]);
                 // printf(" %d \n", result.alignmentLength);
-                
+
                 failed = true;
                 printf("Alignment is not correct\n");
             }
@@ -165,7 +165,7 @@ bool runRandomTests(int numTests, EdlibAlignMode mode, bool findAlignment) {
                 }
                 if (!foundEndLocation) {
                     failed = true;
-                    printf("Returned end locations are not a subset of end loactions.");
+                    printf("Returned end locations are not a subset of end locations.");
                     break;
                 }   
             }
@@ -240,20 +240,27 @@ bool executeTest(const char* query, int queryLength,
     if (result.editDistance != scoreSimple) {
         pass = false;
         printf("Scores: expected %d, got %d\n", scoreSimple, result.editDistance);
-    } else if (result.numLocations != numLocationsSimple) {
+    } else if (!(result.numLocations <= numLocationsSimple && result.numLocations > 0)) {
         pass = false;
-        printf("Number of locations: expected %d, got %d\n",
-               numLocationsSimple, result.numLocations);
+        printf("Number of locations greater then expected: expected %d, got %d\n",
+                numLocationsSimple, result.numLocations);
     } else {
         for (int i = 0; i < result.numLocations; i++) {
-            if (result.endLocations[i] != endLocationsSimple[i]) {
-                pass = false;
-                printf("End locations at %d are not equal! Expected %d, got %d\n",
-                       i, endLocationsSimple[i], result.endLocations[1]);
-                break;
+            bool foundEndLocation = false;
+            for (int j = 0; j < numLocationsSimple; j++) {
+                if (result.endLocations[i] == endLocationsSimple[j]) {
+                    foundEndLocation = true;
+                    break;
+                }
             }
+            if (!foundEndLocation) {
+                pass = false;
+                printf("Returned locations are not a subset of expected locations.");
+                break;
+            }   
         }
     }
+
     if (result.alignment) {
         if (!checkAlignment(query, queryLength, target,
                             result.editDistance, result.endLocations[0], mode,
@@ -442,7 +449,7 @@ bool test12() {
 
     EdlibAlignResult result = edlibAlign(query, (int) std::strlen(query),
                                          target, (int) std::strlen(target),
-                                         edlibNewAlignConfig(-1, EDLIB_MODE_HW,EDLIB_TASK_LOC, additionalEqualities, 24));
+                                         edlibNewAlignConfig(-1, EDLIB_MODE_HW, EDLIB_TASK_LOC, additionalEqualities, 24));
     bool pass = result.status == EDLIB_STATUS_OK && result.editDistance == 0;
     printf(pass ? "\x1B[32m""OK""\x1B[0m\n" : "\x1B[31m""FAIL""\x1B[0m\n");
     edlibFreeAlignResult(result);
@@ -478,6 +485,7 @@ bool test14() {
                                          target, (int) std::strlen(target),
                                          edlibNewAlignConfig(-1, EDLIB_MODE_SHW, EDLIB_TASK_PATH, NULL, 0));
     bool pass = result.status == EDLIB_STATUS_OK && result.editDistance == 2;
+    printf("%d %d\n", result.status == EDLIB_STATUS_OK, result.editDistance);
     printf(pass ? "\x1B[32m""OK""\x1B[0m\n" : "\x1B[31m""FAIL""\x1B[0m\n");
     edlibFreeAlignResult(result);
     return pass;
