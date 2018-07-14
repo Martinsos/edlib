@@ -485,7 +485,6 @@ bool test14() {
                                          target, (int) std::strlen(target),
                                          edlibNewAlignConfig(-1, EDLIB_MODE_SHW, EDLIB_TASK_PATH, NULL, 0));
     bool pass = result.status == EDLIB_STATUS_OK && result.editDistance == 2;
-    printf("%d %d\n", result.status == EDLIB_STATUS_OK, result.editDistance);
     printf(pass ? "\x1B[32m""OK""\x1B[0m\n" : "\x1B[31m""FAIL""\x1B[0m\n");
     edlibFreeAlignResult(result);
     return pass;
