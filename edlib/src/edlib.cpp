@@ -223,7 +223,7 @@ extern "C" EdlibAlignResult edlibAlign(const char* const queryOriginal, const in
         k = WORD_SIZE; // Gives better results than smaller k.
     }
 
-    const bool useLV = queryLength < 500 && config.mode == EDLIB_MODE_SHW; //Determines whether or not to use Landau-Vishkin
+    const bool useLV = queryLength < 500 && config.mode == EDLIB_MODE_SHW && config.task != EDLIB_TASK_PATH; //Determines whether or not to use Landau-Vishkin
     vector<unsigned char> cigarVector;
     do {
         if (useLV) {
@@ -1588,14 +1588,17 @@ int landauVishkinAlignAlgorithm(const unsigned char* const R,
                 switch (num) {
                     case 1:
                         cv = cigarDict[L{d, e - 1}];
-                        if (e != 0)
-                            cv.push_back(EDLIB_EDOP_INSERT);
-                        break;
-                    case 2:
-                        cv = cigarDict[L{d + 1, e - 1}];
                         cv.push_back(EDLIB_EDOP_MISMATCH);
                         break;
                     case 3:
+                        cv = cigarDict[L{d + 1, e - 1}];
+                        if (cv.size() != 0){
+                            cv.push_back(EDLIB_EDOP_INSERT);
+                        } else {
+                            startPosition++;
+                        }
+                        break;
+                    case 2:
                         cv = cigarDict[L{d - 1,e - 1}];
                         cv.push_back(EDLIB_EDOP_DELETE);
                         break;
