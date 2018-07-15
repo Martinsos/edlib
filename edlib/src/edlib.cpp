@@ -166,8 +166,6 @@ int landauVishkinAlignAlgorithm(const unsigned char* const R,
                                 const unsigned int m, const unsigned int n, 
                                 const int bStart, const int k, const int nk, 
                                 EqualityDefinition& equality, 
-                                // const bool cigar, 
-                                // vector<unsigned char>& cigarVector, 
                                 int** startLocation, int** endLocation);
 
 
@@ -176,8 +174,6 @@ int landauVishkinAlignPrefix(const unsigned char* const R,
                              const int m, const int n, 
                              const int k, 
                              EqualityDefinition& equality, 
-                            //  const bool cigar, 
-                            //  vector<unsigned char>& cigarVector, 
                              int** startLocation, int** endLocation);
 
 /*-------------------------------------------------------*/
@@ -223,8 +219,8 @@ extern "C" EdlibAlignResult edlibAlign(const char* const queryOriginal, const in
         k = WORD_SIZE; // Gives better results than smaller k.
     }
 
+    //TODO: Figure out when to use Landau-Vishkin algorithm
     const bool useLV = queryLength < 500 && config.mode == EDLIB_MODE_SHW; //Determines whether or not to use Landau-Vishkin
-    // vector<unsigned char> cigarVector;
     do {
         if (useLV) {
             int k = config.k < 0 ? queryLength : config.k;
@@ -232,8 +228,6 @@ extern "C" EdlibAlignResult edlibAlign(const char* const queryOriginal, const in
                                                             target, 
                                                             queryLength, targetLength, k, 
                                                             equalityDefinition, 
-                                                            // config.task == EDLIB_TASK_PATH, 
-                                                            // cigarVector,
                                                             &(result.startLocations),  
                                                             &(result.endLocations));
             result.numLocations = 1;
@@ -309,25 +303,18 @@ extern "C" EdlibAlignResult edlibAlign(const char* const queryOriginal, const in
         // Find alignment -> all comes down to finding alignment for NW.
         // Currently we return alignment only for first pair of locations.
         if (config.task == EDLIB_TASK_PATH) {
-            // if (useLV) {
-            //     result.alignmentLength = cigarVector.size();
-            //     unsigned char* alignment = (unsigned char *) malloc(sizeof(unsigned char) * result.alignmentLength);
-            //     for (int i=0; i<result.alignmentLength; i++) alignment[i] = cigarVector[i];
-            //     result.alignment = alignment;
-            // } else {
-                int alnStartLocation = result.startLocations[0];
-                int alnEndLocation = result.endLocations[0];
-                const unsigned char* alnTarget = target + alnStartLocation;
-                const int alnTargetLength = alnEndLocation - alnStartLocation + 1;
-                const unsigned char* rAlnTarget = createReverseCopy(alnTarget, alnTargetLength);
-                const unsigned char* rQuery  = createReverseCopy(query, queryLength);
-                obtainAlignment(query, rQuery, queryLength,
-                                alnTarget, rAlnTarget, alnTargetLength,
-                                equalityDefinition, (int) alphabet.size(), result.editDistance,
-                                &(result.alignment), &(result.alignmentLength));
-                delete[] rAlnTarget;
-                delete[] rQuery;
-            // }
+            int alnStartLocation = result.startLocations[0];
+            int alnEndLocation = result.endLocations[0];
+            const unsigned char* alnTarget = target + alnStartLocation;
+            const int alnTargetLength = alnEndLocation - alnStartLocation + 1;
+            const unsigned char* rAlnTarget = createReverseCopy(alnTarget, alnTargetLength);
+            const unsigned char* rQuery  = createReverseCopy(query, queryLength);
+            obtainAlignment(query, rQuery, queryLength,
+                            alnTarget, rAlnTarget, alnTargetLength,
+                            equalityDefinition, (int) alphabet.size(), result.editDistance,
+                            &(result.alignment), &(result.alignmentLength));
+            delete[] rAlnTarget;
+            delete[] rQuery;
         }
     }
     /*-------------------------------------------------------*/
@@ -1548,8 +1535,6 @@ int landauVishkinAlignAlgorithm(const unsigned char* const R, //Query
                                 const unsigned int m, const unsigned int n, //Query, target length 
                                 const int bStart, const int k, const int nk, 
                                 EqualityDefinition& equality, 
-                                // const bool cigar, 
-                                // vector<unsigned char>& cigarVector, 
                                 int** startLocation, int** endLocation)
 {
     //Structures used to store the CIGAR alignment
@@ -1561,11 +1546,6 @@ int landauVishkinAlignAlgorithm(const unsigned char* const R, //Query
         D[L{d, std::abs(d) - 2}] = -5;
         if (d < 0) D[L{d, -d - 1}] = -d - 1;
         else D[L{d, d - 1}] = -1;
-
-        // if (cigar) {
-        //     cigarDict[L{d, std::abs(d) - 2}] = cv;
-        //     cigarDict[L{d, std::abs(d) - 1}] = cv;
-        // }
     }
 
     unsigned int row = 0;
@@ -1582,27 +1562,6 @@ int landauVishkinAlignAlgorithm(const unsigned char* const R, //Query
             } else {
                 row = max3WithIndex(D[L{d, e - 1}] + 1, D[L{d + 1, e - 1}] + 1, D[L{d - 1, e - 1}], &num);
             }
-            
-            // if (cigar) {
-            //     switch (num) {
-            //         case 1:
-            //             cv = cigarDict[L{d, e - 1}];
-            //             cv.push_back(EDLIB_EDOP_MISMATCH);
-            //             break;
-            //         case 3:
-            //             cv = cigarDict[L{d + 1, e - 1}];
-            //             if (cv.size() != 0){
-            //                 cv.push_back(EDLIB_EDOP_INSERT);
-            //             } else {
-            //                 startPosition++;
-            //             }
-            //             break;
-            //         case 2:
-            //             cv = cigarDict[L{d - 1,e - 1}];
-            //             cv.push_back(EDLIB_EDOP_DELETE);
-            //             break;
-            //     }
-            // }
 
             //Increase the current row as long as there is a match
             while (equality.areEqual(R[row], B[row + d + bStart]) && row < m) { 
@@ -1610,22 +1569,18 @@ int landauVishkinAlignAlgorithm(const unsigned char* const R, //Query
                 row++;
             }
 
-            // printf("%d %d : %d, ", d, e, row);
-
             //Store the current L{d,e}
             D[L{d, e}] = row;
-            // if (cigar) cigarDict[L{d, e}] = cv;
 
             //End of the algorithm if the end of the query was reached
             if (row == m) {
-                // if (cigar) cigarVector = cv;
                 *endLocation = (int *) malloc(sizeof(int) * 1);
                 **endLocation = row + d + bStart - 1;
                 *startLocation = (int *) malloc(sizeof(int) * 1);
                 **startLocation = startPosition;
 
                 if (m > n) return e - n + m; // Possible fix for case when
-                                             // 
+                                             // n > m
 
                 return e;
             }
@@ -1655,8 +1610,6 @@ int landauVishkinAlignPrefix(const unsigned char* const R,
                              const int m, const int n, 
                              const int k, 
                              EqualityDefinition& equality, 
-                            //  const bool cigar, 
-                            //  vector<unsigned char>& cigarVector, 
                              int** startLocation, int** endLocation)
 {
     std::unordered_map<L, int, Hasher, EqualFn> D;
