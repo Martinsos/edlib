@@ -1579,7 +1579,7 @@ int landauVishkinAlignAlgorithm(const unsigned char* const R, //Query
                 *startLocation = (int *) malloc(sizeof(int) * 1);
                 **startLocation = startPosition;
 
-                if (m > n) return e - n + m; // Possible fix for case when
+                //if (m > n) return e - n + m; // Possible fix for case when
                                              // n > m
 
                 return e;
