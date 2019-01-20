@@ -2,6 +2,7 @@
 #include <ctime>
 #include <cstdlib>
 #include <cstring>
+#include <climits>
 
 #include "edlib.h"
 #include "SimpleEditDistance.h"
@@ -412,8 +413,10 @@ bool test10() {
 bool test11() {
     int queryLength = 8;
     int targetLength = 8;
-    char query[8] =  {-127, 127, -55, 0, 42, 0,      127, -55};
-    char target[8] = {-127, 127,      0, 42, 0, -55, 127,  42};
+    // NOTE(Martin): I am using CHAR_MIN and CHAR_MAX because 'char' type is not guaranteed to be
+    //   signed or unsigned by compiler, we can't know if it is signed or unsigned.
+    char query[8] =  {CHAR_MIN, CHAR_MIN + (CHAR_MAX - CHAR_MIN) / 2, CHAR_MAX};
+    char target[8] = {CHAR_MIN, CHAR_MIN + (CHAR_MAX - CHAR_MIN) / 2 + 1, CHAR_MAX};
 
     bool r = executeTest(query, queryLength, target, targetLength, EDLIB_MODE_HW);
     r = r && executeTest(query, queryLength, target, targetLength, EDLIB_MODE_NW);
