@@ -3,10 +3,11 @@ from cpython.mem cimport PyMem_Malloc, PyMem_Free
 
 cimport cedlib
 
+
 def align(query, target, mode="NW", task="distance", k=-1, additionalEqualities=None):
     """ Align query with target using edit distance.
-    @param {string or bytes array} query
-    @param {string or bytes array} target
+    @param {str or bytes or iterable of hashable objects} query
+    @param {str or bytes or iterable of hashable objects} target
     @param {string} mode  Optional. Alignment method do be used. Possible values are:
             - 'NW' for global (default)
             - 'HW' for infix
@@ -34,10 +35,44 @@ def align(query, target, mode="NW", task="distance", k=-1, additionalEqualities=
                 Match: '=', Insertion to target: 'I', Deletion from target: 'D', Mismatch: 'X'.
                 e.g. cigar of "5=1X1=1I" means "5 matches, 1 mismatch, 1 match, 1 insertion (to target)".
     """
-    # Transform python strings into c strings.
-    cdef bytes query_bytes = query.encode('utf-8') if type(query) != bytes else query;
+    # Transform python sequences of hashables into c strings.
+    cdef bytes query_bytes
+    cdef bytes target_bytes
+    query_needs_alphabet = False
+    target_needs_alphabet = False
+    if isinstance(query, bytes):
+        query_bytes = query
+    elif isinstance(query, str):
+        query_bytes = query.encode('utf-8')
+        query_needs_alphabet = len(query_bytes) != len(query)
+    else:
+        query_needs_alphabet = True
+
+    if isinstance(target, bytes):
+        target_bytes = target
+    elif isinstance(target, str):
+        target_bytes = target.encode('utf-8')
+        target_needs_alphabet = len(target_bytes) != len(target)
+    else:
+        target_needs_alphabet = True
+
+    # Map non-ascii symbols into an ASCII alphabet so it can be used
+    # in the C++ code
+    alphabet = {}
+    if query_needs_alphabet or target_needs_alphabet:
+        query_vals = set(query)
+        target_vals = set(target)
+        alphabet = {c: chr(x) for x, c in enumerate(query_vals.union(target_vals))}
+        if len(alphabet) > 255:
+            raise ValueError(
+                "query and target combined have more than 255 unique values, "
+                "this is not supported.")
+    if query_needs_alphabet:
+        query_bytes = ''.join(alphabet[c] for c in query).encode('ascii')
+    if target_needs_alphabet:
+        target_bytes = ''.join(alphabet[c] for c in target).encode('ascii')
+
     cdef char* cquery = query_bytes;
-    cdef bytes target_bytes = target.encode('utf-8') if type(target) != bytes else target;
     cdef char* ctarget = target_bytes;
 
     # Build an edlib config object based on given parameters.
