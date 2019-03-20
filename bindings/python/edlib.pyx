@@ -3,11 +3,54 @@ from cpython.mem cimport PyMem_Malloc, PyMem_Free
 
 cimport cedlib
 
+def map_to_bytes(query, target, additional_equalities):
+    cdef bytes query_bytes
+    cdef bytes target_bytes
+    query_needs_mapping = False
+    target_needs_mapping = False
+    if isinstance(query, bytes):
+        query_bytes = query
+    elif isinstance(query, str):
+        query_bytes = query.encode('utf-8')
+        query_needs_mapping = len(query_bytes) != len(query)
+    else:
+        query_needs_mapping = True
+
+    if isinstance(target, bytes):
+        target_bytes = target
+    elif isinstance(target, str):
+        target_bytes = target.encode('utf-8')
+        target_needs_mapping = len(target_bytes) != len(target)
+    else:
+        target_needs_mapping = True
+
+    # Map non-ascii symbols into an ASCII alphabet so it can be used
+    # in the C++ code
+    if query_needs_mapping or target_needs_mapping:
+        query_vals = set(query)
+        target_vals = set(target)
+        input_mapping = {
+            c: chr(idx)
+            for idx, c in enumerate(query_vals.union(target_vals))
+        }
+        if len(input_mapping) > 256:
+            raise ValueError(
+                "query and target combined have more than 256 unique values, "
+                "this is not supported.")
+        query_bytes = ''.join(input_mapping[c] for c in query).encode('ascii')
+        target_bytes = ''.join(input_mapping[c] for c in target).encode('ascii')
+        if additional_equalities is not None:
+            additional_equalities = [(input_mapping[a], input_mapping[b])
+                                     for a, b in additional_equalities]
+    return query_bytes, target_bytes, additional_equalities
+
 
 def align(query, target, mode="NW", task="distance", k=-1, additionalEqualities=None):
     """ Align query with target using edit distance.
-    @param {str or bytes or iterable of hashable objects} query
-    @param {str or bytes or iterable of hashable objects} target
+    @param {str or bytes or iterable of hashable objects} query, combined with target must have no more
+           than 256 unique values
+    @param {str or bytes or iterable of hashable objects} target, combined with query must have no more
+           than 256 unique values
     @param {string} mode  Optional. Alignment method do be used. Possible values are:
             - 'NW' for global (default)
             - 'HW' for infix
@@ -20,7 +63,7 @@ def align(query, target, mode="NW", task="distance", k=-1, additionalEqualities=
     @param {int} k  Optional. Max edit distance to search for - the lower this value,
             the faster is calculation. Set to -1 (default) to have no limit on edit distance.
     @param {list} additionalEqualities  Optional.
-            List of pairs of characters, where each pair defines two characters as equal.
+            List of pairs of characters or hashable objects, where each pair defines two values as equal.
             This way you can extend edlib's definition of equality (which is that each character is equal only
             to itself).
             This can be useful e.g. when you want edlib to be case insensitive, or if you want certain
@@ -38,40 +81,8 @@ def align(query, target, mode="NW", task="distance", k=-1, additionalEqualities=
     # Transform python sequences of hashables into c strings.
     cdef bytes query_bytes
     cdef bytes target_bytes
-    query_needs_alphabet = False
-    target_needs_alphabet = False
-    if isinstance(query, bytes):
-        query_bytes = query
-    elif isinstance(query, str):
-        query_bytes = query.encode('utf-8')
-        query_needs_alphabet = len(query_bytes) != len(query)
-    else:
-        query_needs_alphabet = True
-
-    if isinstance(target, bytes):
-        target_bytes = target
-    elif isinstance(target, str):
-        target_bytes = target.encode('utf-8')
-        target_needs_alphabet = len(target_bytes) != len(target)
-    else:
-        target_needs_alphabet = True
-
-    # Map non-ascii symbols into an ASCII alphabet so it can be used
-    # in the C++ code
-    alphabet = {}
-    if query_needs_alphabet or target_needs_alphabet:
-        query_vals = set(query)
-        target_vals = set(target)
-        alphabet = {c: chr(x) for x, c in enumerate(query_vals.union(target_vals))}
-        if len(alphabet) > 255:
-            raise ValueError(
-                "query and target combined have more than 255 unique values, "
-                "this is not supported.")
-    if query_needs_alphabet:
-        query_bytes = ''.join(alphabet[c] for c in query).encode('ascii')
-    if target_needs_alphabet:
-        target_bytes = ''.join(alphabet[c] for c in target).encode('ascii')
-
+    query_bytes, target_bytes, additionalEqualities = map_to_bytes(
+            query, target, additionalEqualities)
     cdef char* cquery = query_bytes;
     cdef char* ctarget = target_bytes;
 
