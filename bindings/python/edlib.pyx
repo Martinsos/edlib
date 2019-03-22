@@ -40,8 +40,10 @@ def map_to_bytes(query, target, additional_equalities):
         query_bytes = ''.join(input_mapping[c] for c in query).encode('ascii')
         target_bytes = ''.join(input_mapping[c] for c in target).encode('ascii')
         if additional_equalities is not None:
-            additional_equalities = [(input_mapping[a], input_mapping[b])
-                                     for a, b in additional_equalities]
+            additional_equalities = [
+                (input_mapping[a], input_mapping[b])
+                for a, b in additional_equalities
+                if a in input_mapping and b in input_mapping]
     return query_bytes, target_bytes, additional_equalities
 
 
