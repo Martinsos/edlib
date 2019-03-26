@@ -3,30 +3,36 @@ from cpython.mem cimport PyMem_Malloc, PyMem_Free
 
 cimport cedlib
 
-def map_to_bytes(query, target, additional_equalities):
+class NeedsAlphabetMapping(Exception):
+    pass
+
+
+def _map_ascii_string(s):
+    """ Helper func to handle the bytes mapping in the case of ASCII strings."""
+    if isinstance(s, bytes):
+        return s
+    elif isinstance(s, str):
+        s_bytes = s.encode('utf-8')
+        if len(s_bytes) == len(s):
+            return s_bytes
+    raise NeedsAlphabetMapping()
+
+
+def _map_to_bytes(query, target, additional_equalities):
+    """ Map hashable input values to single byte values.
+
+    Example:
+    In: query={12, 'ä'}, target='ööö', additional_equalities={'ä': 'ö'}
+    Out: b'\x00\x01', b'\x02\x02\x02', additional_equalities={b'\x01': b'\x02'}
+    """
     cdef bytes query_bytes
     cdef bytes target_bytes
-    query_needs_mapping = False
-    target_needs_mapping = False
-    if isinstance(query, bytes):
-        query_bytes = query
-    elif isinstance(query, str):
-        query_bytes = query.encode('utf-8')
-        query_needs_mapping = len(query_bytes) != len(query)
-    else:
-        query_needs_mapping = True
-
-    if isinstance(target, bytes):
-        target_bytes = target
-    elif isinstance(target, str):
-        target_bytes = target.encode('utf-8')
-        target_needs_mapping = len(target_bytes) != len(target)
-    else:
-        target_needs_mapping = True
-
-    # Map non-ascii symbols into an ASCII alphabet so it can be used
-    # in the C++ code
-    if query_needs_mapping or target_needs_mapping:
+    try:
+        query_bytes = _map_ascii_string(query)
+        target_bytes = _map_ascii_string(target)
+    except NeedsAlphabetMapping:
+        # Map non-ascii symbols into an ASCII alphabet so it can be used
+        # in the C++ code
         query_vals = set(query)
         target_vals = set(target)
         input_mapping = {
@@ -37,8 +43,9 @@ def map_to_bytes(query, target, additional_equalities):
             raise ValueError(
                 "query and target combined have more than 256 unique values, "
                 "this is not supported.")
-        query_bytes = ''.join(input_mapping[c] for c in query).encode('ascii')
-        target_bytes = ''.join(input_mapping[c] for c in target).encode('ascii')
+        map_seq = lambda seq: ''.join(input_mapping[x] for x in seq).encode('ascii')
+        query_bytes = map_seq(query)
+        target_bytes = map_seq(target)
         if additional_equalities is not None:
             additional_equalities = [
                 (input_mapping[a], input_mapping[b])
@@ -83,7 +90,7 @@ def align(query, target, mode="NW", task="distance", k=-1, additionalEqualities=
     # Transform python sequences of hashables into c strings.
     cdef bytes query_bytes
     cdef bytes target_bytes
-    query_bytes, target_bytes, additionalEqualities = map_to_bytes(
+    query_bytes, target_bytes, additionalEqualities = _map_to_bytes(
             query, target, additionalEqualities)
     cdef char* cquery = query_bytes;
     cdef char* ctarget = target_bytes;
