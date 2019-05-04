@@ -141,6 +141,8 @@ if (result.status == EDLIB_STATUS_OK) {
 edlibFreeAlignResult(result);
 ```
 
+NOTE: One character is expected to occupy one char/byte, meaning that characters spanning multiple chars/bytes are not supported. As long as your alphabet size is <= 256 you can manually map it to numbers/chars from 0 to 255 and solve this that way, but if its size is > 256 then you will not be able to use Edlib.
+
 ### Configuring edlibAlign()
 `edlibAlign` takes configuration object (it is a struct `EdlibAlignConfig`), which allows you to further customize how alignment will be done. You can choose [alignment method](#alignment-methods), tell edlib what to calculate (just edit distance or also path and locations) and set upper limit for edit distance.
 

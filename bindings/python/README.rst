@@ -23,6 +23,8 @@ Features
 * It can easily handle small or **very large** sequences, even when finding alignment path.
 * **Super fast** thanks to Myers's bit-vector algorithm.
 
+NOTE: Size of alphabet has to be <= 256 (meaning that query and target together must have <= 256 unique values).
+
 ------------
 Installation
 ------------
