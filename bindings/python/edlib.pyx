@@ -3,10 +3,63 @@ from cpython.mem cimport PyMem_Malloc, PyMem_Free
 
 cimport cedlib
 
+class NeedsAlphabetMapping(Exception):
+    pass
+
+
+def _map_ascii_string(s):
+    """ Helper func to handle the bytes mapping in the case of ASCII strings."""
+    if isinstance(s, bytes):
+        return s
+    elif isinstance(s, str):
+        s_bytes = s.encode('utf-8')
+        if len(s_bytes) == len(s):
+            return s_bytes
+    raise NeedsAlphabetMapping()
+
+
+def _map_to_bytes(query, target, additional_equalities):
+    """ Map hashable input values to single byte values.
+
+    Example:
+    In: query={12, 'ä'}, target='ööö', additional_equalities={'ä': 'ö'}
+    Out: b'\x00\x01', b'\x02\x02\x02', additional_equalities={b'\x01': b'\x02'}
+    """
+    cdef bytes query_bytes
+    cdef bytes target_bytes
+    try:
+        query_bytes = _map_ascii_string(query)
+        target_bytes = _map_ascii_string(target)
+    except NeedsAlphabetMapping:
+        # Map non-ascii symbols into an ASCII alphabet so it can be used
+        # in the C++ code
+        query_vals = set(query)
+        target_vals = set(target)
+        input_mapping = {
+            c: chr(idx)
+            for idx, c in enumerate(query_vals.union(target_vals))
+        }
+        if len(input_mapping) > 256:
+            raise ValueError(
+                "query and target combined have more than 256 unique values, "
+                "this is not supported.")
+        map_seq = lambda seq: ''.join(input_mapping[x] for x in seq).encode('ascii')
+        query_bytes = map_seq(query)
+        target_bytes = map_seq(target)
+        if additional_equalities is not None:
+            additional_equalities = [
+                (input_mapping[a], input_mapping[b])
+                for a, b in additional_equalities
+                if a in input_mapping and b in input_mapping]
+    return query_bytes, target_bytes, additional_equalities
+
+
 def align(query, target, mode="NW", task="distance", k=-1, additionalEqualities=None):
     """ Align query with target using edit distance.
-    @param {string or bytes array} query
-    @param {string or bytes array} target
+    @param {str or bytes or iterable of hashable objects} query, combined with target must have no more
+           than 256 unique values
+    @param {str or bytes or iterable of hashable objects} target, combined with query must have no more
+           than 256 unique values
     @param {string} mode  Optional. Alignment method do be used. Possible values are:
             - 'NW' for global (default)
             - 'HW' for infix
@@ -19,7 +72,7 @@ def align(query, target, mode="NW", task="distance", k=-1, additionalEqualities=
     @param {int} k  Optional. Max edit distance to search for - the lower this value,
             the faster is calculation. Set to -1 (default) to have no limit on edit distance.
     @param {list} additionalEqualities  Optional.
-            List of pairs of characters, where each pair defines two characters as equal.
+            List of pairs of characters or hashable objects, where each pair defines two values as equal.
             This way you can extend edlib's definition of equality (which is that each character is equal only
             to itself).
             This can be useful e.g. when you want edlib to be case insensitive, or if you want certain
@@ -34,10 +87,12 @@ def align(query, target, mode="NW", task="distance", k=-1, additionalEqualities=
                 Match: '=', Insertion to target: 'I', Deletion from target: 'D', Mismatch: 'X'.
                 e.g. cigar of "5=1X1=1I" means "5 matches, 1 mismatch, 1 match, 1 insertion (to target)".
     """
-    # Transform python strings into c strings.
-    cdef bytes query_bytes = query.encode('utf-8') if type(query) != bytes else query;
+    # Transform python sequences of hashables into c strings.
+    cdef bytes query_bytes
+    cdef bytes target_bytes
+    query_bytes, target_bytes, additionalEqualities = _map_to_bytes(
+            query, target, additionalEqualities)
     cdef char* cquery = query_bytes;
-    cdef bytes target_bytes = target.encode('utf-8') if type(target) != bytes else target;
     cdef char* ctarget = target_bytes;
 
     # Build an edlib config object based on given parameters.
