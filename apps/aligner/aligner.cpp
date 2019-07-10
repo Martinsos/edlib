@@ -20,7 +20,7 @@ void printAlignment(const char* query, const char* target,
 
 // For debugging
 void printSeq(const vector<char> &seq) {
-    for (int i = 0; i < (int) seq.size(); i++)
+    for (int i = 0; i < static_cast<int>(seq.size()); i++)
         printf("%d ", seq[i]);
     printf("\n");
 }
@@ -183,10 +183,10 @@ int main(int argc, char * const argv[]) {
         if (numBestSeqs > 0) {
             if (scores[i] >= 0) {
                 bestScores.push(scores[i]);
-                if ((int) bestScores.size() > numBestSeqs) {
+                if (static_cast<int>(bestScores.size()) > numBestSeqs) {
                     bestScores.pop();
                 }
-                if ((int) bestScores.size() == numBestSeqs) {
+                if (static_cast<int>(bestScores.size()) == numBestSeqs) {
                     k = bestScores.top() - 1;
                     if (kArg >= 0 && kArg < k)
                         k = kArg;
@@ -229,7 +229,7 @@ int main(int argc, char * const argv[]) {
         printf("\n");
 
         if (bestScores.size() > 0) {
-            printf("%d best scores:\n", (int)bestScores.size());
+            printf("%d best scores:\n", static_cast<int>(bestScores.size()));
             scoreLimit = bestScores.top();
         } else {
             printf("Scores:\n");
@@ -260,7 +260,7 @@ int main(int argc, char * const argv[]) {
     }
 
     clock_t finish = clock();
-    double cpuTime = ((double)(finish-start))/CLOCKS_PER_SEC;
+    double cpuTime = static_cast<double>(finish-start)/CLOCKS_PER_SEC;
     printf("\nCpu time of searching: %lf\n", cpuTime);
     // ---------------------------------------------------------------------------- //
 
