@@ -151,11 +151,11 @@ bool runRandomTests(int numTests, EdlibAlignMode mode, bool findAlignment) {
             printf("Number of endLocations returned is not equal! Expected %d, got %d\n",
                    numLocations2, result.numLocations);
         } else {
-            for (int i = 0; i < result.numLocations; i++) {
-                if (result.endLocations[i] != endLocations2[i]) {
+            for (int j = 0; j < result.numLocations; j++) {
+                if (result.endLocations[j] != endLocations2[j]) {
                     failed = true;
                     printf("EndLocations at %d are not equal! Expected %d, got %d\n",
-                           i, endLocations2[i], result.endLocations[i]);
+                           j, endLocations2[j], result.endLocations[j]);
                     break;
                 }
             }
