@@ -15,7 +15,7 @@ edlibAlign("hello", 5, "world!", 6, edlibDefaultAlignConfig()).editDistance;
 ```
 
 ## Features
-* Calculates **edit distance (Levehnstein distance)**.
+* Calculates **edit distance (Levenshtein distance)**.
 * It can find **optimal alignment path** (instructions how to transform first sequence into the second sequence).
 * It can find just the **start and/or end locations of alignment path** - can be useful when speed is more important than having exact alignment path.
 * Supports **multiple [alignment methods](#alignment-methods)**: global(**NW**), prefix(**SHW**) and infix(**HW**), each of them useful for different scenarios.
