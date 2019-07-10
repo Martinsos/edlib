@@ -25,15 +25,15 @@ install:
 
 before_script:
   # Build C/C++ library and apps.
-  - mkdir -p build && cd build && cmake .. && make && cd ..
+  - mkdir -p build && cd build && CXXFLAGS="-Werror" cmake -DCMAKE_VERBOSE_MAKEFILE=ON .. && make && cd ..
 
   # Build Python source distribution and install Edlib from it.
   - if [ $TRAVIS_OS_NAME == "linux" ]; then cd bindings/python && make sdist && cd ../..; fi
   - if [ $TRAVIS_OS_NAME == "linux" ]; then sudo -H pip install bindings/python/dist/edlib*.tar.gz; fi
 
 script:
-  # Test C/C++ library.
-  - build/bin/runTests
+  # Test C/C++ library using CTest.
+  - cd build && make test && cat Testing/Temporary/LastTest.log && cd ..
   # Check for memory leaks. Returns 2 if there was a memory leak/error, otherwise returns runTests exit code,
   # which is 0 if all went fine or 1 if some of the tests failed. I test for memory leaks only on linux because
   # osx returns errors from system libraries, which I would have to supress.
