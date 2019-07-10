@@ -49,7 +49,7 @@ struct Block {
     int score; // score of last cell in block;
 
     Block() {}
-    Block(Word P, Word M, int score) :P(P), M(M), score(score) {}
+    Block(Word p, Word m, int s) :P(p), M(m), score(s) {}
 };
 
 

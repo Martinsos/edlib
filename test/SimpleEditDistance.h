@@ -56,13 +56,13 @@ int calcEditDistanceSimple(const char* query, int queryLength,
             printf("\n");*/
 
         if (mode != EDLIB_MODE_NW || c == targetLength - 1) { // For NW check only last column
-            int score = newC[queryLength - 1];
-            if (bestScore == -1 || score <= bestScore) {
-                if (score < bestScore) {
+            int newScore = newC[queryLength - 1];
+            if (bestScore == -1 || newScore <= bestScore) {
+                if (newScore < bestScore) {
                     positions.clear();
                     numPositions = 0;
                 }
-                bestScore = score;
+                bestScore = newScore;
                 positions.push_back(c);
                 numPositions++;
             }
