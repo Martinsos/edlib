@@ -35,7 +35,7 @@ int main(int argc, char* argv[]) {
     // per each algorithm. Default is 100.
     int numRandomTests = 100;
     if (argc > 1) {
-        numRandomTests = (int) strtol(argv[1], NULL, 10);
+        numRandomTests = static_cast<int>(strtol(argv[1], NULL, 10));
     }
 
     srand(42);
@@ -79,7 +79,7 @@ int main(int argc, char* argv[]) {
 
 void fillRandomly(char* seq, int seqLength, int alphabetLength) {
     for (int i = 0; i < seqLength; i++)
-        seq[i] = (char) rand() % alphabetLength;
+        seq[i] = static_cast<char>(rand()) % alphabetLength;
 }
 
 // Returns true if all tests passed, false otherwise.
@@ -94,8 +94,8 @@ bool runRandomTests(int numTests, EdlibAlignMode mode, bool findAlignment) {
         bool failed = false;
         int queryLength = 50 + rand() % 300;
         int targetLength = 500 + rand() % 10000;
-        char* query = (char *) malloc(sizeof(char) * queryLength);
-        char* target = (char *) malloc(sizeof(char) * targetLength);
+        char* query = static_cast<char *>(malloc(sizeof(char) * queryLength));
+        char* target = static_cast<char *>(malloc(sizeof(char) * targetLength));
         fillRandomly(query, queryLength, alphabetLength);
         fillRandomly(target, targetLength, alphabetLength);
 
@@ -204,8 +204,8 @@ bool runRandomTests(int numTests, EdlibAlignMode mode, bool findAlignment) {
     printf("%d/%d", numTests - numTestsFailed, numTests);
     printf("\x1B[0m");
     printf(" random tests passed!\n");
-    double mTime = ((double)(timeEdlib))/CLOCKS_PER_SEC;
-    double sTime = ((double)(timeSimple))/CLOCKS_PER_SEC;
+    double mTime = static_cast<double>(timeEdlib)/CLOCKS_PER_SEC;
+    double sTime = static_cast<double>(timeSimple)/CLOCKS_PER_SEC;
     printf("Time Edlib: %lf\n", mTime);
     printf("Time Simple: %lf\n", sTime);
     printf("Times faster: %.2lf\n", sTime / mTime);
@@ -432,8 +432,8 @@ bool test12() {
     const char* query = "GCATATCAATAAGCGGAGGA";
     const char* target = "TAACAAGGTTTCCGTAGGTGAACCTGCGGAAGGATCATTATCGAATAAACTTGATGGGTTGTCGCTGGCTTCTAGGAGCATGTGCACATCCGTCATTTTTATCCATCCACCTGTGCACCTTTTGTAGTCTTTGGAGGTAATAAGCGTGAATCTATCGAGGTCCTCTGGTCCTCGGAAAGAGGTGTTTGCCATATGGCTCGCCTTTGATACTCGCGAGTTACTCTAAGACTATGTCCTTTCATATACTACGAATGTAATAGAATGTATTCATTGGGCCTCAGTGCCTATAAAACATATACAACTTTCAGCAACGGATCTCTTGGCTCTCGCATCGATGAAGAACGCAGCGAAATGCGATAAGTAATGTGAATTGCAGAATTCAGTGAATCATCGAATCTTTGAACGCACCTTGCGCTCCTTGGTATTCCGAGGAGCATGCCTGTTTGAGTGTCATTAAATTCTCAACCCCTTCCGGTTTTTTGACTGGCTTTGGGGCTTGGATGTGGGGGATTCATTTGCGGGCCTCTGTAGAGGTCGGCTCCCCTGAAATGCATTAGTGGAACCGTTTGCGGTTACCGTCGCTGGTGTGATAACTATCTATGCCAAAGACAAACTGCTCTCTGATAGTTCTGCTTCTAACCGTCCATTTATTGGACAACATTATTATGAACACTTGACCTCAAATCAGGTAGGACTACCCGCTGAACTTAAGCATATCAATAAGCGGAGGAAAAGAAACTAACAAGGATTCCCCTAGTAACTGCGAGTGAAGCGGGAAAAGCTCAAATTTAAAATCTGGCGGTCTTTGGCCGTCCGAGTTGTAATCTAGAGAAGCGACACCCGCGCTGGACCGTGTACAAGTCTCCTGGAATGGAGCGTCATAGAGGGTGAGAATCCCGTCTCTGACACGGACTACCAGGGCTTTGTGGTGCGCTCTCAAAGAGTCGAGTTGTTTGGGAATGCAGCTCTAAATGGGTGGTAAATTCCATCTAAAGCTAAATATTGGCGAGAGACCGATAGCGAACAAGTACCGTGAGGGAAAGATGAAAAGAACTTTGGAAAGAGAGTTAAACAGTACGTGAAATTGCTGAAAGGGAAACGCTTGAAGTCAGTCGCGTTGGCCGGGGATCAGCCTCGCTTTTGCGTGGTGTATTTCCTGGTTGACGGGTCAGCATCAATTTTGACCGCTGGAAAAGGACTTGGGGAATGTGGCATCTTCGGATGTGTTATAGCCCTTTGTCGCATACGGCGGTTGGGATTGAGGAACTCAGCACGCCGCAAGGCCGGGTTTCGACCACGTTCGTGCTTAGGATGCTGGCATAATGGCTTTAATCGACCCGTCTTGAAACACGGACCAAGGAGTCTAACATGCCTGCGAGTGTTTGGGTGGAAAACCCGAGCGCGTAATGAAAGTGAAAGTTGAGATCCCTGTCGTGGGGAGCATCGACGCCCGGACCAGAACTTTTGGGACGGATCTGCGGTAGAGCATGTATGTTGGGACCCGAAAGATGGTGAACTATGCCTGAATAGGGTGAAGCCAGAGGAAACTCTGGTGGAGGCTCGTAGCGATTCTGACGTGCAAATCGATCGTCAAATTTGGGTATAGGGGCGAAAGACTAATCGAACCATCTAGTAGCTGGTTCCTGCCGAAGTTTCCCTCAGGATAGCAGAAACTCATATCAGATTTATGTGGTAAAGCGAATGATTAGAGGCCTTGGGGTTGAAACAACCTTAACCTATTCTCAAACTTTAAATATGTAAGAACGAGCCGTTTCTTGATTGAACCGCTCGGCGATTGAGAGTTTCTAGTGGGCCATTTTTGGTAAGCAGAACTGGCGATGCGGGATGAACCGAACGCGAGGTTAAGGTGCCGGAATTCACGCTCATCAGACACCACAAAAGGTGTTAGTTCATCTAGACAGCAGGACGGTGGCCATGGAAGTCGGAATCCGCTAAGGAGTGTGTAACAACTCACCTGCCGAATGAACTAGCCCTGAAAATGGATGGCGCTTAAGCGTGATACCCATACCTCGCCGTCAGCGTTGAAGTGACGCGCTGACGAGTAGGCAGGCGTGGAGGTCAGTGAAGAAGCCTTGGCAGTGATGCTGGGTGAAACGGCCTCC";
 
-    EdlibAlignResult result = edlibAlign(query, (int) std::strlen(query),
-                                         target, (int) std::strlen(target),
+    EdlibAlignResult result = edlibAlign(query, static_cast<int>(std::strlen(query)),
+                                         target, static_cast<int>(std::strlen(target)),
                                          edlibNewAlignConfig(-1, EDLIB_MODE_HW,EDLIB_TASK_LOC, additionalEqualities, 24));
     bool pass = result.status == EDLIB_STATUS_OK && result.editDistance == 0;
     printf(pass ? "\x1B[32m""OK""\x1B[0m\n" : "\x1B[31m""FAIL""\x1B[0m\n");
@@ -449,8 +449,8 @@ bool test13() {
     const char* query = "AA";
     const char* target = "B";
 
-    EdlibAlignResult result = edlibAlign(query, (int) std::strlen(query),
-                                         target, (int) std::strlen(target),
+    EdlibAlignResult result = edlibAlign(query, static_cast<int>(std::strlen(query)),
+                                         target, static_cast<int>(std::strlen(target)),
                                          edlibNewAlignConfig(-1, EDLIB_MODE_HW, EDLIB_TASK_PATH, NULL, 0));
     bool pass = result.status == EDLIB_STATUS_OK && result.editDistance == 2;
     printf(pass ? "\x1B[32m""OK""\x1B[0m\n" : "\x1B[31m""FAIL""\x1B[0m\n");
@@ -466,8 +466,8 @@ bool test14() {
     const char* query = "AA";
     const char* target = "B";
 
-    EdlibAlignResult result = edlibAlign(query, (int) std::strlen(query),
-                                         target, (int) std::strlen(target),
+    EdlibAlignResult result = edlibAlign(query, static_cast<int>(std::strlen(query)),
+                                         target, static_cast<int>(std::strlen(target)),
                                          edlibNewAlignConfig(-1, EDLIB_MODE_SHW, EDLIB_TASK_PATH, NULL, 0));
     bool pass = result.status == EDLIB_STATUS_OK && result.editDistance == 2;
     printf(pass ? "\x1B[32m""OK""\x1B[0m\n" : "\x1B[31m""FAIL""\x1B[0m\n");
@@ -480,8 +480,8 @@ bool test15() {
     const char* query = "AAABBB";
     const char* target = "BBBC";
 
-    EdlibAlignResult result = edlibAlign(query, (int) std::strlen(query),
-                                         target, (int) std::strlen(target),
+    EdlibAlignResult result = edlibAlign(query, static_cast<int>(std::strlen(query)),
+                                         target, static_cast<int>(std::strlen(target)),
                                          edlibNewAlignConfig(-1, EDLIB_MODE_HW, EDLIB_TASK_LOC, NULL, 0));
     bool pass = result.status == EDLIB_STATUS_OK && result.editDistance == 3;
     printf(pass ? "\x1B[32m""OK""\x1B[0m\n" : "\x1B[31m""FAIL""\x1B[0m\n");
@@ -494,8 +494,8 @@ bool test16() {
     const char* query = "BBBAAA";
     const char* target = "CBBB";
 
-    EdlibAlignResult result = edlibAlign(query, (int) std::strlen(query),
-                                         target, (int) std::strlen(target),
+    EdlibAlignResult result = edlibAlign(query, static_cast<int>(std::strlen(query)),
+                                         target, static_cast<int>(std::strlen(target)),
                                          edlibNewAlignConfig(-1, EDLIB_MODE_HW, EDLIB_TASK_LOC, NULL, 0));
     bool pass = result.status == EDLIB_STATUS_OK && result.editDistance == 3;
     printf(pass ? "\x1B[32m""OK""\x1B[0m\n" : "\x1B[31m""FAIL""\x1B[0m\n");
