@@ -7,6 +7,9 @@ if(CMAKE_BUILD_TYPE MATCHES Debug)
   message("Debug mode")
 endif()
 
+include(GNUInstallDirs)
+include(CheckCXXCompilerFlag)
+
 set(CMAKE_CXX_STANDARD 11)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)  # Falling back to different standard it not allowed.
 set(CMAKE_CXX_EXTENSIONS NO)  # Make sure no compiler-specific features are used.
@@ -21,6 +24,15 @@ if(MSVC)
   endif()
 else()
   message("Setting warning flags")
+
+  check_cxx_compiler_flag(-Wold-style-cast WOLD_STYLE_CAST)
+  if (WOLD_STYLE_CAST)
+    set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wold-style-cast")
+  endif()
+  check_cxx_compiler_flag(-Wshadow WSHADOW)
+  if (WSHADOW)
+    set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wshadow")
+  endif()
   set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wall -Wextra -pedantic")
 endif()
 
@@ -48,8 +60,13 @@ target_include_directories(edlib_static PUBLIC
 add_executable(helloWorld apps/hello-world/helloWorld.c)
 target_link_libraries(helloWorld edlib_static)
 
-add_executable(runTests test/runTests.cpp)
-target_link_libraries(runTests edlib_static)
+include(CTest)
+if (BUILD_TESTING)
+  add_executable(runTests test/runTests.cpp)
+  target_link_libraries(runTests edlib_static)
+
+  add_test(edlib_tests ${CMAKE_RUNTIME_OUTPUT_DIRECTORY}/runTests)
+endif()
 
 if (NOT WIN32) # If on windows, do not build binaries that do not support windows.
   add_executable(edlib-aligner apps/aligner/aligner.cpp)
@@ -58,5 +75,5 @@ endif()
 
 
 # Create target 'install' for installing libraries.
-install(TARGETS edlib edlib_static DESTINATION lib)
-install(FILES edlib/include/edlib.h DESTINATION include)
+install(TARGETS edlib edlib_static DESTINATION ${CMAKE_INSTALL_LIBDIR})
+install(FILES edlib/include/edlib.h DESTINATION ${CMAKE_INSTALL_INCLUDEDIR})
