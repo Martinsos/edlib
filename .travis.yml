@@ -1,23 +1,59 @@
 language: cpp
-
-compiler:
-  - gcc
-  - clang
-
-os:
-  - linux
-  - osx
-
 dist: trusty
 
-addons:
-  apt:
-    packages:
-      clang
+# In order to catch as many weird edge cases in the code with -Werror as
+# possible, we want to test a large range of old and new compilers on both
+# Linux and macOS. This gives us the best possible coverage while maintaining
+# compatibility with a large number of compilers.
+matrix:
+  include:
+    - name: "GCC 4.9 (Linux)"
+      os: linux
+      addons:
+        apt:
+          sources:
+            - ubuntu-toolchain-r-test
+          packages:
+            - g++-4.9
+      env:
+         - MATRIX_EVAL="export CC=gcc-4.9 && export CXX=g++-4.9"
+
+    - name: "GCC 9 (Linux)"
+      os: linux
+      addons:
+        apt:
+          sources:
+            - ubuntu-toolchain-r-test
+          packages:
+            - g++-9
+      env:
+        - MATRIX_EVAL="export CC=gcc-9 && export CXX=g++-9"
+
+    - name: "Clang 5.0 (Linux)"
+      os: linux
+      addons:
+        apt:
+          sources:
+            - llvm-toolchain-trusty-5.0
+          packages:
+            - clang-5.0
+      env:
+        - MATRIX_EVAL="export CC=clang-5.0 && export CXX=clang++-5.0"
+
+    - name: "Clang Xcode 7.3 (Mac)"
+      os: osx
+      osx_image: xcode7.3
+
+    - name: "Clang Xcode 11 (Mac)"
+      os: osx
+      osx_image: xcode11
 
 # NOTE: Currently I commented out testing of python binding on OSX because they do not support
 # Python building and I have to provide the tools myself. I could probably install correct pip
 # (and maybe python) version myself (homebrew?), however I haven't gotten to that yet.
+
+before_install:
+  - eval "${MATRIX_EVAL}"
 
 install:
   - if [ $TRAVIS_OS_NAME == "linux" ]; then sudo apt-get install valgrind; fi
