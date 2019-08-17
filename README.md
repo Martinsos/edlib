@@ -110,7 +110,7 @@ edlib/  -> copied from edlib
 helloWorld.cpp -> your program
 ```
 
-Now you can compile it with `c++ helloWorld.cpp -o helloWorld -I edlib/include -L edlib -ledlib_static`.
+Now you can compile it with `c++ helloWorld.cpp -o helloWorld -I edlib/include -L edlib -ledlib`.
 
 ### Approach #3: Install edlib library on machine.
 Alternatively, you could avoid copying any Edlib files and instead install libraries by running `sudo make install` (check [Building](#building)). Now, all you have to do to compile your project is `c++ helloWorld.cpp -o helloWorld -ledlib`.
@@ -120,9 +120,9 @@ If you get error message like `cannot open shared object file: No such file or d
 If you are using CMake for compilation, we suggest adding edlib as a git submodule with the command `git submodule add https://github.com/martinsos/edlib vendor/edlib`. Afterwards, modify your top level CMakeLists.txt file accordingly:
 ```
 add_subdirectory(vendor/edlib EXCLUDE_FROM_ALL)
-target_link_libraries(your_exe edlib) # or target_link_libraries(your_exe edlib_static)
+target_link_libraries(your_exe edlib) # or target_link_libraries(your_exe edlib)
 ```
-The `add_subdirectory` command adds a folder to the build tree, meaning it will run CMakeLists.txt from the included folder as well. Flag `EXCLUDE_FROM_ALL` disables building (and instalment) of targets in the added folder which are not needed in your project. In the above example only the library `edlib` (or `edlib_static`) will be build, while `edlib-aligner`, `hello_world` and the rest won't. In order to access the `edlib` API, add `#include "edlib.h"` in your source file (CMake will automatically update your include path).
+The `add_subdirectory` command adds a folder to the build tree, meaning it will run CMakeLists.txt from the included folder as well. Flag `EXCLUDE_FROM_ALL` disables building (and instalment) of targets in the added folder which are not needed in your project. In the above example only the (static) library `edlib` will be build, while `edlib-aligner`, `hello_world` and the rest won't. In order to access the `edlib` API, add `#include "edlib.h"` in your source file (CMake will automatically update your include path).
 
 
 For more example projects take a look at applications in [apps/](apps/).

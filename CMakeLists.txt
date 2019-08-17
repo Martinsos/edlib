@@ -1,5 +1,5 @@
 cmake_minimum_required(VERSION 3.2 FATAL_ERROR)
-project(edlib)
+project(edlib VERSION 1.2.5)
 
 set(MACOSX (${CMAKE_SYSTEM_NAME} MATCHES "Darwin"))
 
@@ -12,7 +12,10 @@ include(CheckCXXCompilerFlag)
 
 set(CMAKE_CXX_STANDARD 11)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)  # Falling back to different standard it not allowed.
-set(CMAKE_CXX_EXTENSIONS NO)  # Make sure no compiler-specific features are used.
+set(CMAKE_CXX_EXTENSIONS OFF)  # Make sure no compiler-specific features are used.
+
+# Build edlib as static library by default
+set(BUILD_SHARED_LIBS OFF CACHE BOOL "Build all libraries as shared")
 
 # Set strict warnings.
 if(MSVC)
@@ -44,36 +47,34 @@ set(CMAKE_RUNTIME_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/bin)
 file(GLOB SOURCES "edlib/src/*.cpp")
 
 # Create libraries.
-add_library(edlib SHARED ${SOURCES})
+add_library(edlib ${SOURCES})
+set_target_properties(edlib
+    PROPERTIES
+    VERSION ${PROJECT_VERSION}
+    SOVERSION ${PROJECT_VERSION})
 
 target_include_directories(edlib PUBLIC
     $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/edlib/include>
     $<INSTALL_INTERFACE:include>)
 
-add_library(edlib_static STATIC ${SOURCES})
-
-target_include_directories(edlib_static PUBLIC
-    $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/edlib/include>
-    $<INSTALL_INTERFACE:include>)
-
 # Build binaries.
 add_executable(helloWorld apps/hello-world/helloWorld.c)
-target_link_libraries(helloWorld edlib_static)
+target_link_libraries(helloWorld edlib)
 
 include(CTest)
 if (BUILD_TESTING)
   add_executable(runTests test/runTests.cpp)
-  target_link_libraries(runTests edlib_static)
+  target_link_libraries(runTests edlib)
 
   add_test(edlib_tests ${CMAKE_RUNTIME_OUTPUT_DIRECTORY}/runTests)
 endif()
 
 if (NOT WIN32) # If on windows, do not build binaries that do not support windows.
   add_executable(edlib-aligner apps/aligner/aligner.cpp)
-  target_link_libraries(edlib-aligner edlib_static)
+  target_link_libraries(edlib-aligner edlib)
 endif()
 
 
 # Create target 'install' for installing libraries.
-install(TARGETS edlib edlib_static DESTINATION ${CMAKE_INSTALL_LIBDIR})
+install(TARGETS edlib DESTINATION ${CMAKE_INSTALL_LIBDIR})
 install(FILES edlib/include/edlib.h DESTINATION ${CMAKE_INSTALL_INCLUDEDIR})
