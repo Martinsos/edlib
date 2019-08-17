@@ -15,6 +15,7 @@ matrix:
             - ubuntu-toolchain-r-test
           packages:
             - g++-4.9
+            - ninja-build
       env:
          - MATRIX_EVAL="export CC=gcc-4.9 && export CXX=g++-4.9"
 
@@ -26,6 +27,7 @@ matrix:
             - ubuntu-toolchain-r-test
           packages:
             - g++-9
+            - ninja-build
       env:
         - MATRIX_EVAL="export CC=gcc-9 && export CXX=g++-9"
 
@@ -37,16 +39,26 @@ matrix:
             - llvm-toolchain-trusty-5.0
           packages:
             - clang-5.0
+            - ninja-build
       env:
         - MATRIX_EVAL="export CC=clang-5.0 && export CXX=clang++-5.0"
 
     - name: "Clang Xcode 7.3 (Mac)"
       os: osx
       osx_image: xcode7.3
+      addons:
+        homebrew:
+          packages:
+            - ninja
+          update: true
 
     - name: "Clang Xcode 11 (Mac)"
       os: osx
       osx_image: xcode11
+      addons:
+        homebrew:
+          packages:
+            - ninja
 
 # NOTE: Currently I commented out testing of python binding on OSX because they do not support
 # Python building and I have to provide the tools myself. I could probably install correct pip
@@ -61,7 +73,7 @@ install:
 
 before_script:
   # Build C/C++ library and apps.
-  - mkdir -p build && cd build && CXXFLAGS="-Werror" cmake -DCMAKE_VERBOSE_MAKEFILE=ON .. && make && cd ..
+  - mkdir -p build && cd build && CXXFLAGS="-Werror" cmake -GNinja .. && ninja -v && cd ..
 
   # Build Python source distribution and install Edlib from it.
   - if [ $TRAVIS_OS_NAME == "linux" ]; then cd bindings/python && make sdist && cd ../..; fi
@@ -69,7 +81,7 @@ before_script:
 
 script:
   # Test C/C++ library using CTest.
-  - cd build && make test && cat Testing/Temporary/LastTest.log && cd ..
+  - ninja -C build -v test && cat build/Testing/Temporary/LastTest.log
   # Check for memory leaks. Returns 2 if there was a memory leak/error, otherwise returns runTests exit code,
   # which is 0 if all went fine or 1 if some of the tests failed. I test for memory leaks only on linux because
   # osx returns errors from system libraries, which I would have to supress.
