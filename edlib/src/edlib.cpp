@@ -1303,8 +1303,8 @@ static int obtainAlignmentHirschberg(
     int queryIdxLeftStart = max(scoresLeftStartIdx, scoresRightStartIdx - 1);
     int queryIdxLeftEnd = min(scoresLeftStartIdx + scoresLeftLength - 1,
                           scoresRightStartIdx + scoresRightLength - 2);
-    int leftScore, rightScore;
-    int queryIdxLeftAlignment;  // Query/row index of cell in left column where alignment is passing through.
+    int leftScore = -1, rightScore = -1;
+    int queryIdxLeftAlignment = -1;  // Query/row index of cell in left column where alignment is passing through.
     bool queryIdxLeftAlignmentFound = false;
     for (int queryIdx = queryIdxLeftStart; queryIdx <= queryIdxLeftEnd; queryIdx++) {
         leftScore = scoresLeft[queryIdx - scoresLeftStartIdx];
