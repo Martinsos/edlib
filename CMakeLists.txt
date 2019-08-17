@@ -78,3 +78,10 @@ endif()
 # Create target 'install' for installing libraries.
 install(TARGETS edlib DESTINATION ${CMAKE_INSTALL_LIBDIR})
 install(FILES edlib/include/edlib.h DESTINATION ${CMAKE_INSTALL_INCLUDEDIR})
+
+# configure and install pkg-config file
+configure_file(
+    ${CMAKE_CURRENT_SOURCE_DIR}/edlib.pc.in
+    ${CMAKE_CURRENT_BINARY_DIR}/edlib-1.pc
+    @ONLY)
+install(FILES ${CMAKE_CURRENT_BINARY_DIR}/edlib-1.pc DESTINATION ${CMAKE_INSTALL_LIBDIR}/pkgconfig)
