@@ -36,11 +36,17 @@ Installation
 API
 ---
 
-Edlib has only one function:
+Edlib has two functions, `align()` and `getNiceAlignment()`:
 
 .. code:: python
 
     align(query, target, [mode], [task], [k])
+
+.. code:: python
+
+    getNiceAlignment(alignResutl, query, target)
+
+
 
 To learn more about it, type :code:`help(edlib.align)` in your python interpreter.
 
@@ -62,6 +68,15 @@ Usage
     print(result["alphabetLength"])  # 5
     print(result["locations"])  # [(1, 4)]
     print(result["cigar"])  # "4="
+
+    result = edlib.align("elephant", "telephone", task="path")  ## users must use 'task="path"' 
+    niceAlign = edlib.getNiceAlignment(result, "elephant", "telephone")
+    print(niceAlign['query_aligned'])  # "-elephant"
+    print(niceAlign['matched_aligned'])  # "-|||||.|."
+    print(niceAlign['target_aligned'])  # "telephone"
+
+
+
 
 ---------
 Benchmark

@@ -1,5 +1,6 @@
 cimport cython
 from cpython.mem cimport PyMem_Malloc, PyMem_Free
+import re
 
 cimport cedlib
 
@@ -52,6 +53,7 @@ def _map_to_bytes(query, target, additional_equalities):
                 for a, b in additional_equalities
                 if a in input_mapping and b in input_mapping]
     return query_bytes, target_bytes, additional_equalities
+
 
 
 def align(query, target, mode="NW", task="distance", k=-1, additionalEqualities=None):
@@ -152,3 +154,88 @@ def align(query, target, mode="NW", task="distance", k=-1, additionalEqualities=
     cedlib.edlibFreeAlignResult(cresult)
 
     return result
+
+
+def getNiceAlignment(alignResult, query, target, gapSymbol="-"):
+    """ Output alignments from align() in NICE format
+    @param {dictionary} alignResult, output of the method align() 
+        NOTE: The method align() requires the argument task="path"
+    @param {string} query, the exact query used for alignResult
+    @param {string} target, the exact target used for alignResult
+    @param {string} gapSymbol, default "-"
+        String used to represent gaps in the alignment between query and target
+    @return Alignment in NICE format, which is human-readable visual representation of how the query and target align to each other. 
+        e.g., for "telephone" and "elephant", it would look like:
+           telephone
+            |||||.|.
+           -elephant
+        It is represented as dictionary with following fields:
+          - {string} query_aligned
+          - {string} matched_aligned ('|' for match, '.' for mismatch, ' ' for insertion/deletion)
+          - {string} target_aligned
+        Normally you will want to print these three in order above joined with newline character.
+    """
+    if type(alignResult) is not dict:
+        raise Exception("The object alignResult is expected to be a python dictionary. Please check the input alignResult.")
+
+    if 'locations' not in alignResult.keys():
+        raise Exception("The object alignResult is expected to contain a field 'locations'. Please check the input alignResult.")
+
+    target_pos = alignResult["locations"][0][0]
+    if target_pos == None:
+        target_pos = 0
+    query_pos = 0 ## 0-indexed
+    target_aln = match_aln = query_aln = ""
+
+    if 'cigar' not in alignResult.keys():
+        raise Exception("The object alignResult is expected to contain a CIGAR string. Please check the input alignResult.")
+
+    cigar = alignResult["cigar"]
+
+    if alignResult["cigar"] == '' or alignResult["cigar"] == None:
+        raise Exception("The object alignResult contains an empty CIGAR string. Users must run align() with task='path'. Please check the input alignResult.")        
+
+    ###
+    ## cigar parsing, motivated by yech1990: https://github.com/Martinsos/edlib/issues/127
+    ##
+    ## 'num_occurences' == Number of occurrences of the alignment operation
+    ## 'alignment_operation' == Cigar symbol/code that represent an alignment operation
+    ## 
+    for num_occurrences, alignment_operation in re.findall("(\d+)(\D)", cigar):
+        num_occurrences = int(num_occurrences)
+        if alignment_operation == "=":
+            target_aln += target[target_pos : target_pos + num_occurrences]
+            target_pos += num_occurrences
+            query_aln += query[query_pos : query_pos + num_occurrences]
+            query_pos += num_occurrences
+            match_aln += "|" * num_occurrences
+        elif alignment_operation == "X":
+            target_aln += target[target_pos : target_pos + num_occurrences]
+            target_pos += num_occurrences
+            query_aln += query[query_pos : query_pos + num_occurrences]
+            query_pos += num_occurrences
+            match_aln += "." * num_occurrences
+        elif alignment_operation == "D":
+            target_aln += target[target_pos : target_pos + num_occurrences]
+            target_pos += num_occurrences
+            query_aln += gapSymbol * num_occurrences
+            query_pos += 0
+            match_aln +=gapSymbol * num_occurrences
+        elif alignment_operation == "I":
+            target_aln += gapSymbol * num_occurrences
+            target_pos += 0
+            query_aln += query[query_pos : query_pos + num_occurrences]
+            query_pos += num_occurrences
+            match_aln += gapSymbol * num_occurrences
+        else:
+            raise Exception("The CIGAR string from alignResult contains a symbol not '=', 'X', 'D', 'I'. Please check the validity of alignResult and alignResult.cigar")
+
+    alignments = {
+        'query_aligned': query_aln,
+        'matched_aligned': match_aln,
+        'target_aligned': target_aln
+    }
+
+    return alignments
+
+
