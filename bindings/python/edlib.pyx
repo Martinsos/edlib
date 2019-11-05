@@ -90,7 +90,7 @@ def align(query, target, mode="NW", task="distance", k=-1, additionalEqualities=
                 e.g. cigar of "5=1X1=1I" means "5 matches, 1 mismatch, 1 match, 1 insertion (to target)".
     """
     # Check both query and target sequence are not empty
-    if len(query) == 0 or len(target) == 0:
+    if not query or not target:
         result = {
             'editDistance': len(query + target)
             'alphabetLength': len(set(query + target))
