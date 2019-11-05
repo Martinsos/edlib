@@ -89,6 +89,16 @@ def align(query, target, mode="NW", task="distance", k=-1, additionalEqualities=
                 Match: '=', Insertion to target: 'I', Deletion from target: 'D', Mismatch: 'X'.
                 e.g. cigar of "5=1X1=1I" means "5 matches, 1 mismatch, 1 match, 1 insertion (to target)".
     """
+    # Check both query and target sequence are not empty
+    if len(query) == 0 or len(target) == 0:
+        result = {
+            'editDistance': len(query + target)
+            'alphabetLength': len(set(query + target))
+            'locations': [(None, None)],
+            'cigar': None
+        }
+        return result
+
     # Transform python sequences of hashables into c strings.
     cdef bytes query_bytes
     cdef bytes target_bytes
