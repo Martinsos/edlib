@@ -92,8 +92,8 @@ def align(query, target, mode="NW", task="distance", k=-1, additionalEqualities=
     # Check both query and target sequence are not empty
     if not query or not target:
         result = {
-            'editDistance': len(query + target)
-            'alphabetLength': len(set(query + target))
+            'editDistance': len(query + target),
+            'alphabetLength': len(set(query + target)),
             'locations': [(None, None)],
             'cigar': None
         }
