@@ -1,6 +1,7 @@
 #ifndef SIMPLE_EDIT_DISTANCE_H
 #define SIMPLE_EDIT_DISTANCE_H
 
+#include <algorithm>
 #include <cstdio>
 #include <vector>
 #include "edlib.h"
