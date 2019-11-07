@@ -3,7 +3,6 @@
 
 #include <cstdio>
 #include <vector>
-#include <stdexcept>
 #include "edlib.h"
 
 using namespace std;
@@ -32,14 +31,16 @@ int calcEditDistanceSimple(const char* query, int queryLength,
     if (queryLength == 0 || targetLength == 0) {
         if (mode == EDLIB_MODE_NW) {
             *score = std::max(queryLength, targetLength);
-            *positions_ = new int[1] {targetLength - 1};
+            *positions_ = new int[1];
+            *positions_[0] = targetLength - 1;
             *numPositions_ = 1;
         } else if (mode == EDLIB_MODE_SHW || mode == EDLIB_MODE_HW) {
             *score = queryLength;
-            *positions_ = new int[1] {-1};
+            *positions_ = new int[1];
+            *positions_[0] = -1;
             *numPositions_ = 1;
         } else {
-            throw std::invalid_argument("Received invalid edlib mode.");
+            return EDLIB_STATUS_ERROR;
         }
         return EDLIB_STATUS_OK;
     }

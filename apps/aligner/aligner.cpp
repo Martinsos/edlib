@@ -343,7 +343,7 @@ void printAlignment(const char* query, const char* target,
     for (int start = 0; start < alignmentLength; start += 50) {
         // target
         printf("T: ");
-        int startTIdx;
+        int startTIdx = -1;
         for (int j = start; j < start + 50 && j < alignmentLength; j++) {
             if (alignment[j] == EDLIB_EDOP_INSERT)
                 printf("-");

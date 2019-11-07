@@ -6,7 +6,6 @@
 #include <vector>
 #include <cstring>
 #include <string>
-#include <stdexcept>
 
 using namespace std;
 
@@ -171,7 +170,7 @@ extern "C" EdlibAlignResult edlibAlign(const char* const queryOriginal, const in
             result.endLocations[0] = -1;
             result.numLocations = 1;
         } else {
-            throw std::invalid_argument("Received invalid edlib mode.");
+            result.status = EDLIB_STATUS_ERROR;
         }
 
         free(query);

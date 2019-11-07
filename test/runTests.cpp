@@ -220,7 +220,7 @@ bool executeTest(const char* query, int queryLength,
 
     bool pass = true;
 
-    int scoreSimple; int numLocationsSimple; int* endLocationsSimple;
+    int scoreSimple = -1; int numLocationsSimple = 0; int* endLocationsSimple = NULL;
     calcEditDistanceSimple(query, queryLength, target, targetLength,
                            mode, &scoreSimple, &endLocationsSimple, &numLocationsSimple);
 
