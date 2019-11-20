@@ -43,6 +43,9 @@ API
 
 Edlib has two functions, ``align()`` and ``getNiceAlignment()``:
 
+align()
+-------
+
 .. code:: python
 
     align(query, target, [mode], [task], [k], [additionalEqualities])
@@ -68,11 +71,11 @@ Aligns ``query`` against ``target`` with edit distnace.
 
 ``align()`` returns a python dictioanry with the following fields:
 
-* ``editDistance``  -1 if it is larger than k.
-* ``alphabetLength``  Length of unique characters in 'query' and 'target'
-* ``locations``  List of locations, in format `[(start, end)]`.
-* ``cigar``  Cigar is a standard format for alignment path.
-  Here we are using extended cigar format, which uses following symbols:
+* ``editDistance`` --- -1 if it is larger than k.
+* ``alphabetLength`` --- Length of unique characters in 'query' and 'target'
+* ``locations`` --- List of locations, in format `[(start, end)]`.
+* ``cigar`` --- Cigar is a standard format for alignment path.
+Here we are using extended cigar format, which uses following symbols:
   - Match: ``"="``
   - Insertion to target: ``"I"``
   - Deletion from target: ``"D"``
@@ -84,6 +87,9 @@ To learn more about this function, type :code:`help(edlib.align)` in your python
 
 
 
+
+getNiceAlignment()
+------------------
 
 .. code:: python
 
