@@ -66,8 +66,8 @@ def align(query, target, mode="NW", task="distance", k=-1, additionalEqualities=
             - 'NW' for global (default)
             - 'HW' for infix
             - 'SHW' for prefix.
-    @param {string} task  Optional. Tells edlib what to calculate. Less there is to calculate,
-            faster it is. Possible value are (from fastest to slowest):
+    @param {string} task  Optional. Tells edlib what to calculate. The less there is to calculate,
+            the faster it is. Possible value are (from fastest to slowest):
             - 'distance' - find edit distance and end locations in target. Default.
             - 'locations' - find edit distance, end locations and start locations.
             - 'path' - find edit distance, start and end locations and alignment path.
@@ -81,8 +81,8 @@ def align(query, target, mode="NW", task="distance", k=-1, additionalEqualities=
             characters to act as a wildcards.
             Set to None (default) if you do not want to extend edlib's default equality definition.
     @return Dictionary with following fields:
-            {int} editDistance  -1 if it is larger than k.
-            {int} alphabetLength
+            {int} editDistance  Integer, -1 if it is larger than k.
+            {int} alphabetLength Integer, length of unique characters in 'query' and 'target'
             {[(int, int)]} locations  List of locations, in format [(start, end)].
             {string} cigar  Cigar is a standard format for alignment path.
                 Here we are using extended cigar format, which uses following symbols:
