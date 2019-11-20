@@ -49,8 +49,7 @@ Edlib has two functions, ``align()`` and ``getNiceAlignment()``:
 
 Aligns ``query`` against ``target`` with edit distnace. 
 
-Parameters:
------------
+**Parameters:**
 
 * ``query`` --- (Required) Combined with query must have no more than 256 unique values. String or bytes.
 * ``target`` --- (Required) Combined with target must have no more than 256 unique values. String or bytes. 
@@ -63,10 +62,9 @@ Parameters:
   - ``"locations"`` - find edit distance, end locations and start locations.
   - ``"path"`` - find edit distance, start and end locations and alignment path.
 * ``k`` -- (Default ``-1``, optional) Max edit distance to search for - the lower this value, the faster is calculation. Set to -1 (default) to have no limit on edit distance.
-* `additionalEqualities` (Default `None`, optional) List of pairs of characters or hashable objects, where each pair defines two values as equal. This way you can extend edlib's definition of equality (which is that each character is equal only to itself).This can be useful e.g. when you want edlib to be case insensitive, or if you want certain characters to act as a wildcards. Set to None (default) if you do not want to extend edlib's default equality definition.
+* ``additionalEqualities`` --- (Default `None`, optional) List of pairs of characters or hashable objects, where each pair defines two values as equal. This way you can extend edlib's definition of equality (which is that each character is equal only to itself).This can be useful e.g. when you want edlib to be case insensitive, or if you want certain characters to act as a wildcards. Set to None (default) if you do not want to extend edlib's default equality definition.
 
-Returns:
---------
+**Returns:**
 
 ``align()`` returns a python dictioanry with the following fields:
 * ``editDistance``  -1 if it is larger than k.
@@ -92,8 +90,7 @@ To learn more about this function, type :code:`help(edlib.align)` in your python
 
 Output alignments from ``align()`` in NICE format. 
 
-Parameters:
------------
+**Parameters:**
 
 * ``alignResult`` --- (Required) Output of the method ``align()``. NOTE: The method align() requires the argument ``task="path"``
 * ``query`` --- (Required) The exact query used for ``alignResult``
@@ -101,21 +98,19 @@ Parameters:
 * ``gapSymbol`` --- (Default ``"-"``, optional) String used to represent gaps in the alignment between query and target
 
 
-Returns:
---------
+**Returns:**
 
 ``getNiceAlignment()`` returns the alignment in NICE format, which is human-readable visual representation of how the query and target align to each other. e.g., for "telephone" and "elephant", it would look like:
 
 ::
-
     telephone
      |||||.|.
     -elephant
 
 It is represented as dictionary with following fields:
-  - ``query_aligned``
-  - ``matched_aligned`` (``'|'`` for match, ``'.'`` for mismatch, ``' '`` for insertion/deletion)
-  - ``target_aligned``
+* ``query_aligned``
+* ``matched_aligned`` (``'|'`` for match, ``'.'`` for mismatch, ``' '`` for insertion/deletion)
+* ``target_aligned``
 Normally you will want to print these three in order above joined with newline character.
 
 
