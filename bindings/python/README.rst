@@ -2,13 +2,18 @@
 Edlib
 =====
 
-Lightweight, super fast library for sequence alignment using edit (Levenshtein) distance.
+Lightweight, super fast library for sequence alignment using edit (Levenshtein) distance. Edlib is actually a C/C++ library, and this package is it's wrapper for Python.
+
+The python extension Edlib has two functions, `align()` and `getNiceAlignment()`:
 
 .. code:: python
 
-    edlib.align("hello", "world")
+    align(query, target, [mode], [task], [k])
 
-Edlib is actually a C/C++ library, and this package is it's wrapper for Python.
+.. code:: python
+
+    getNiceAlignment(alignResutl, query, target)
+
 Python Edlib has mostly the same API as C/C++ Edlib, so make sure to check out `C/C++ Edlib docs <http://github.com/Martinsos/edlib>`_ for more code examples, details on API and how Edlib works.
 
 --------
@@ -40,15 +45,78 @@ Edlib has two functions, `align()` and `getNiceAlignment()`:
 
 .. code:: python
 
-    align(query, target, [mode], [task], [k])
+    align(query, target, [mode], [task], [k], [additionalEqualities])
+
+Aligns `query` against `target` with edit distnace. 
+
+#### Parameters:
+* `query` --- (Required) Combined with query must have no more than 256 unique values. String or bytes.
+* `target` --- (Required) Combined with target must have no more than 256 unique values. String or bytes. 
+* `mode` --- (Default `"NW"`, optional) Alignment method do be used. 
+    * `"NW"` for global (default)
+    * `"HW"` for infix
+    * `"SHW"` for prefix
+* `task` --- (Default `"distance"`, optional) Tells edlib what to calculate. The less there is to calculate,
+    the faster it is. Possible value are (from fastest to slowest):
+    * `"distance"` - find edit distance and end locations in target. Default.
+    * `"locations"` - find edit distance, end locations and start locations.
+    * `"path"` - find edit distance, start and end locations and alignment path.
+* `k` -- (Default `-1`, optional) Max edit distance to search for - the lower this value,
+    the faster is calculation. Set to -1 (default) to have no limit on edit distance.
+* `additionalEqualities` (Default `None`, optional) List of pairs of characters or hashable objects, 
+    where each pair defines two values as equal. This way you can extend edlib's definition of equality 
+    (which is that each character is equal only to itself).This can be useful e.g. when you want edlib to be case insensitive, 
+    or if you want certain characters to act as a wildcards. Set to None (default) if you do not want to extend edlib's default equality definition.
+
+#### Returns:    
+`align()` returns a python dictioanry with the following fields:
+* `editDistance`  -1 if it is larger than k.
+* `alphabetLength`  Length of unique characters in 'query' and 'target'
+* `locations`  List of locations, in format `[(start, end)]`.
+* `cigar`  Cigar is a standard format for alignment path.
+    Here we are using extended cigar format, which uses following symbols:
+    * Match: `"="`
+    * Insertion to target: `"I"`
+    * Deletion from target: `"D"`
+    * Mismatch: `"X"`.
+    e.g. cigar of `"5=1X1=1I"` means "5 matches, 1 mismatch, 1 match, 1 insertion (to target)".
+
+
+To learn more about this function, type :code:`help(edlib.align)` in your python interpreter.
+
 
 .. code:: python
 
     getNiceAlignment(alignResutl, query, target)
 
+Output alignments from `align()` in NICE format. 
+
+#### Parameters:
+* `alignResult` --- (Required) Output of the method `align()`. 
+    NOTE: The method align() requires the argument `task="path"`
+
+* `query` --- (Required) The exact query used for `alignResult`
+* `target`  --- (Required) The exact target used for `alignResult`
+* `gapSymbol` --- (Default `"-"`, optional) String used to represent gaps in the alignment between query and target
 
 
-To learn more about it, type :code:`help(edlib.align)` in your python interpreter.
+#### Returns:
+`getNiceAlignment()` returns the alignment in NICE format, which is human-readable visual representation of how the query and target align to each other. e.g., for "telephone" and "elephant", it would look like:
+    ```
+     telephone
+      |||||.|.
+     -elephant
+    ```
+It is represented as dictionary with following fields:
+    * `query_aligned`
+    * `matched_aligned` ('|' for match, '.' for mismatch, ' ' for insertion/deletion)
+    * `target_aligned`
+Normally you will want to print these three in order above joined with newline character.
+
+
+To learn more about this function, type :code:`help(edlib.getNiceAlignment)` in your python interpreter.
+
+
 
 -----
 Usage
