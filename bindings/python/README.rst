@@ -74,14 +74,12 @@ Aligns ``query`` against ``target`` with edit distnace.
 * ``editDistance`` --- -1 if it is larger than k.
 * ``alphabetLength`` --- Length of unique characters in 'query' and 'target'
 * ``locations`` --- List of locations, in format `[(start, end)]`.
-* ``cigar`` --- Cigar is a standard format for alignment path.
-Here we are using extended cigar format, which uses following symbols:
+* ``cigar`` --- Cigar is a standard format for alignment path. Here we are using extended cigar format, which uses following symbols:
   - Match: ``"="``
   - Insertion to target: ``"I"``
   - Deletion from target: ``"D"``
   - Mismatch: ``"X"``.
 e.g. cigar of ``"5=1X1=1I"`` means "5 matches, 1 mismatch, 1 match, 1 insertion (to target)".
-
 
 To learn more about this function, type :code:`help(edlib.align)` in your python interpreter.
 
@@ -110,6 +108,7 @@ Output alignments from ``align()`` in NICE format.
 ``getNiceAlignment()`` returns the alignment in NICE format, which is human-readable visual representation of how the query and target align to each other. e.g., for "telephone" and "elephant", it would look like:
 
 ::
+
     telephone
      |||||.|.
     -elephant
