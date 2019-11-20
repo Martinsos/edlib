@@ -62,16 +62,17 @@ Aligns ``query`` against ``target`` with edit distnace.
   - ``"locations"`` - find edit distance, end locations and start locations.
   - ``"path"`` - find edit distance, start and end locations and alignment path.
 * ``k`` -- (Default ``-1``, optional) Max edit distance to search for - the lower this value, the faster is calculation. Set to -1 (default) to have no limit on edit distance.
-* ``additionalEqualities`` --- (Default `None`, optional) List of pairs of characters or hashable objects, where each pair defines two values as equal. This way you can extend edlib's definition of equality (which is that each character is equal only to itself).This can be useful e.g. when you want edlib to be case insensitive, or if you want certain characters to act as a wildcards. Set to None (default) if you do not want to extend edlib's default equality definition.
+* ``additionalEqualities`` --- (Default ``None``, optional) List of pairs of characters or hashable objects, where each pair defines two values as equal. This way you can extend edlib's definition of equality (which is that each character is equal only to itself).This can be useful e.g. when you want edlib to be case insensitive, or if you want certain characters to act as a wildcards. Set to None (default) if you do not want to extend edlib's default equality definition.
 
 **Returns:**
 
 ``align()`` returns a python dictioanry with the following fields:
+
 * ``editDistance``  -1 if it is larger than k.
 * ``alphabetLength``  Length of unique characters in 'query' and 'target'
 * ``locations``  List of locations, in format `[(start, end)]`.
 * ``cigar``  Cigar is a standard format for alignment path.
-Here we are using extended cigar format, which uses following symbols:
+  Here we are using extended cigar format, which uses following symbols:
   - Match: ``"="``
   - Insertion to target: ``"I"``
   - Deletion from target: ``"D"``
