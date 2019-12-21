@@ -85,3 +85,13 @@ configure_file(
     ${CMAKE_CURRENT_BINARY_DIR}/edlib-1.pc
     @ONLY)
 install(FILES ${CMAKE_CURRENT_BINARY_DIR}/edlib-1.pc DESTINATION ${CMAKE_INSTALL_LIBDIR}/pkgconfig)
+
+
+#################
+# Generic Edlib #
+#################
+
+set(EDLIB_GENERIC_HEADER edlibGeneric/src/)
+
+add_executable(runTests_generic edlibGeneric/test/runTests.cpp)
+target_include_directories(runTests_generic PRIVATE ${EDLIB_GENERIC_HEADER})
