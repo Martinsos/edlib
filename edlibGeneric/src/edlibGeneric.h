@@ -1581,18 +1581,20 @@ static void transformSequences(const AlphaType* const queryOriginal, const int q
 
     // Alphabet information, it is constructed on fly while transforming sequences.
     // letterIdx[c] is index of letter c in alphabet.
-
+    IdxType currentSize = 0;
     for (int i = 0; i < queryLength; i++) {
         AlphaType c = queryOriginal[i];
         if (alphabetIdx.find(c) == alphabetIdx.end()) {
-            alphabetIdx[c] = alphabetIdx.size() - 1;
+            alphabetIdx[c] = currentSize;
+            currentSize++;
         }
         (*queryTransformed)[i] = alphabetIdx[c];
     }
     for (int i = 0; i < targetLength; i++) {
         AlphaType c = targetOriginal[i];
         if (alphabetIdx.find(c) == alphabetIdx.end()) {
-            alphabetIdx[c] = alphabetIdx.size() - 1;
+            alphabetIdx[c] = currentSize;
+            currentSize ++;
         }
         (*targetTransformed)[i] = alphabetIdx[c];
     }
