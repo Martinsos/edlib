@@ -1580,7 +1580,7 @@ static void transformSequences(const AlphaType* const queryOriginal, const int q
 
 
     // Alphabet information, it is constructed on fly while transforming sequences.
-    // letterIdx[c] is index of letter c in alphabet.
+    // alphabetIdx[c] is index of letter c in alphabet.
     IdxType currentSize = 0;
     for (int i = 0; i < queryLength; i++) {
         AlphaType c = queryOriginal[i];
