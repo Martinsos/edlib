@@ -237,7 +237,10 @@ void edlibFreeAlignResult(EdlibAlignResult result);
  * @return  Result of alignment, which can contain edit distance, start and end locations and alignment path.
  *          Make sure to clean up the object using edlibFreeAlignResult() or by manually freeing needed members.
  */
-
+template < class AlphaType, class IdxType>
+EdlibAlignResult edlibAlign(const AlphaType* query, int queryLength,
+                            const AlphaType* target, int targetLength,
+                            const EdlibAlignConfig config);
 
 /**
  * Builds cigar string from given alignment sequence.
@@ -378,14 +381,6 @@ static inline Word* buildPeq(const int alphabetLength,
                              const EqualityDefinition<IdxType>& equalityDefinition);
 
 
-template < class AlphaType, class IdxType>
-EdlibAlignResult edlibAlign(const AlphaType* query, int queryLength,
-                            const AlphaType* target, int targetLength,
-                            const EdlibAlignConfig config);
-
-/**
- * Main edlib method.
- */
 
 EdlibAlignConfig edlibNewAlignConfig(int k, EdlibAlignMode mode, EdlibAlignTask task,
                                      EdlibEqualityPair* additionalEqualities,
@@ -1608,6 +1603,7 @@ template < class AlphaType, class IdxType >
 EdlibAlignResult edlibAlign(const AlphaType* const queryOriginal, const int queryLength,
                             const AlphaType* const targetOriginal, const int targetLength,
                             const EdlibAlignConfig config) {
+    clock_t start;
     EdlibAlignResult result;
     result.status = EDLIB_STATUS_OK;
     result.editDistance = -1;
@@ -1617,6 +1613,7 @@ EdlibAlignResult edlibAlign(const AlphaType* const queryOriginal, const int quer
     result.alignmentLength = 0;
     result.alphabetLength = 0;
 
+    start = clock();
     /*------------ TRANSFORM SEQUENCES AND RECOGNIZE ALPHABET -----------*/
     IdxType* query = new IdxType[queryLength];
     IdxType * target = new IdxType[targetLength];
@@ -1625,6 +1622,8 @@ EdlibAlignResult edlibAlign(const AlphaType* const queryOriginal, const int quer
                                            targetOriginal, targetLength,
                                            &query, &target, alphabetIdx);
     result.alphabetLength = static_cast<int>(alphabetIdx.size());
+    double mTime = static_cast<double>(clock() - start)/CLOCKS_PER_SEC;
+    printf("Time: %lf\n", mTime);
     /*-------------------------------------------------------*/
 
     // Handle special situation when at least one of the sequences has length 0.
