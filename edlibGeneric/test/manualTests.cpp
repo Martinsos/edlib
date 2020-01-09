@@ -66,7 +66,7 @@ void printAlignment(const AlphaType* query, const AlphaType* target,
         printf(" (%d - %d)\n", max(startTIdx, 0), tIdx);
 
         // match / mismatch
-        printf("   \t");
+        cout << "   ";
         for (int j = start; j < start + 50 && j < alignmentLength; j++) {
             cout << setw(space) << (alignment[j] == EDLIB_EDOP_MATCH ? "|" : " ");
         }
