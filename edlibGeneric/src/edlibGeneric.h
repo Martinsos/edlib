@@ -1612,8 +1612,6 @@ EdlibAlignResult edlibAlign(const AlphaType* const queryOriginal, const int quer
     result.alignment = NULL;
     result.alignmentLength = 0;
     result.alphabetLength = 0;
-
-    start = clock();
     /*------------ TRANSFORM SEQUENCES AND RECOGNIZE ALPHABET -----------*/
     IdxType* query = new IdxType[queryLength];
     IdxType * target = new IdxType[targetLength];
@@ -1622,8 +1620,6 @@ EdlibAlignResult edlibAlign(const AlphaType* const queryOriginal, const int quer
                                            targetOriginal, targetLength,
                                            &query, &target, alphabetIdx);
     result.alphabetLength = static_cast<int>(alphabetIdx.size());
-    double mTime = static_cast<double>(clock() - start)/CLOCKS_PER_SEC;
-    printf("Time: %lf\n", mTime);
     /*-------------------------------------------------------*/
 
     // Handle special situation when at least one of the sequences has length 0.
