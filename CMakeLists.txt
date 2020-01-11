@@ -96,5 +96,11 @@ set(EDLIB_GENERIC_HEADER edlibGeneric/src/)
 add_executable(runTests_generic edlibGeneric/test/runTests.cpp)
 target_include_directories(runTests_generic PRIVATE ${EDLIB_GENERIC_HEADER})
 
+add_executable(performanceTest_generic edlibGeneric/test/performanceTest_Generic.cpp)
+target_include_directories(performanceTest_generic PRIVATE ${EDLIB_GENERIC_HEADER})
+
+add_executable(performanceTest_char edlibGeneric/test/performanceTest_Char.cpp)
+target_link_libraries(performanceTest_char edlib)
+
 add_executable(manualTests_generic edlibGeneric/test/manualTests.cpp)
 target_include_directories(manualTests_generic PRIVATE ${EDLIB_GENERIC_HEADER})
