@@ -12,7 +12,7 @@
 
 using namespace std;
 
-typedef char AlphaType;
+typedef char AlphabetType;
 typedef unsigned char IdxType;
 
 
@@ -20,8 +20,8 @@ int min3(int x, int y, int z) {
     return min(x, min(y, z));
 }
 
-int calcEditDistanceSimple(const AlphaType* query, int queryLength,
-                           const AlphaType* target, int targetLength,
+int calcEditDistanceSimple(const AlphabetType* query, int queryLength,
+                           const AlphabetType* target, int targetLength,
                            const EdlibAlignMode mode, int* score,
                            int** positions_, int* numPositions_) {
     int bestScore = -1;

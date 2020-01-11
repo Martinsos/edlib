@@ -7,8 +7,8 @@
 #include <iomanip>
 
 
-template <class AlphaType>
-void printAlignment(const AlphaType* query, const AlphaType* target,
+template <class AlphabetType>
+void printAlignment(const AlphabetType* query, const AlphabetType* target,
                     const unsigned char* alignment, const int alignmentLength,
                     const int position, const EdlibAlignMode modeCode, const int space);
 
@@ -38,8 +38,8 @@ int main() {
     edlibFreeAlignResult(result);
 }
 
-template <class AlphaType>
-void printAlignment(const AlphaType* query, const AlphaType* target,
+template <class AlphabetType>
+void printAlignment(const AlphabetType* query, const AlphabetType* target,
                     const unsigned char* alignment, const int alignmentLength,
                     const int position, const EdlibAlignMode modeCode, const int space) {
     int tIdx = -1;

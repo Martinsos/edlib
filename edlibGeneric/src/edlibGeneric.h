@@ -237,9 +237,9 @@ void edlibFreeAlignResult(EdlibAlignResult result);
  * @return  Result of alignment, which can contain edit distance, start and end locations and alignment path.
  *          Make sure to clean up the object using edlibFreeAlignResult() or by manually freeing needed members.
  */
-template < class AlphaType, class IdxType>
-EdlibAlignResult edlibAlign(const AlphaType* query, int queryLength,
-                            const AlphaType* target, int targetLength,
+template < class AlphabetType, class IdxType>
+EdlibAlignResult edlibAlign(const AlphabetType* query, int queryLength,
+                            const AlphabetType* target, int targetLength,
                             const EdlibAlignConfig config);
 
 /**
@@ -325,8 +325,8 @@ public:
     }
 };
 
-template < class AlphaType, class IdxType>
-static void makeEqualityMatrix(unordered_map<AlphaType, IdxType>& alphabetIdx,
+template < class AlphabetType, class IdxType>
+static void makeEqualityMatrix(unordered_map<AlphabetType, IdxType>& alphabetIdx,
                                const EdlibEqualityPair* additionalEqualities = NULL,
                                const int additionalEqualitiesLength = 0, bool*** matrix = NULL);
 
@@ -363,9 +363,9 @@ static int obtainAlignmentTraceback(int queryLength, int targetLength,
                                     int bestScore, const AlignmentData* alignData,
                                     unsigned char** alignment, int* alignmentLength);
 
-template < class AlphaType, class IdxType >
-static void transformSequences(const AlphaType* queryOriginal, int queryLength,
-                               const AlphaType* targetOriginal, int targetLength,
+template < class AlphabetType, class IdxType >
+static void transformSequences(const AlphabetType* queryOriginal, int queryLength,
+                               const AlphabetType* targetOriginal, int targetLength,
                                IdxType** const queryTransformed, IdxType** const targetTransformed,
                                unordered_map < IdxType, uint8_t >& alphabetIdx);
 
@@ -1513,8 +1513,8 @@ static int obtainAlignmentHirschberg(
     return EDLIB_STATUS_OK;
 }
 
-template<class AlphaType, class IdxType>
-void makeEqualityMatrix(unordered_map<AlphaType, IdxType> &alphabetIdx,
+template<class AlphabetType, class IdxType>
+void makeEqualityMatrix(unordered_map<AlphabetType, IdxType> &alphabetIdx,
                         const EdlibEqualityPair *additionalEqualities,
                         const int additionalEqualitiesLength, bool *** matrix) {
     //memory allocation
@@ -1562,11 +1562,11 @@ void makeEqualityMatrix(unordered_map<AlphaType, IdxType> &alphabetIdx,
  * @return  Alphabet as a string of unique characters, where index of each character is its value in transformed
  *          sequences.
  */
-template < class AlphaType, class IdxType >
-static void transformSequences(const AlphaType* const queryOriginal, const int queryLength,
-                               const AlphaType* const targetOriginal, const int targetLength,
+template < class AlphabetType, class IdxType >
+static void transformSequences(const AlphabetType* const queryOriginal, const int queryLength,
+                               const AlphabetType* const targetOriginal, const int targetLength,
                                IdxType** const queryTransformed, IdxType ** const targetTransformed,
-                               unordered_map <AlphaType, IdxType >& alphabetIdx) {
+                               unordered_map <AlphabetType, IdxType >& alphabetIdx) {
 
     // Alphabet is constructed from letters that are present in sequences.
     // Each letter is assigned an ordinal number, starting from 0 up to alphabetLength - 1,
@@ -1578,7 +1578,7 @@ static void transformSequences(const AlphaType* const queryOriginal, const int q
     // alphabetIdx[c] is index of letter c in alphabet.
     IdxType currentSize = 0;
     for (int i = 0; i < queryLength; i++) {
-        AlphaType c = queryOriginal[i];
+        AlphabetType c = queryOriginal[i];
         if (alphabetIdx.find(c) == alphabetIdx.end()) {
             alphabetIdx[c] = currentSize;
             currentSize++;
@@ -1586,7 +1586,7 @@ static void transformSequences(const AlphaType* const queryOriginal, const int q
         (*queryTransformed)[i] = alphabetIdx[c];
     }
     for (int i = 0; i < targetLength; i++) {
-        AlphaType c = targetOriginal[i];
+        AlphabetType c = targetOriginal[i];
         if (alphabetIdx.find(c) == alphabetIdx.end()) {
             alphabetIdx[c] = currentSize;
             currentSize ++;
@@ -1599,9 +1599,9 @@ static void transformSequences(const AlphaType* const queryOriginal, const int q
  * Main edlib method.
  */
 
-template < class AlphaType, class IdxType >
-EdlibAlignResult edlibAlign(const AlphaType* const queryOriginal, const int queryLength,
-                            const AlphaType* const targetOriginal, const int targetLength,
+template < class AlphabetType, class IdxType >
+EdlibAlignResult edlibAlign(const AlphabetType* const queryOriginal, const int queryLength,
+                            const AlphabetType* const targetOriginal, const int targetLength,
                             const EdlibAlignConfig config) {
     clock_t start;
     EdlibAlignResult result;
@@ -1615,8 +1615,8 @@ EdlibAlignResult edlibAlign(const AlphaType* const queryOriginal, const int quer
     /*------------ TRANSFORM SEQUENCES AND RECOGNIZE ALPHABET -----------*/
     IdxType* query = new IdxType[queryLength];
     IdxType * target = new IdxType[targetLength];
-    unordered_map< AlphaType, IdxType> alphabetIdx;
-    transformSequences<AlphaType, IdxType>(queryOriginal, queryLength,
+    unordered_map< AlphabetType, IdxType> alphabetIdx;
+    transformSequences<AlphabetType, IdxType>(queryOriginal, queryLength,
                                            targetOriginal, targetLength,
                                            &query, &target, alphabetIdx);
     result.alphabetLength = static_cast<int>(alphabetIdx.size());
@@ -1647,7 +1647,7 @@ EdlibAlignResult edlibAlign(const AlphaType* const queryOriginal, const int quer
     int maxNumBlocks = ceilDiv(queryLength, WORD_SIZE); // bmax in Myers
     int W = maxNumBlocks * WORD_SIZE - queryLength; // number of redundant cells in last level blocks
     bool** equalityMatrix = NULL;
-    //makeEqualityMatrix<AlphaType, IdxType>(alphabetIdx,config.additionalEqualities,
+    //makeEqualityMatrix<AlphabetType, IdxType>(alphabetIdx,config.additionalEqualities,
     //                                       config.additionalEqualitiesLength, &equalityMatrix);
     EqualityDefinition<IdxType> equalityDefinition(equalityMatrix);
     Word* Peq = buildPeq<IdxType>(alphabetIdx.size(), query, queryLength, equalityDefinition);

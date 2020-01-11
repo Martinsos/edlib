@@ -80,9 +80,9 @@ int main(int argc, char* argv[]) {
 }
 
 
-void fillRandomly(AlphaType * seq, int seqLength, int alphabetLength) {
+void fillRandomly(AlphabetType * seq, int seqLength, int alphabetLength) {
     for (int i = 0; i < seqLength; i++)
-        seq[i] = static_cast<AlphaType>(rand() % alphabetLength);
+        seq[i] = static_cast<AlphabetType>(rand() % alphabetLength);
 }
 
 // Returns true if all tests passed, false otherwise.
@@ -94,13 +94,13 @@ void runRandomTests(int numTests, EdlibAlignMode mode, bool findAlignment,
     double timeEdlib = 0;
 
     for (int i = 0; i < numTests; i++) {
-        AlphaType * query = static_cast<AlphaType *>(malloc(sizeof(AlphaType) * queryLength));
-        AlphaType * target = static_cast<AlphaType *>(malloc(sizeof(AlphaType) * targetLength));
+        AlphabetType * query = static_cast<AlphabetType *>(malloc(sizeof(AlphabetType) * queryLength));
+        AlphabetType * target = static_cast<AlphabetType *>(malloc(sizeof(AlphabetType) * targetLength));
         fillRandomly(query, queryLength, alphabetLength);
         fillRandomly(target, targetLength, alphabetLength);
 
         start = clock();
-        EdlibAlignResult result = edlibAlign<AlphaType , IdxType >(
+        EdlibAlignResult result = edlibAlign<AlphabetType , IdxType >(
                 query, queryLength, target, targetLength,
                 edlibNewAlignConfig(-1, mode, findAlignment ? EDLIB_TASK_PATH : EDLIB_TASK_DISTANCE, NULL, 0));
         timeEdlib += clock() - start;
