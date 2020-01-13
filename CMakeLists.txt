@@ -91,16 +91,41 @@ install(FILES ${CMAKE_CURRENT_BINARY_DIR}/edlib-1.pc DESTINATION ${CMAKE_INSTALL
 # Generic Edlib #
 #################
 
-set(EDLIB_GENERIC_HEADER edlibGeneric/src/)
+
+set(EDLIB_GENERIC_DIR edlibGeneric/include/)
+include_directories(${EDLIB_GENERIC_DIR})
 
 add_executable(runTests_generic edlibGeneric/test/runTests.cpp)
-target_include_directories(runTests_generic PRIVATE ${EDLIB_GENERIC_HEADER})
 
 add_executable(performanceTest_generic edlibGeneric/test/performanceTest_Generic.cpp)
-target_include_directories(performanceTest_generic PRIVATE ${EDLIB_GENERIC_HEADER})
 
 add_executable(performanceTest_char edlibGeneric/test/performanceTest_Char.cpp)
 target_link_libraries(performanceTest_char edlib)
 
 add_executable(manualTests_generic edlibGeneric/test/manualTests.cpp)
-target_include_directories(manualTests_generic PRIVATE ${EDLIB_GENERIC_HEADER})
+
+add_library(edlibGeneric_c STATIC edlibGeneric/src/edlibChar.cpp)
+
+add_executable(manualTest_c edlibGeneric/test/manualTest_c.c)
+target_link_libraries(manualTest_c edlibGeneric_c)
+
+
+set(EDLIB_CHAR_SOURCES edlibGeneric/src/edlibChar.cpp)
+
+# Create libraries.
+add_library(edlibChar ${EDLIB_CHAR_SOURCES})
+set_target_properties(edlibChar
+        PROPERTIES
+        VERSION ${PROJECT_VERSION}
+        SOVERSION ${PROJECT_VERSION})
+
+target_include_directories(edlibChar PUBLIC
+        $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/edlibGeneric/include>
+        $<INSTALL_INTERFACE:include>)
+
+# Create target 'install' for installing libraries.
+install(TARGETS edlibChar DESTINATION ${CMAKE_INSTALL_LIBDIR})
+
+install(FILES edlibGeneric/include/edlibChar.h DESTINATION ${CMAKE_INSTALL_INCLUDEDIR})
+install(FILES edlibGeneric/include/edlibGeneric.h DESTINATION ${CMAKE_INSTALL_INCLUDEDIR})
+install(FILES edlibGeneric/include/baseHeader.h DESTINATION ${CMAKE_INSTALL_INCLUDEDIR})

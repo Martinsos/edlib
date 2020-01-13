@@ -8,7 +8,7 @@
 #include <cstring>
 #include <climits>
 
-#include "edlibGeneric.h"
+#include "../include/edlibGeneric.h"
 #include "SimpleEditDistance_Generic.h"
 
 using namespace std;

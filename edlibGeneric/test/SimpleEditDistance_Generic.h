@@ -8,7 +8,7 @@
 #include <algorithm>
 #include <cstdio>
 #include <vector>
-#include "edlibGeneric.h"
+#include "../include/edlibGeneric.h"
 
 using namespace std;
 

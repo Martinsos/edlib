@@ -3,7 +3,7 @@
 //
 #include <iostream>
 #include <stdio.h>
-#include "edlibGeneric.h"
+#include "../include/edlibGeneric.h"
 #include <iomanip>
 
 
