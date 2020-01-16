@@ -26,7 +26,6 @@ Popular use cases: aligning DNA sequences, calculating word/text similarity.
     # -elephant
     # -|||||.|.
     # telephone
-    
 
 Edlib is actually a C/C++ library, and this package is it's wrapper for Python.
 Python Edlib has mostly the same API as C/C++ Edlib, so feel free to check out `C/C++ Edlib docs <http://github.com/Martinsos/edlib>`_ for more code examples, details on API and how Edlib works.
@@ -69,7 +68,25 @@ Aligns ``query`` against ``target`` with edit distance.
 
 ``query`` and ``target`` can be strings, bytes, or any iterables of hashable objects, as long as all together they don't have more than 256 unique values.
 
-To learn more about this function, type :code:`help(edlib.align)` in your python interpreter.
+..
+   [[[cog
+       import cog
+       import pydoc
+       import edlib
+
+       help_str = pydoc.render_doc(edlib.align, "%s", renderer=pydoc.plaintext)
+       indentation = '    '
+
+       cog.outl("")
+       cog.outl("Output of ``help(edlib.align)``:")
+       cog.outl("")
+       cog.outl(".. code::\n")
+       cog.outl(indentation + help_str.replace('\n', '\n' + indentation))
+.. ]]]
+
+Run ``help(edlib.align)`` to learn more.
+    
+..  [[[end]]]
 
 getNiceAlignment()
 ------------------
@@ -80,7 +97,25 @@ getNiceAlignment()
 
 Represents alignment from ``align()`` in a visually attractive format.
 
-To learn more about this function, type :code:`help(edlib.getNiceAlignment)` in your python interpreter.
+..
+   [[[cog
+       import cog
+       import pydoc
+       import edlib
+
+       help_str = pydoc.render_doc(edlib.getNiceAlignment, "%s", renderer=pydoc.plaintext)
+       indentation = '    '
+
+       cog.outl("")
+       cog.outl("Output of ``help(edlib.getNiceAlignment)``:")
+       cog.outl("")
+       cog.outl(".. code::\n")
+       cog.outl(indentation + help_str.replace('\n', '\n' + indentation))
+.. ]]]
+
+Run ``help(edlib.getNiceAlignment)`` to learn more.
+    
+..  [[[end]]]
 
 
 -----
