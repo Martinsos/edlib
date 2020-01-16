@@ -2,19 +2,34 @@
 Edlib
 =====
 
-Lightweight, super fast library for sequence alignment using edit (Levenshtein) distance. Edlib is actually a C/C++ library, and this package is it's wrapper for Python.
+Lightweight, super fast library for sequence alignment using edit (Levenshtein) distance.
 
-The python extension Edlib has two functions, ``align()`` and ``getNiceAlignment()``:
-
-.. code:: python
-
-    align(query, target, [mode], [task], [k])
+Popular use cases: aligning DNA sequences, calculating word/text similarity.
 
 .. code:: python
 
-    getNiceAlignment(alignResutl, query, target)
+    edlib.align("elephant", "telephone")
+    # {'editDistance': 3, 'alphabetLength': 8, 'locations': [(None, 8)], 'cigar': None}
 
-Python Edlib has mostly the same API as C/C++ Edlib, so make sure to check out `C/C++ Edlib docs <http://github.com/Martinsos/edlib>`_ for more code examples, details on API and how Edlib works.
+    # Works with unicode characters (or any other iterable of hashable objects)!
+    edlib.align("ты милая", "ты гений")
+    # {'editDistance': 5, 'alphabetLength': 12, 'locations': [(None, 7)], 'cigar': None}
+
+    query = "AACG"; target = "TCAACCTG" 
+    result = edlib.align(query, target, mode = "HW", task = "path")
+    # {'editDistance': 1, 'alphabetLength': 4, 'locations': [(2, 4), (2, 5)], 'cigar': '3=1I'}
+
+    query = "elephant"; target = "telephone"
+    result = edlib.align(query, target, task = "path")
+    nice = edlib.getNiceAlignment(result, query, target)
+    print("\n".join(nice.values()))
+    # -elephant
+    # -|||||.|.
+    # telephone
+    
+
+Edlib is actually a C/C++ library, and this package is it's wrapper for Python.
+Python Edlib has mostly the same API as C/C++ Edlib, so feel free to check out `C/C++ Edlib docs <http://github.com/Martinsos/edlib>`_ for more code examples, details on API and how Edlib works.
 
 --------
 Features
@@ -28,7 +43,7 @@ Features
 * It can easily handle small or **very large** sequences, even when finding alignment path.
 * **Super fast** thanks to Myers's bit-vector algorithm.
 
-NOTE: Size of alphabet has to be <= 256 (meaning that query and target together must have <= 256 unique values).
+**NOTE**: **Alphabet length has to be <= 256** (meaning that query and target together must have <= 256 unique values).
 
 ------------
 Installation
@@ -50,41 +65,11 @@ align()
 
     align(query, target, [mode], [task], [k], [additionalEqualities])
 
-Aligns ``query`` against ``target`` with edit distnace. 
+Aligns ``query`` against ``target`` with edit distance.
 
-**Parameters:**
-
-* ``query`` --- (Required) Combined with query must have no more than 256 unique values. String, bytes, or iterable of hashable objects accepted.
-* ``target`` --- (Required) Combined with target must have no more than 256 unique values. String, bytes, or iterable of hashable objects accepted.
-* ``mode`` --- (Default ``"NW"``, optional) Alignment method do be used. 
-  - ``"NW"`` for global (default)
-  - ``"HW"`` for infix
-  - ``"SHW"`` for prefix
-* ``task`` --- (Default ``"distance"``, optional) Tells edlib what to calculate. The less there is to calculate, the faster it is. Possible value are (from fastest to slowest):
-  - ``"distance"`` - find edit distance and end locations in target. Default.
-  - ``"locations"`` - find edit distance, end locations and start locations.
-  - ``"path"`` - find edit distance, start and end locations and alignment path.
-* ``k`` -- (Default ``-1``, optional) Max edit distance to search for - the lower this value, the faster is calculation. Set to -1 (default) to have no limit on edit distance.
-* ``additionalEqualities`` --- (Default ``None``, optional) List of pairs of characters or hashable objects, where each pair defines two values as equal. This way you can extend edlib's definition of equality (which is that each character is equal only to itself).This can be useful e.g. when you want edlib to be case insensitive, or if you want certain characters to act as a wildcards. Set to None (default) if you do not want to extend edlib's default equality definition.
-
-**Returns:**
-
-``align()`` returns a python dictioanry with the following fields:
-
-* ``editDistance`` --- -1 if it is larger than k.
-* ``alphabetLength`` --- Length of unique characters in 'query' and 'target'
-* ``locations`` --- List of locations, in format `[(start, end)]`.
-* ``cigar`` --- Cigar is a standard format for alignment path. Here we are using extended cigar format, which uses following symbols:
-  * Match: ``"="``
-  * Insertion to target: ``"I"``
-  * Deletion from target: ``"D"``
-  * Mismatch: ``"X"``.
-e.g. cigar of ``"5=1X1=1I"`` means "5 matches, 1 mismatch, 1 match, 1 insertion (to target)".
+``query`` and ``target`` can be strings, bytes, or any iterables of hashable objects, as long as all together they don't have more than 256 unique values.
 
 To learn more about this function, type :code:`help(edlib.align)` in your python interpreter.
-
-
-
 
 getNiceAlignment()
 ------------------
@@ -93,37 +78,9 @@ getNiceAlignment()
 
     getNiceAlignment(alignResult, query, target)
 
-Output alignments from ``align()`` in NICE format. 
-
-**Parameters:**
-
-* ``alignResult`` --- (Required) Output of the method ``align()``. NOTE: The method align() requires the argument ``task="path"``
-* ``query`` --- (Required) The exact query used for ``alignResult``
-* ``target``  --- (Required) The exact target used for ``alignResult``
-* ``gapSymbol`` --- (Default ``"-"``, optional) String used to represent gaps in the alignment between query and target
-
-
-**Returns:**
-
-``getNiceAlignment()`` returns the alignment in NICE format, which is human-readable visual representation of how the query and target align to each other. e.g., for "telephone" and "elephant", it would look like:
-
-::
-
-    telephone
-     |||||.|.
-    -elephant
-
-It is represented as dictionary with following fields:
-
-* ``query_aligned``
-* ``matched_aligned`` (``'|'`` for match, ``'.'`` for mismatch, ``' '`` for insertion/deletion)
-* ``target_aligned``
-
-Normally you will want to print these three in order above joined with newline character.
-
+Represents alignment from ``align()`` in a visually attractive format.
 
 To learn more about this function, type :code:`help(edlib.getNiceAlignment)` in your python interpreter.
-
 
 
 -----
@@ -133,12 +90,6 @@ Usage
 
     import edlib
 
-    result = edlib.align("elephant", "telephone")
-    print(result["editDistance"])  # 3
-    print(result["alphabetLength"])  # 8
-    print(result["locations"])  # [(None, 8)]
-    print(result["cigar"])  # None
-
     result = edlib.align("ACTG", "CACTRT", mode="HW", task="path", additionalEqualities=[("R", "A"), ("R", "G")])
     print(result["editDistance"])  # 0
     print(result["alphabetLength"])  # 5
@@ -147,9 +98,9 @@ Usage
 
     result = edlib.align("elephant", "telephone", task="path")  ## users must use 'task="path"' 
     niceAlign = edlib.getNiceAlignment(result, "elephant", "telephone")
-    print(niceAlign['query_aligned'])  # "-elephant"
+    print(niceAlign['query_aligned'])  #   "-elephant"
     print(niceAlign['matched_aligned'])  # "-|||||.|."
-    print(niceAlign['target_aligned'])  # "telephone"
+    print(niceAlign['target_aligned'])  #  "telephone"
 
 
 
