@@ -54,8 +54,8 @@ Aligns ``query`` against ``target`` with edit distnace.
 
 **Parameters:**
 
-* ``query`` --- (Required) Combined with query must have no more than 256 unique values. String or bytes.
-* ``target`` --- (Required) Combined with target must have no more than 256 unique values. String or bytes. 
+* ``query`` --- (Required) Combined with query must have no more than 256 unique values. String, bytes, or iterable of hashable objects accepted.
+* ``target`` --- (Required) Combined with target must have no more than 256 unique values. String, bytes, or iterable of hashable objects accepted.
 * ``mode`` --- (Default ``"NW"``, optional) Alignment method do be used. 
   - ``"NW"`` for global (default)
   - ``"HW"`` for infix
