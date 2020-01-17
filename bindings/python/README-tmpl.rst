@@ -211,12 +211,12 @@ Run :code:`make sdist` to create a source distribution, but not publish it - it 
 Good way to test it is to run :code:`sudo pip install dist/edlib-*.tar.gz`, which will try to install edlib from it, same way as pip will do it when it is published.
 
 Run :code:`make publish` to create a source distribution and publish it to the PyPI. Use this to publish new version of package.
-Make sure to bump the version in `setup.py` before publishing, if needed.
+Make sure to bump the version in ``setup.py`` before publishing, if needed.
 
 :code:`make clean` removes all generated files.
 
 Don't edit README.rst directly, edit README-tmpl.rst instead -> README.rst is auto-generated from README-tmpl.rst.
-To regenerate README.rst once you edit README-tmpl.rst, or just to update it if edlib changes its behaviour, run `make README.rst`.
-README.rst is also automatically regenerated when building package (e.g. `make build`).
+To regenerate README.rst once you edit README-tmpl.rst, or just to update it if edlib changes its behaviour, run ``make README.rst``.
+README.rst is also automatically regenerated when building package (e.g. ``make build``).
 README.rst is special in the sense that we commit it to git, so that we have nice README in github.
 This enables us to always have up to date results of code execution and help documentation of edlib methods in readme.

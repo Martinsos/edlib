@@ -30,7 +30,7 @@ setup(
     name = "edlib",
     description = "Lightweight, super fast library for sequence alignment using edit (Levenshtein) distance.",
     long_description = long_description,
-    version = "1.3.6",
+    version = "1.3.7",
     url = "https://github.com/Martinsos/edlib",
     author = "Martin Sosic",
     author_email = "sosic.martin@gmail.com",
