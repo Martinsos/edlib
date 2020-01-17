@@ -6,4 +6,5 @@ edlib.c
 edlib.*.so
 .eggs/
 *.bycython.*
+README.rst
 README.html
