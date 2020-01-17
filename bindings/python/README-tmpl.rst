@@ -100,7 +100,7 @@ Aligns ``query`` against ``target`` with edit distance.
 
     import pydoc
 
-    help_str = pydoc.render_doc(edlib.align, "%s", renderer=pydoc.plaintext)
+    help_str = pydoc.plain(pydoc.render_doc(edlib.align, "%s"))
 
     cog.outl()
     cog.outl('Output of ``help(edlib.align)``:')
@@ -124,7 +124,7 @@ Represents alignment from ``align()`` in a visually attractive format.
 
     import pydoc
 
-    help_str = pydoc.render_doc(edlib.getNiceAlignment, "%s", renderer=pydoc.plaintext)
+    help_str = pydoc.plain(pydoc.render_doc(edlib.getNiceAlignment, "%s"))
 
     cog.outl()
     cog.outl('Output of ``help(edlib.align)``:')
