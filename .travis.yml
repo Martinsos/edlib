@@ -70,6 +70,7 @@ before_install:
 install:
   - if [ $TRAVIS_OS_NAME == "linux" ]; then sudo apt-get install valgrind; fi
   - if [ $TRAVIS_OS_NAME == "linux" ]; then sudo -H pip install cython; fi  # Needed to build Python module.
+  - if [ $TRAVIS_OS_NAME == "linux" ]; then sudo -H pip install cogapp; fi  # Needed to build Python module.
 
 before_script:
   # Build C/C++ library and apps.
