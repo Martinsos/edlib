@@ -35,3 +35,4 @@ publish: clean sdist
 clean:
 	rm -rf edlib dist edlib.egg-info build
 	rm -f edlib.c *.bycython.* edlib.*.so
+	rm -f README.rst

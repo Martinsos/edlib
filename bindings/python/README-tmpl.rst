@@ -215,8 +215,6 @@ Make sure to bump the version in ``setup.py`` before publishing, if needed.
 
 :code:`make clean` removes all generated files.
 
-Don't edit README.rst directly, edit README-tmpl.rst instead -> README.rst is auto-generated from README-tmpl.rst.
-To regenerate README.rst once you edit README-tmpl.rst, or just to update it if edlib changes its behaviour, run ``make README.rst``.
+README.rst is auto-generated from README-tmpl.rst, to run regeneration do ``make README.rst``.
 README.rst is also automatically regenerated when building package (e.g. ``make build``).
-README.rst is special in the sense that we commit it to git, so that we have nice README in github.
 This enables us to always have up to date results of code execution and help documentation of edlib methods in readme.
