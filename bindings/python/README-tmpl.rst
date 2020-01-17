@@ -205,6 +205,17 @@ Check out `C/C++ Edlib docs <http://github.com/Martinsos/edlib>`_ for more infor
 Development
 -----------
 
+SETUP
+-----
+
+Besides python, you will need ``cython`` and ``cog`` to build edlib python package.
+
+Run ``pip install cython`` to install ``cython``, which is used to wrap C/C++ code into python.
+Run ``pip install cogapp`` to install ``cog``, which is used to generate README.rst from README-tmpl.rst.
+
+Development
+-----------
+
 Run :code:`make build` to generate an extension module as .so file. You can test it then by importing it from python interpreter :code:`import edlib` and running :code:`edlib.align(...)` (you have to be positioned in the directory where .so was built). This is useful for testing while developing.
 
 Run :code:`make sdist` to create a source distribution, but not publish it - it is a tarball in dist/ that will be uploaded to pip on `publish`. Use this to check that tarball is well structured and contains all needed files, before you publish.
