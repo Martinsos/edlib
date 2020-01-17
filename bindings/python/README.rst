@@ -1,20 +1,3 @@
-..  [[[cog
-        
-    import cog
-    import edlib
-       
-    def indent(text, indentation = "    "):
-        return indentation + text.replace("\n", "\n" + indentation)
-
-    def comment(text):
-        return "# " + text.replace("\n", "\n# ")
-
-    def cogOutExpression(expr):
-        cog.outl(indent(expr))
-        cog.outl(indent(comment(str(eval(expr)))))
-
-    ]]]
-    [[[end]]]
 
 =====
 Edlib
@@ -24,36 +7,27 @@ Lightweight, super fast library for sequence alignment using edit (Levenshtein) 
 
 Popular use cases: aligning DNA sequences, calculating word/text similarity.
 
-..  [[[cog
-   
-    cog.outl()
-    cog.outl(".. code:: python")
-    cog.outl()
-       
-    cogOutExpression('edlib.align("elephant", "telephone")')
-    cog.outl()
-       
-    cog.outl(indent(comment('Works with unicode characters (or any other iterable of hashable objects)!')))
-    cogOutExpression('edlib.align("ты милая", "ты гений")')
-    cog.outl()
 
-    cogOutExpression('edlib.align("AACG", "TCAACCTG", mode = "HW", task = "path")')
-    cog.outl()
+.. code:: python
 
-    cog.outl(indent('query = "elephant"; target = "telephone"'))
-    cog.outl(indent('result = edlib.align(query, target, task = "path")'))
-    cog.outl(indent('nice = edlib.getNiceAlignment(result, query, target)'))
-    cog.outl(indent('print("\\n".join(nice.values()))'))
+    edlib.align("elephant", "telephone")
+    # {'editDistance': 3, 'alphabetLength': 8, 'locations': [(None, 8)], 'cigar': None}
+
+    # Works with unicode characters (or any other iterable of hashable objects)!
+    edlib.align("ты милая", "ты гений")
+    # {'editDistance': 5, 'alphabetLength': 12, 'locations': [(None, 7)], 'cigar': None}
+
+    edlib.align("AACG", "TCAACCTG", mode = "HW", task = "path")
+    # {'editDistance': 1, 'alphabetLength': 4, 'locations': [(2, 4), (2, 5)], 'cigar': '3=1I'}
 
     query = "elephant"; target = "telephone"
     result = edlib.align(query, target, task = "path")
     nice = edlib.getNiceAlignment(result, query, target)
-    output = "\n".join(nice.values())
-    cog.outl(indent(comment(output)))
-    cog.outl()
-    
-    ]]]
-    [[[end]]]
+    print("\n".join(nice.values()))
+    # -elephant
+    # -|||||.|.
+    # telephone
+
 
 Edlib is actually a C/C++ library, and this package is it's wrapper for Python.
 Python Edlib has mostly the same API as C/C++ Edlib, so feel free to check out `C/C++ Edlib docs <http://github.com/Martinsos/edlib>`_ for more code examples, details on API and how Edlib works.
@@ -96,20 +70,46 @@ Aligns ``query`` against ``target`` with edit distance.
 
 ``query`` and ``target`` can be strings, bytes, or any iterables of hashable objects, as long as all together they don't have more than 256 unique values.
 
-..  [[[cog
 
-    import pydoc
+Output of ``help(edlib.align)``:
 
-    help_str = pydoc.render_doc(edlib.align, "%s", renderer=pydoc.plaintext)
+.. code::
 
-    cog.outl()
-    cog.outl('Output of ``help(edlib.align)``:')
-    cog.outl()
-    cog.outl('.. code::\n')
-    cog.outl(indent(help_str))
-
-    ]]]
-    [[[end]]]
+    built-in function align in module edlib
+    
+    align(...)
+        Align query with target using edit distance.
+        @param {str or bytes or iterable of hashable objects} query, combined with target must have no more
+               than 256 unique values
+        @param {str or bytes or iterable of hashable objects} target, combined with query must have no more
+               than 256 unique values
+        @param {string} mode  Optional. Alignment method do be used. Possible values are:
+                - 'NW' for global (default)
+                - 'HW' for infix
+                - 'SHW' for prefix.
+        @param {string} task  Optional. Tells edlib what to calculate. The less there is to calculate,
+                the faster it is. Possible value are (from fastest to slowest):
+                - 'distance' - find edit distance and end locations in target. Default.
+                - 'locations' - find edit distance, end locations and start locations.
+                - 'path' - find edit distance, start and end locations and alignment path.
+        @param {int} k  Optional. Max edit distance to search for - the lower this value,
+                the faster is calculation. Set to -1 (default) to have no limit on edit distance.
+        @param {list} additionalEqualities  Optional.
+                List of pairs of characters or hashable objects, where each pair defines two values as equal.
+                This way you can extend edlib's definition of equality (which is that each character is equal only
+                to itself).
+                This can be useful e.g. when you want edlib to be case insensitive, or if you want certain
+                characters to act as a wildcards.
+                Set to None (default) if you do not want to extend edlib's default equality definition.
+        @return Dictionary with following fields:
+                {int} editDistance  Integer, -1 if it is larger than k.
+                {int} alphabetLength Integer, length of unique characters in 'query' and 'target'
+                {[(int, int)]} locations  List of locations, in format [(start, end)].
+                {string} cigar  Cigar is a standard format for alignment path.
+                    Here we are using extended cigar format, which uses following symbols:
+                    Match: '=', Insertion to target: 'I', Deletion from target: 'D', Mismatch: 'X'.
+                    e.g. cigar of "5=1X1=1I" means "5 matches, 1 mismatch, 1 match, 1 insertion (to target)".
+    
 
 getNiceAlignment()
 ------------------
@@ -120,44 +120,50 @@ getNiceAlignment()
 
 Represents alignment from ``align()`` in a visually attractive format.
 
-..  [[[cog
 
-    import pydoc
+Output of ``help(edlib.align)``:
 
-    help_str = pydoc.render_doc(edlib.getNiceAlignment, "%s", renderer=pydoc.plaintext)
+.. code::
 
-    cog.outl()
-    cog.outl('Output of ``help(edlib.align)``:')
-    cog.outl()
-    cog.outl('.. code::\n')
-    cog.outl(indent(help_str))
-
-    ]]]
-    [[[end]]]
+    built-in function getNiceAlignment in module edlib
+    
+    getNiceAlignment(...)
+        Output alignments from align() in NICE format
+        @param {dictionary} alignResult, output of the method align() 
+            NOTE: The method align() requires the argument task="path"
+        @param {string} query, the exact query used for alignResult
+        @param {string} target, the exact target used for alignResult
+        @param {string} gapSymbol, default "-"
+            String used to represent gaps in the alignment between query and target
+        @return Alignment in NICE format, which is human-readable visual representation of how the query and target align to each other. 
+            e.g., for "telephone" and "elephant", it would look like:
+               telephone
+                |||||.|.
+               -elephant
+            It is represented as dictionary with following fields:
+              - {string} query_aligned
+              - {string} matched_aligned ('|' for match, '.' for mismatch, ' ' for insertion/deletion)
+              - {string} target_aligned
+            Normally you will want to print these three in order above joined with newline character.
+    
 
 
 -----
 Usage
 -----
 
-..  [[[cog
 
-    cog.outl()
-    cog.outl(".. code:: python")
-    cog.outl()
+.. code:: python
 
-    cog.outl(indent('import edlib'))
-    cog.outl()
+    import edlib
 
-    cogOutExpression('edlib.align("ACTG", "CACTRT", mode="HW", task="path")')
-    cog.outl()
+    edlib.align("ACTG", "CACTRT", mode="HW", task="path")
+    # {'editDistance': 1, 'alphabetLength': 5, 'locations': [(1, 3), (1, 4)], 'cigar': '3=1I'}
 
-    cog.outl(indent(comment('You can provide additional equalities.')))
-    cogOutExpression('edlib.align("ACTG", "CACTRT", mode="HW", task="path", additionalEqualities=[("R", "A"), ("R", "G")])')
-    cog.outl()
+    # You can provide additional equalities.
+    edlib.align("ACTG", "CACTRT", mode="HW", task="path", additionalEqualities=[("R", "A"), ("R", "G")])
+    # {'editDistance': 0, 'alphabetLength': 5, 'locations': [(1, 4)], 'cigar': '4='}
 
-    ]]]
-    [[[end]]]
    
 
 ---------
