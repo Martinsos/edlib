@@ -41,6 +41,7 @@ Popular use cases: aligning DNA sequences, calculating word/text similarity.
     cog.outl()
 
     cog.outl(indent('query = "elephant"; target = "telephone"'))
+    cog.outl(indent(comment('NOTE: `task` has to be "path" in order to get nice alignment.')))
     cog.outl(indent('result = edlib.align(query, target, task = "path")'))
     cog.outl(indent('nice = edlib.getNiceAlignment(result, query, target)'))
     cog.outl(indent('print("\\n".join(nice.values()))'))
@@ -51,9 +52,14 @@ Popular use cases: aligning DNA sequences, calculating word/text similarity.
     output = "\n".join(nice.values())
     cog.outl(indent(comment(output)))
     cog.outl()
-    
+
     ]]]
-    [[[end]]]
+
+.. code::
+   
+   {{ Basic code examples will be generated here. }}
+
+..  [[[end]]]
 
 Edlib is actually a C/C++ library, and this package is it's wrapper for Python.
 Python Edlib has mostly the same API as C/C++ Edlib, so feel free to check out `C/C++ Edlib docs <http://github.com/Martinsos/edlib>`_ for more code examples, details on API and how Edlib works.
@@ -109,7 +115,12 @@ Aligns ``query`` against ``target`` with edit distance.
     cog.outl(indent(help_str))
 
     ]]]
-    [[[end]]]
+
+.. code::
+   
+   {{ Content of help(edlib.align) will be generated here. }}
+    
+..  [[[end]]]
 
 getNiceAlignment()
 ------------------
@@ -127,13 +138,18 @@ Represents alignment from ``align()`` in a visually attractive format.
     help_str = pydoc.plain(pydoc.render_doc(edlib.getNiceAlignment, "%s"))
 
     cog.outl()
-    cog.outl('Output of ``help(edlib.align)``:')
+    cog.outl('Output of ``help(edlib.getNiceAlignment)``:')
     cog.outl()
     cog.outl('.. code::\n')
     cog.outl(indent(help_str))
 
     ]]]
-    [[[end]]]
+
+.. code::
+
+   {{ Content of help(edlib.getNiceAlignment) will be generated here. }}
+
+..  [[[end]]]
 
 
 -----
@@ -157,7 +173,12 @@ Usage
     cog.outl()
 
     ]]]
-    [[[end]]]
+
+.. code::
+
+   {{ Additional usage examples will be generated here. }}
+
+..  [[[end]]]
    
 
 ---------
@@ -205,27 +226,5 @@ Check out `C/C++ Edlib docs <http://github.com/Martinsos/edlib>`_ for more infor
 Development
 -----------
 
-SETUP
------
+Check out `README.md on Github <https://github.com/Martinsos/edlib/blob/master/bindings/python/README.md>`_.
 
-Besides python, you will need ``cython`` and ``cog`` to build edlib python package.
-
-Run ``pip install cython`` to install ``cython``, which is used to wrap C/C++ code into python.
-Run ``pip install cogapp`` to install ``cog``, which is used to generate README.rst from README-tmpl.rst.
-
-Development
------------
-
-Run :code:`make build` to generate an extension module as .so file. You can test it then by importing it from python interpreter :code:`import edlib` and running :code:`edlib.align(...)` (you have to be positioned in the directory where .so was built). This is useful for testing while developing.
-
-Run :code:`make sdist` to create a source distribution, but not publish it - it is a tarball in dist/ that will be uploaded to pip on `publish`. Use this to check that tarball is well structured and contains all needed files, before you publish.
-Good way to test it is to run :code:`sudo pip install dist/edlib-*.tar.gz`, which will try to install edlib from it, same way as pip will do it when it is published.
-
-Run :code:`make publish` to create a source distribution and publish it to the PyPI. Use this to publish new version of package.
-Make sure to bump the version in ``setup.py`` before publishing, if needed.
-
-:code:`make clean` removes all generated files.
-
-README.rst is auto-generated from README-tmpl.rst, to run regeneration do ``make README.rst``.
-README.rst is also automatically regenerated when building package (e.g. ``make build``).
-This enables us to always have up to date results of code execution and help documentation of edlib methods in readme.
