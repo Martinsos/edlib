@@ -226,5 +226,5 @@ Check out `C/C++ Edlib docs <http://github.com/Martinsos/edlib>`_ for more infor
 Development
 -----------
 
-Check out `README.md on Github <https://github.com/Martinsos/edlib/blob/master/bindings/python/README.md>`_.
+Check out `Edlib python package on Github <https://github.com/Martinsos/edlib/tree/master/bindings/python>`_.
 
