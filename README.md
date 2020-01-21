@@ -14,6 +14,8 @@ Calculating edit distance of two strings is as simple as:
 edlibAlign("hello", 5, "world!", 6, edlibDefaultAlignConfig()).editDistance;
 ```
 
+Edlib is also available for **Python** [![PyPI version](https://img.shields.io/pypi/v/edlib.svg)](https://pypi.python.org/pypi/edlib), with code residing at [bindings/python](bindings/python).
+
 ## Features
 * Calculates **edit distance (Levenshtein distance)**.
 * It can find **optimal alignment path** (instructions how to transform first sequence into the second sequence).
@@ -23,7 +25,7 @@ edlibAlign("hello", 5, "world!", 6, edlibDefaultAlignConfig()).editDistance;
 * It can easily handle small or **very large sequences**, even when finding alignment path, while consuming very little memory.
 * **Super fast** thanks to Myers's bit-vector algorithm.
 
-Edlib is also available for **Python** [![PyPI version](https://img.shields.io/pypi/v/edlib.svg)](https://pypi.python.org/pypi/edlib) and **Node.js** [![npm version](https://img.shields.io/npm/v/node-edlib.svg)](https://www.npmjs.com/package/node-edlib).
+
 
 
 ## Contents
