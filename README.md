@@ -14,7 +14,7 @@ Calculating edit distance of two strings is as simple as:
 edlibAlign("hello", 5, "world!", 6, edlibDefaultAlignConfig()).editDistance;
 ```
 
-Edlib is also available for **Python** [![PyPI version](https://img.shields.io/pypi/v/edlib.svg)](https://pypi.python.org/pypi/edlib), with code residing at [bindings/python](bindings/python).
+Edlib is also available for **Python** [![PyPI version](https://img.shields.io/pypi/v/edlib.svg) (Click here for Python README)](https://pypi.python.org/pypi/edlib), with code residing at [bindings/python](bindings/python).
 
 ## Features
 * Calculates **edit distance (Levenshtein distance)**.
