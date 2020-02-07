@@ -21,7 +21,6 @@ static const int WORD_SIZE = sizeof(Word) * 8; // Size of Word in bits
 static const Word WORD_1 = static_cast<Word>(1);
 static const Word HIGH_BIT_MASK = WORD_1 << (WORD_SIZE - 1);  // 100..00
 
-
 /**
  * Aligns two sequences (query and target) using edit distance (levenshtein distance).
  * Through config parameter, this function supports different alignment methods (global, prefix, infix),
@@ -37,7 +36,7 @@ static const Word HIGH_BIT_MASK = WORD_1 << (WORD_SIZE - 1);  // 100..00
  * @return  Result of alignment, which can contain edit distance, start and end locations and alignment path.
  *          Make sure to clean up the object using edlibFreeAlignResult() or by manually freeing needed members.
  */
-template < class AlphabetType, class IdxType>
+template < class AlphabetType, class IdxType=int>
 EdlibAlignResult edlibAlign(const AlphabetType* query, int queryLength,
                             const AlphabetType* target, int targetLength,
                             const EdlibAlignConfig config);
@@ -187,7 +186,6 @@ void edlibFreeAlignResult(EdlibAlignResult result) {
     if (result.startLocations) free(result.startLocations);
     if (result.alignment) free(result.alignment);
 }
-
 
 char* edlibAlignmentToCigar(const unsigned char* const alignment, const int alignmentLength,
                             const EdlibCigarFormat cigarFormat) {
@@ -1381,7 +1379,7 @@ static void transformSequences(const AlphabetType* const queryOriginal, const in
  * Main edlib method.
  */
 
-template < class AlphabetType, class IdxType >
+template < class AlphabetType, class IdxType=int >
 EdlibAlignResult edlibAlign(const AlphabetType* const queryOriginal, const int queryLength,
                             const AlphabetType* const targetOriginal, const int targetLength,
                             const EdlibAlignConfig config) {
