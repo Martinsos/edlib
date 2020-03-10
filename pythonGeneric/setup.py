@@ -19,9 +19,9 @@ else:
     edlib_module_src = "edlib.bycython.cpp"
 
 # Load README into long description.
-here = os.path.abspath(os.path.dirname(__file__))
-with open(os.path.join(here, 'README.rst'), encoding='utf-8') as f:
-    long_description = f.read()
+#here = os.path.abspath(os.path.dirname(__file__))
+#with open(os.path.join(here, 'README.rst'), encoding='utf-8') as f:
+#    long_description = f.read()
 
 setup(
     # Information

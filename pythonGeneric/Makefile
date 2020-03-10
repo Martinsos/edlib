@@ -1,7 +1,7 @@
 default: build
 
 ############### FILES #################
-FILES=edlib pyedlib.bycython.cpp setup.py MANIFEST.in README.rst
+FILES=edlib pyedlib.bycython.cpp setup.py MANIFEST.in #README.rst
 
 edlib: ../edlibGeneric
 	cp -R ../edlibGeneric .
