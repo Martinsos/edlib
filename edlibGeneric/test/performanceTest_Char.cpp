@@ -1,3 +1,7 @@
+//
+// This performance test is the analogous of performanceTest_Generic
+// for the original char-based edlib
+//
 #include <cstdio>
 #include <ctime>
 #include <cstdlib>

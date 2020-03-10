@@ -1,5 +1,7 @@
 //
 // Created by mobin on 12/20/19.
+// Test the runtime of generic edlib for different query lengths
+// and different alphabet size
 //
 
 #include <cstdio>
@@ -15,7 +17,7 @@
 #include "SimpleEditDistance_Generic.h"
 
 using namespace std;
-
+using namespace edlibGeneric;
 
 void runRandomTests(int numTests, EdlibAlignMode mode, bool findAlignment,
                     int alphabetLength, int queryLength, int targetLength,
@@ -25,7 +27,7 @@ void runRandomTests(int numTests, EdlibAlignMode mode, bool findAlignment,
 int main(int argc, char* argv[]) {
     // This program has optional first parameter, which is number of random tests to run
     // per each algorithm.
-    int numRandomTests = 10;
+    int numRandomTests = 5;
     if (argc > 1) {
         numRandomTests = static_cast<int>(strtol(argv[1], NULL, 10));
     }
@@ -35,10 +37,10 @@ int main(int argc, char* argv[]) {
     ofs << "modeStr" << "\t" << "alphaLen" << "\t" << "queryLen" << "\t";
     ofs << "targetLen" << "\t" << "findAlignment" << "\t" << "mTime" << "\n";
 
-    srand(42);
-    for(int queryLength = 100; queryLength <= 1000; queryLength *= 10) {
+    srand(clock());
+    for(int queryLength = 10000; queryLength <= 20000; queryLength *= 10) {
         int targetLength = queryLength;
-        for (int alphabetLength = 2; alphabetLength < 128; alphabetLength += 10) {
+        for (int alphabetLength = 4000; alphabetLength < 11000 ; alphabetLength += 1000) {
 
             printf("alphabetLength = %d \n", alphabetLength);
             printf("alphabet length = %d \n", alphabetLength);
@@ -102,7 +104,7 @@ void runRandomTests(int numTests, EdlibAlignMode mode, bool findAlignment,
         start = clock();
         EdlibAlignResult result = edlibAlign<AlphabetType , IdxType >(
                 query, queryLength, target, targetLength,
-                edlibNewAlignConfig(-1, mode, findAlignment ? EDLIB_TASK_PATH : EDLIB_TASK_DISTANCE, NULL, 0));
+                edlibNewAlignConfig<AlphabetType>(-1, mode, findAlignment ? EDLIB_TASK_PATH : EDLIB_TASK_DISTANCE, NULL, 0));
         timeEdlib += clock() - start;
         edlibFreeAlignResult(result);
         free(query);

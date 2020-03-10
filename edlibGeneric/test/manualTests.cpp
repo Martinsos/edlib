@@ -1,11 +1,13 @@
 //
 // Created by mobin on 1/8/20.
+// Testing generic edlib
 //
 #include <iostream>
 #include <stdio.h>
-#include "../include/edlibGeneric.h"
+#include "edlibGeneric.h"
 #include <iomanip>
 
+using namespace edlibGeneric;
 
 template <class AlphabetType>
 void printAlignment(const AlphabetType* query, const AlphabetType* target,
@@ -23,12 +25,13 @@ int main() {
 
     uint16_t query[queryLength] = {402, 403, 405, 404, 403, 405, 8, 9, 4, 7};
     uint16_t target[targetLength] = {1, 402, 403, 404, 403, 405, 4, 9, 2, 3};
-    const EdlibAlignMode testMode = EDLIB_MODE_HW;
+    const EdlibAlignMode testMode = EDLIB_MODE_NW;
 
     //change alphabet type and index type based on your inputs
+    EdlibEqualityPair<uint16_t> additionalEqualities[4] = {{8, 1}, {1,14}, {14, 4}, {14, 2}};
     EdlibAlignResult result =
             edlibAlign<uint16_t , uint8_t >(query, queryLength, target, targetLength,
-                                 edlibNewAlignConfig(-1, testMode, EDLIB_TASK_PATH, NULL, 0));
+                                            edlibNewAlignConfig<uint16_t>(-1, testMode, EDLIB_TASK_PATH, additionalEqualities, 4));
     printf("edit_distance = %d\n", result.editDistance);
 
     if(result.alignment != NULL) {

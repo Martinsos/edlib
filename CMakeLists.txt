@@ -3,6 +3,7 @@ project(edlib VERSION 1.2.5)
 
 set(MACOSX (${CMAKE_SYSTEM_NAME} MATCHES "Darwin"))
 
+
 if(CMAKE_BUILD_TYPE MATCHES Debug)
   message("Debug mode")
 endif()
@@ -38,6 +39,7 @@ else()
   endif()
   set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wall -Wextra -pedantic")
 endif()
+set(CMAKE_CXX_FLAGS "-O3 -Wall -Wextra")
 
 # Define output directories for created binaries and libraries.
 set(CMAKE_ARCHIVE_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/lib)
@@ -128,4 +130,7 @@ install(TARGETS edlibChar DESTINATION ${CMAKE_INSTALL_LIBDIR})
 
 install(FILES edlibGeneric/include/edlibChar.h DESTINATION ${CMAKE_INSTALL_INCLUDEDIR})
 install(FILES edlibGeneric/include/edlibGeneric.h DESTINATION ${CMAKE_INSTALL_INCLUDEDIR})
+install(FILES edlibGeneric/include/genericHeader.h DESTINATION ${CMAKE_INSTALL_INCLUDEDIR})
+install(FILES edlibGeneric/include/charHeader.h DESTINATION ${CMAKE_INSTALL_INCLUDEDIR})
 install(FILES edlibGeneric/include/baseHeader.h DESTINATION ${CMAKE_INSTALL_INCLUDEDIR})
+install(FILES edlibGeneric/include/disjointSet.h DESTINATION ${CMAKE_INSTALL_INCLUDEDIR})

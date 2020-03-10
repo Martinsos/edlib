@@ -1,5 +1,7 @@
 //
 // Created by mobin on 12/20/19.
+// Test generic edlib
+// This test is similar to what was written for the original char-based edlib
 //
 
 #include <cstdio>
@@ -8,11 +10,11 @@
 #include <cstring>
 #include <climits>
 
-#include "../include/edlibGeneric.h"
+#include "edlibGeneric.h"
 #include "SimpleEditDistance_Generic.h"
 
 using namespace std;
-
+using namespace edlibGeneric;
 
 bool runRandomTests(int numTests, EdlibAlignMode mode, bool findAlignment);
 bool runTests();
@@ -34,7 +36,7 @@ int getAlignmentStart(const unsigned char* alignment, int alignmentLength,
 int main(int argc, char* argv[]) {
     // This program has optional first parameter, which is number of random tests to run
     // per each algorithm. Default is 100.
-    int numRandomTests = 10;
+    int numRandomTests = 100;
     if (argc > 1) {
         numRandomTests = static_cast<int>(strtol(argv[1], NULL, 10));
     }
@@ -77,7 +79,7 @@ void fillRandomly(AlphabetType * seq, int seqLength, int alphabetLength) {
 
 // Returns true if all tests passed, false otherwise.
 bool runRandomTests(int numTests, EdlibAlignMode mode, bool findAlignment) {
-    int alphabetLength = 200;
+    int alphabetLength = 20;
     int numTestsFailed = 0;
     clock_t start;
     double timeEdlib = 0;
@@ -85,8 +87,8 @@ bool runRandomTests(int numTests, EdlibAlignMode mode, bool findAlignment) {
 
     for (int i = 0; i < numTests; i++) {
         bool failed = false;
-        int queryLength = 10000 + rand() % 300;
-        int targetLength = 10000 + rand() % 1000;
+        int queryLength = 1000 + rand() % 300;
+        int targetLength = 1000 + rand() % 1000;
         AlphabetType * query = static_cast<AlphabetType *>(malloc(sizeof(AlphabetType) * queryLength));
         AlphabetType * target = static_cast<AlphabetType *>(malloc(sizeof(AlphabetType) * targetLength));
         fillRandomly(query, queryLength, alphabetLength);
@@ -106,7 +108,7 @@ bool runRandomTests(int numTests, EdlibAlignMode mode, bool findAlignment) {
         start = clock();
         EdlibAlignResult result = edlibAlign<AlphabetType , IdxType >(
                 query, queryLength, target, targetLength,
-                        edlibNewAlignConfig(-1, mode, findAlignment ? EDLIB_TASK_PATH : EDLIB_TASK_DISTANCE, NULL, 0));
+                        edlibNewAlignConfig<AlphabetType >(-1, mode, findAlignment ? EDLIB_TASK_PATH : EDLIB_TASK_DISTANCE, NULL, 0));
         timeEdlib += clock() - start;
         if (result.alignment) {
             if (!checkAlignment(query, queryLength, target,
@@ -160,7 +162,7 @@ bool runRandomTests(int numTests, EdlibAlignMode mode, bool findAlignment) {
             int scoreExpected = score2 > k ? -1 : score2;
             EdlibAlignResult result3 = edlibAlign<AlphabetType , IdxType >(
                     query, queryLength, target, targetLength,
-                            edlibNewAlignConfig(k, mode, findAlignment ? EDLIB_TASK_PATH : EDLIB_TASK_DISTANCE, NULL, 0));
+                            edlibNewAlignConfig<AlphabetType >(k, mode, findAlignment ? EDLIB_TASK_PATH : EDLIB_TASK_DISTANCE, NULL, 0));
             if (result3.editDistance != scoreExpected) {
                 failed = true;
                 printf("For k = %d score was %d but it should have been %d\n",

@@ -1,5 +1,8 @@
 //
 // Created by mobin on 1/13/20.
+// The declaration of the C-wrapper of edlibAlign
+// The declaration of some other functions are in charHeader.h
+// The definitions are in src/edlibChar.cpp
 //
 
 #ifndef EDLIB_EDLIBCHAR_H
@@ -7,6 +10,7 @@
 
 
 #include "baseHeader.h"
+#include "charHeader.h"
 
 #ifdef __cplusplus
 extern "C" {

@@ -1,5 +1,6 @@
 //
 // Created by mobin on 1/13/20.
+//  Testing the C-Wrapper of generic edlib
 //
 
 
@@ -8,8 +9,10 @@
 #include "edlibChar.h"
 
 int main() {
-    EdlibAlignResult result = edlibAlign("hello", 5, "world!", 6, edlibDefaultAlignConfig());
-    printf("edit_distance('hello', 'world!') = %d\n", result.editDistance);
+    EdlibEqualityPair additionalEqualities[2] = {{'e', 'l'}, {'b', 'e'}};
+    EdlibAlignResult result = edlibAlign("hello", 5, "hibbo", 5,
+                                         edlibNewAlignConfig(-1, EDLIB_MODE_NW, EDLIB_TASK_DISTANCE, additionalEqualities, 2));
+    printf("edit_distance('hello', 'hibbo') = %d\n", result.editDistance);
     edlibFreeAlignResult(result);
 }
 

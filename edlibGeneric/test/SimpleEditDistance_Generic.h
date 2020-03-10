@@ -12,8 +12,8 @@
 
 using namespace std;
 
-typedef char AlphabetType;
-typedef unsigned char IdxType;
+typedef uint16_t AlphabetType;
+typedef uint16_t IdxType;
 
 
 int min3(int x, int y, int z) {
