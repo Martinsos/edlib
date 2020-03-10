@@ -145,37 +145,6 @@ namespace edlibGeneric {
     };
 
 
-/**
- * Defines equality relation on alphabet characters.
- * By default each character is always equal only to itself, but you can also provide additional equalities.
- */
-    template<class IdxType>
-    class EqualityDefinition {
-    private:
-        bool **matrix;
-    public:
-        EqualityDefinition(bool **inputMatrix) {
-            matrix = inputMatrix;
-        }
-
-        /**
-         * @param a  Element from transformed sequence.
-         * @param b  Element from transformed sequence.
-         * @return True if a and b are defined as equal, false otherwise.
-         */
-        bool areEqual(IdxType a, IdxType b) const {
-            if (matrix == NULL) {
-                return a == b;
-            }
-            return matrix[a][b];
-        }
-    };
-
-    template<class AlphabetType, class IdxType>
-    static void makeEqualityMatrix(unordered_map <AlphabetType, IdxType> &alphabetIdx,
-                                   const EdlibEqualityPair<AlphabetType> *additionalEqualities = NULL,
-                                   const int additionalEqualitiesLength = 0, bool ***matrix = NULL);
-
     template<class IdxType>
     static int myersCalcEditDistanceSemiGlobal(const Word *Peq, int W, int maxNumBlocks,
                                                int queryLength,
@@ -195,14 +164,14 @@ namespace edlibGeneric {
     static int obtainAlignment(
             const IdxType *query, const IdxType *rQuery, int queryLength,
             const IdxType *target, const IdxType *rTarget, int targetLength,
-            const EqualityDefinition<IdxType> &equalityDefinition, int alphabetLength, int bestScore,
+            int alphabetLength, int bestScore,
             unsigned char **alignment, int *alignmentLength);
 
     template<class IdxType>
     static int obtainAlignmentHirschberg(
             const IdxType *query, const IdxType *rQuery, int queryLength,
             const IdxType *target, const IdxType *rTarget, int targetLength,
-            const EqualityDefinition<IdxType> &equalityDefinition, int alphabetLength, int bestScore,
+            int alphabetLength, int bestScore,
             unsigned char **alignment, int *alignmentLength);
 
     static int obtainAlignmentTraceback(int queryLength, int targetLength,
@@ -225,8 +194,7 @@ namespace edlibGeneric {
     template<class IdxType>
     static inline Word *buildPeq(const int alphabetLength,
                                  const IdxType *query,
-                                 const int queryLength,
-                                 const EqualityDefinition<IdxType> &equalityDefinition);
+                                 const int queryLength);
 
 
     template<class AlphabetType>
@@ -259,8 +227,7 @@ namespace edlibGeneric {
     template<class IdxType>
     static inline Word *buildPeq(const int alphabetLength,
                                  const IdxType *const query,
-                                 const int queryLength,
-                                 const EqualityDefinition<IdxType> &equalityDefinition) {
+                                 const int queryLength) {
         int maxNumBlocks = ceilDiv(queryLength, WORD_SIZE);
         // table of dimensions alphabetLength+1 x maxNumBlocks. Last symbol is wildcard.
         Word *Peq = new Word[(alphabetLength + 1) * maxNumBlocks];
@@ -1074,7 +1041,6 @@ namespace edlibGeneric {
  * @param [in] target
  * @param [in] rTarget  Reversed target.
  * @param [in] targetLength
- * @param [in] equalityDefinition
  * @param [in] alphabetLength
  * @param [in] bestScore  Best(optimal) score.
  * @param [out] alignment  Sequence of edit operations that make target equal to query.
@@ -1085,7 +1051,7 @@ namespace edlibGeneric {
     static int obtainAlignment(
             const IdxType *const query, const IdxType *const rQuery, const int queryLength,
             const IdxType *const target, const IdxType *const rTarget, const int targetLength,
-            const EqualityDefinition<IdxType> &equalityDefinition, const int alphabetLength, const int bestScore,
+            const int alphabetLength, const int bestScore,
             unsigned char **const alignment, int *const alignmentLength) {
 
         // Handle special case when one of sequences has length of 0.
@@ -1114,7 +1080,7 @@ namespace edlibGeneric {
         if (alignmentDataSize < 1024 * 1024) {
             int score_, endLocation_;  // Used only to call function.
             AlignmentData *alignData = NULL;
-            Word *Peq = buildPeq<IdxType>(alphabetLength, query, queryLength, equalityDefinition);
+            Word *Peq = buildPeq<IdxType>(alphabetLength, query, queryLength);
             myersCalcEditDistanceNW<IdxType>(Peq, W, maxNumBlocks,
                                              queryLength,
                                              target, targetLength,
@@ -1130,7 +1096,7 @@ namespace edlibGeneric {
         } else {
             statusCode = obtainAlignmentHirschberg<IdxType>(query, rQuery, queryLength,
                                                             target, rTarget, targetLength,
-                                                            equalityDefinition, alphabetLength, bestScore,
+                                                            alphabetLength, bestScore,
                                                             alignment, alignmentLength);
         }
         return statusCode;
@@ -1156,14 +1122,14 @@ namespace edlibGeneric {
     static int obtainAlignmentHirschberg(
             const IdxType *const query, const IdxType *const rQuery, const int queryLength,
             const IdxType *const target, const IdxType *const rTarget, const int targetLength,
-            const EqualityDefinition<IdxType> &equalityDefinition, const int alphabetLength, const int bestScore,
+            const int alphabetLength, const int bestScore,
             unsigned char **const alignment, int *const alignmentLength) {
 
         const int maxNumBlocks = ceilDiv(queryLength, WORD_SIZE);
         const int W = maxNumBlocks * WORD_SIZE - queryLength;
 
-        Word *Peq = buildPeq<IdxType>(alphabetLength, query, queryLength, equalityDefinition);
-        Word *rPeq = buildPeq<IdxType>(alphabetLength, rQuery, queryLength, equalityDefinition);
+        Word *Peq = buildPeq<IdxType>(alphabetLength, query, queryLength);
+        Word *rPeq = buildPeq<IdxType>(alphabetLength, rQuery, queryLength);
 
         // Used only to call functions.
         int score_, endLocation_;
@@ -1297,13 +1263,13 @@ namespace edlibGeneric {
         int ulAlignmentLength;
         int ulStatusCode = obtainAlignment<IdxType>(query, rQuery + lrHeight, ulHeight,
                                                     target, rTarget + lrWidth, ulWidth,
-                                                    equalityDefinition, alphabetLength, leftScore,
+                                                    alphabetLength, leftScore,
                                                     &ulAlignment, &ulAlignmentLength);
         unsigned char *lrAlignment = NULL;
         int lrAlignmentLength;
         int lrStatusCode = obtainAlignment<IdxType>(query + ulHeight, rQuery, lrHeight,
                                                     target + ulWidth, rTarget, lrWidth,
-                                                    equalityDefinition, alphabetLength, rightScore,
+                                                    alphabetLength, rightScore,
                                                     &lrAlignment, &lrAlignmentLength);
         if (ulStatusCode == EDLIB_STATUS_ERROR || lrStatusCode == EDLIB_STATUS_ERROR) {
             if (ulAlignment) free(ulAlignment);
@@ -1321,37 +1287,6 @@ namespace edlibGeneric {
         free(lrAlignment);
         return EDLIB_STATUS_OK;
     }
-
-    template<class AlphabetType, class IdxType>
-    void makeEqualityMatrix(unordered_map <AlphabetType, IdxType> &alphabetIdx,
-                            const EdlibEqualityPair<AlphabetType> *additionalEqualities,
-                            const int additionalEqualitiesLength, bool ***matrix) {
-        //memory allocation
-        *matrix = new bool *[alphabetIdx.size()];
-        for (IdxType i = 0; i < alphabetIdx.size(); i++) {
-            matrix[0][i] = new bool[alphabetIdx.size()];
-        }
-        // initialize the diagonal entries
-        for (IdxType i = 0; i < alphabetIdx.size(); i++) {
-            for (IdxType j = 0; j < alphabetIdx.size(); j++) {
-                matrix[0][i][j] = (i == j);
-            }
-        }
-
-        if (additionalEqualities != NULL) {
-            for (IdxType i = 0; i < additionalEqualitiesLength; i++) {
-                IdxType first = static_cast<IdxType>(additionalEqualities[i].first);
-                IdxType second = static_cast<IdxType>(additionalEqualities[i].second);
-                if (alphabetIdx.find(first) != alphabetIdx.end() && alphabetIdx.find(second) != alphabetIdx.end()) {
-                    IdxType firstTransformed = alphabetIdx[first];
-                    IdxType secondTransformed = alphabetIdx[second];
-                    matrix[0][firstTransformed][secondTransformed] = matrix[0][secondTransformed][firstTransformed] = true;
-                }
-            }
-        }
-
-    }
-
 
 /**
  * Takes char query and char target, recognizes alphabet and transforms them into unsigned char sequences
@@ -1431,7 +1366,7 @@ namespace edlibGeneric {
  * Main edlib method.
  */
 
-    template<class AlphabetType, class IdxType=int>
+    template<class AlphabetType, class IdxType>
     EdlibAlignResult edlibAlign(const AlphabetType *const queryOriginal, const int queryLength,
                                 const AlphabetType *const targetOriginal, const int targetLength,
                                 const EdlibAlignConfig<AlphabetType> config) {
@@ -1479,11 +1414,7 @@ namespace edlibGeneric {
         /*--------------------- INITIALIZATION ------------------*/
         int maxNumBlocks = ceilDiv(queryLength, WORD_SIZE); // bmax in Myers
         int W = maxNumBlocks * WORD_SIZE - queryLength; // number of redundant cells in last level blocks
-        bool **equalityMatrix = NULL;
-        //makeEqualityMatrix<AlphabetType, IdxType>(alphabetIdx,config.additionalEqualities,
-        //                                       config.additionalEqualitiesLength, &equalityMatrix);
-        EqualityDefinition<IdxType> equalityDefinition(equalityMatrix);
-        Word *Peq = buildPeq<IdxType>(alphabetIdx.size(), query, queryLength, equalityDefinition);
+        Word *Peq = buildPeq<IdxType>(alphabetIdx.size(), query, queryLength);
         /*-------------------------------------------------------*/
 
         /*------------------ MAIN CALCULATION -------------------*/
@@ -1527,7 +1458,7 @@ namespace edlibGeneric {
                     IdxType *rTarget = createReverseCopy<IdxType>(target, targetLength);
                     IdxType *rQuery = createReverseCopy<IdxType>(query, queryLength);
                     // Peq for reversed query.
-                    Word *rPeq = buildPeq<IdxType>(alphabetIdx.size(), rQuery, queryLength, equalityDefinition);
+                    Word *rPeq = buildPeq<IdxType>(alphabetIdx.size(), rQuery, queryLength);
                     for (int i = 0; i < result.numLocations; i++) {
                         int endLocation = result.endLocations[i];
                         if (endLocation == -1) {
@@ -1578,7 +1509,7 @@ namespace edlibGeneric {
                 const IdxType *rQuery = createReverseCopy<IdxType>(query, queryLength);
                 obtainAlignment<IdxType>(query, rQuery, queryLength,
                                          alnTarget, rAlnTarget, alnTargetLength,
-                                         equalityDefinition, alphabetIdx.size(), result.editDistance,
+                                         alphabetIdx.size(), result.editDistance,
                                          &(result.alignment), &(result.alignmentLength));
                 delete[] rAlnTarget;
                 delete[] rQuery;
