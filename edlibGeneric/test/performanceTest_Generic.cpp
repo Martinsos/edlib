@@ -27,7 +27,7 @@ void runRandomTests(int numTests, EdlibAlignMode mode, bool findAlignment,
 int main(int argc, char* argv[]) {
     // This program has optional first parameter, which is number of random tests to run
     // per each algorithm.
-    int numRandomTests = 5;
+    int numRandomTests = 10;
     if (argc > 1) {
         numRandomTests = static_cast<int>(strtol(argv[1], NULL, 10));
     }
@@ -38,12 +38,13 @@ int main(int argc, char* argv[]) {
     ofs << "targetLen" << "\t" << "findAlignment" << "\t" << "mTime" << "\n";
 
     srand(clock());
-    for(int queryLength = 10000; queryLength <= 20000; queryLength *= 10) {
+    for(int queryLength = 10000; queryLength <= 20000; queryLength *= 2) {
         int targetLength = queryLength;
         for (int alphabetLength = 4000; alphabetLength < 11000 ; alphabetLength += 1000) {
 
-            printf("alphabetLength = %d \n", alphabetLength);
-            printf("alphabet length = %d \n", alphabetLength);
+            printf("query and target length = %d \n", queryLength);
+            printf("alphabet size = %d \n", alphabetLength);
+            printf("Execution time for running %d tests\n", numRandomTests);
             printf("######################### \n");
 
             printf("Testing HW with alignment...\n");
