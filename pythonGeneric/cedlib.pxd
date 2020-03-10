@@ -3,21 +3,8 @@ cdef extern from "edlibGeneric.h" nogil:
      ctypedef enum EdlibAlignTask: EDLIB_TASK_DISTANCE, EDLIB_TASK_LOC, EDLIB_TASK_PATH
      ctypedef enum EdlibCigarFormat: EDLIB_CIGAR_STANDARD, EDLIB_CIGAR_EXTENDED
 
-     ctypedef struct EdlibEqualityPair:
-         char first
-         char second
-
-     ctypedef struct EdlibAlignConfig:
-         int k
-         EdlibAlignMode mode
-         EdlibAlignTask task
-         EdlibEqualityPair* additionalEqualities
-         int additionalEqualitiesLength
-
-     EdlibAlignConfig edlibNewAlignConfig(int k, EdlibAlignMode mode, EdlibAlignTask task,
-                                          EdlibEqualityPair* additionalEqualities,
-                                          int additionalEqualitiesLength)
-     EdlibAlignConfig edlibDefaultAlignConfig()
+     char* edlibAlignmentToCigar(const unsigned char* alignment, int alignmentLength, EdlibCigarFormat cigarFormat)
+     void edlibFreeAlignResult(EdlibAlignResult result)
 
      ctypedef struct EdlibAlignResult:
          int status
@@ -29,10 +16,25 @@ cdef extern from "edlibGeneric.h" nogil:
          int alignmentLength
          int alphabetLength
 
-     void edlibFreeAlignResult(EdlibAlignResult result)
+cdef extern from "edlibGeneric.h" namespace "edlibGeneric" nogil:
+
+     cdef cppclass EdlibEqualityPair[T]:
+         int first
+         int second
+
+     cdef cppclass EdlibAlignConfig[T]:
+         int k
+         EdlibAlignMode mode
+         EdlibAlignTask task
+         EdlibEqualityPair[T]* additionalEqualities
+         int additionalEqualitiesLength
+
+     EdlibAlignConfig[T] edlibNewAlignConfig[T](int k, EdlibAlignMode mode, EdlibAlignTask task,
+                                          EdlibEqualityPair[T]* additionalEqualities,
+                                          int additionalEqualitiesLength)
+     EdlibAlignConfig[T] edlibDefaultAlignConfig[T]()
 
      EdlibAlignResult edlibAlign[T](const T* query, int queryLength,
                                  const T* target, int targetLength,
                                  const EdlibAlignConfig config)
-     int func[U](U y)
-     char* edlibAlignmentToCigar(const unsigned char* alignment, int alignmentLength, EdlibCigarFormat cigarFormat)
+

@@ -6,11 +6,11 @@ import edlib
 import editdistance
 import Levenshtein
 
-with open('../../test_data/Enterobacteria_Phage_1/mutated_90_perc_oneline.fasta', 'r') as f:
+with open('../test_data/Enterobacteria_Phage_1/mutated_90_perc_oneline.fasta', 'r') as f:
     queryFull = f.readline()
 print('Read query: ', len(queryFull) ,' characters.')
 
-with open('../../test_data/Enterobacteria_Phage_1/Enterobacteria_phage_1_oneline.fa', 'r') as f:
+with open('../test_data/Enterobacteria_Phage_1/Enterobacteria_phage_1_oneline.fa', 'r') as f:
     targetFull = f.readline()
 print('Read target: ', len(targetFull) ,' characters.')
 

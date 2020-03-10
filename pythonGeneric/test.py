@@ -11,10 +11,10 @@ result = edlib.align(b"telephone", b"elephant")
 if not (result and result["editDistance"] == 3):
     testFailed = True
 
-# Additional equalities.
-#result = edlib.align("ACTG", "CACTRT", mode="HW", task="path", additionalEqualities=[("R", "A"), ("R", "G")])
-#if not (result and result["editDistance"] == 0):
-#    testFailed = True
+#Additional equalities.
+result = edlib.align("ACTG", "CACTRT", mode="HW", task="path", additionalEqualities=[("R", "A"), ("R", "G")])
+if not (result and result["editDistance"] == 0):
+    testFailed = True
 
 # Nice alignment.
 resultNW = edlib.align(query="TAAGGATGGTCCCATTC", target="AAGGGGTCTCATATC", mode="NW", task="path")

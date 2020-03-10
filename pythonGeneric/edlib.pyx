@@ -6,35 +6,38 @@ import re
 
 cimport cedlib
 
-cdef map_to_int_array(query, target, additionalEqualities, int query_len, int target_len, int* cquery, int* ctarget):
+cdef map_to_int_array(query, target, additional_equalities, int query_len, int target_len, int* cquery, int* ctarget):
     """ map hashable lists of query and target into lists of integers"""
     query_vals = set(query)
     target_vals = set(target)
-    
+    if additional_equalities is not None:
+        equ1_vals = [a for a, b in additional_equalities]
+        equ2_vals = [b for a, b in additional_equalities]
+    else:
+        equ1_vals = equ2_vals = []
     input_mapping = {
         symbol: idx
-            for idx, symbol in enumerate(query_vals.union(target_vals))
+            for idx, symbol in enumerate(query_vals.union(target_vals, equ1_vals, equ2_vals))
     }
     
+    max_idx = max(list(input_mapping.values()))
 
     for idx, c in enumerate(query):
         cquery[idx] = <int> input_mapping[c]
     for idx, c in enumerate(target):
         ctarget[idx] = <int> input_mapping[c]
 
-    if additionalEqualities is not None:
-        additionalEqualities = [
-            (input_mapping[a], input_mapping[b])
-            for a, b in additionalEqualities
-            if a in input_mapping and b in input_mapping]
-    return additionalEqualities
+    if additional_equalities is not None:
+            additional_equalities = [
+                (input_mapping[a], input_mapping[b])
+                for a, b in additional_equalities
+                if a in input_mapping and b in input_mapping]
+    return additional_equalities
 
 def align(query, target, mode="NW", task="distance", k=-1, additionalEqualities=None):
     """ Align query with target using edit distance.
-    @param {str or bytes or iterable of hashable objects} query, combined with target must have no more
-           than 256 unique values
-    @param {str or bytes or iterable of hashable objects} target, combined with query must have no more
-           than 256 unique values
+    @param {str or bytes or iterable of hashable objects}
+    @param {str or bytes or iterable of hashable objects}
     @param {string} mode  Optional. Alignment method do be used. Possible values are:
             - 'NW' for global (default)
             - 'HW' for infix
@@ -48,7 +51,7 @@ def align(query, target, mode="NW", task="distance", k=-1, additionalEqualities=
             the faster is calculation. Set to -1 (default) to have no limit on edit distance.
     @param {list} additionalEqualities  Optional.
             List of pairs of characters or hashable objects, where each pair defines two values as equal.
-            This way you can extend edlib's definition of equality (which is that each character is equal only
+            This way you can extend edlib's definition of equality (which is that each symbol is equal only
             to itself).
             This can be useful e.g. when you want edlib to be case insensitive, or if you want certain
             characters to act as a wildcards.
@@ -69,9 +72,8 @@ def align(query, target, mode="NW", task="distance", k=-1, additionalEqualities=
     cdef int* ctarget = <int *> malloc(target_len * sizeof(int))
 
     additionalEqualities = map_to_int_array(query,target, additionalEqualities, query_len,target_len, cquery, ctarget)
-
     # Build an edlib config object based on given parameters.
-    cconfig = cedlib.edlibDefaultAlignConfig()
+    cdef cedlib.EdlibAlignConfig[int] cconfig = cedlib.edlibDefaultAlignConfig[int]()
 
     if k is not None: cconfig.k = k
 
@@ -87,11 +89,11 @@ def align(query, target, mode="NW", task="distance", k=-1, additionalEqualities=
         cconfig.additionalEqualities = NULL
         cconfig.additionalEqualitiesLength = 0
     else:
-        cconfig.additionalEqualities = <cedlib.EdlibEqualityPair*> PyMem_Malloc(len(additionalEqualities)
-                                                                          * cython.sizeof(cedlib.EdlibEqualityPair))
+        cconfig.additionalEqualities = <cedlib.EdlibEqualityPair[int]*> PyMem_Malloc(len(additionalEqualities)
+                                                                          * cython.sizeof(cedlib.EdlibEqualityPair[int]))
         for i in range(len(additionalEqualities)):
-            cconfig.additionalEqualities[i].first = bytearray(additionalEqualities[i][0].encode('utf-8'))[0]
-            cconfig.additionalEqualities[i].second = bytearray(additionalEqualities[i][1].encode('utf-8'))[0]
+            cconfig.additionalEqualities[i].first = <int> additionalEqualities[i][0]
+            cconfig.additionalEqualities[i].second = <int> additionalEqualities[i][1]
         cconfig.additionalEqualitiesLength = len(additionalEqualities)
 
     # Run alignment -- need to get len before disabling the GIL
