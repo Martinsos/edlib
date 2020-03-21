@@ -7,9 +7,6 @@
  * @brief Main header file, containing all public functions and structures.
  */
 
-#ifdef __cplusplus
-extern "C" {
-#endif
 
 // Status codes
 #define EDLIB_STATUS_OK 0
@@ -250,9 +247,5 @@ extern "C" {
                                 EdlibCigarFormat cigarFormat);
 
 
-
-#ifdef __cplusplus
-}
-#endif
 
 #endif // EDLIB_H

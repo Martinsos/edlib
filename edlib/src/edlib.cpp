@@ -138,7 +138,7 @@ static inline Word* buildPeq(const int alphabetLength,
 /**
  * Main edlib method.
  */
-extern "C" EdlibAlignResult edlibAlign(const char* const queryOriginal, const int queryLength,
+EdlibAlignResult edlibAlign(const char* const queryOriginal, const int queryLength,
                                        const char* const targetOriginal, const int targetLength,
                                        const EdlibAlignConfig config) {
     EdlibAlignResult result;
@@ -295,7 +295,7 @@ extern "C" EdlibAlignResult edlibAlign(const char* const queryOriginal, const in
     return result;
 }
 
-extern "C" char* edlibAlignmentToCigar(const unsigned char* const alignment, const int alignmentLength,
+char* edlibAlignmentToCigar(const unsigned char* const alignment, const int alignmentLength,
                                        const EdlibCigarFormat cigarFormat) {
     if (cigarFormat != EDLIB_CIGAR_EXTENDED && cigarFormat != EDLIB_CIGAR_STANDARD) {
         return 0;
@@ -1459,7 +1459,7 @@ static string transformSequences(const char* const queryOriginal, const int quer
 }
 
 
-extern "C" EdlibAlignConfig edlibNewAlignConfig(int k, EdlibAlignMode mode, EdlibAlignTask task,
+EdlibAlignConfig edlibNewAlignConfig(int k, EdlibAlignMode mode, EdlibAlignTask task,
                                                 EdlibEqualityPair* additionalEqualities,
                                                 int additionalEqualitiesLength) {
     EdlibAlignConfig config;
@@ -1471,11 +1471,11 @@ extern "C" EdlibAlignConfig edlibNewAlignConfig(int k, EdlibAlignMode mode, Edli
     return config;
 }
 
-extern "C" EdlibAlignConfig edlibDefaultAlignConfig(void) {
+EdlibAlignConfig edlibDefaultAlignConfig(void) {
     return edlibNewAlignConfig(-1, EDLIB_MODE_NW, EDLIB_TASK_DISTANCE, NULL, 0);
 }
 
-extern "C" void edlibFreeAlignResult(EdlibAlignResult result) {
+void edlibFreeAlignResult(EdlibAlignResult result) {
     if (result.endLocations) free(result.endLocations);
     if (result.startLocations) free(result.startLocations);
     if (result.alignment) free(result.alignment);
