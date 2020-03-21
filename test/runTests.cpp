@@ -4,7 +4,7 @@
 #include <cstring>
 #include <climits>
 
-#include "edlib.h"
+#include "edlib.hpp"
 #include "SimpleEditDistance.h"
 
 using namespace std;
@@ -26,9 +26,11 @@ bool checkAlignment(const char* query, int queryLength,
 int getAlignmentStart(const unsigned char* alignment, int alignmentLength,
                       int endLocation);
 
+//Comment max function because it already exists in edlib.hpp
+/*
 int max(int a, int b) {
     return a > b ? a : b;
-}
+}*/
 
 int main(int argc, char* argv[]) {
     // This program has optional first parameter, which is number of random tests to run
@@ -112,7 +114,7 @@ bool runRandomTests(int numTests, EdlibAlignMode mode, bool findAlignment) {
         // printf("\n");
 
         start = clock();
-        EdlibAlignResult result = edlibAlign(
+        EdlibAlignResult result = edlibAlign<char>(
                 query, queryLength, target, targetLength,
                 edlibNewAlignConfig(-1, mode, findAlignment ? EDLIB_TASK_PATH : EDLIB_TASK_DISTANCE, NULL, 0));
         timeEdlib += clock() - start;

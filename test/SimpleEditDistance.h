@@ -4,18 +4,15 @@
 #include <algorithm>
 #include <cstdio>
 #include <vector>
-#include "edlib.h"
+#include "edlib.hpp"
 
 using namespace std;
 
-#ifdef __cplusplus
-extern "C" {
-#endif
-
-
+// Comment min function because it already exists in edlib.hpp
+/*
 int min(int x, int y) {
     return x < y ? x : y;
-}
+}*/
 
 int min3(int x, int y, int z) {
     return min(x, min(y, z));
@@ -105,10 +102,5 @@ int calcEditDistanceSimple(const char* query, int queryLength,
     return EDLIB_STATUS_OK;
 }
 
-
-
-#ifdef __cplusplus
-}
-#endif
 
 #endif // SIMPLE_EDIT_DISTANCE_H
