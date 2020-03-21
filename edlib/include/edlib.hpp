@@ -219,8 +219,9 @@ void edlibFreeAlignResult(EdlibAlignResult result);
  * @return  Result of alignment, which can contain edit distance, start and end locations and alignment path.
  *          Make sure to clean up the object using edlibFreeAlignResult() or by manually freeing needed members.
  */
-EdlibAlignResult edlibAlign(const char* query, int queryLength,
-                            const char* target, int targetLength,
+template<class AlphabetType>
+EdlibAlignResult edlibAlign(const AlphabetType* query, int queryLength,
+                            const AlphabetType* target, int targetLength,
                             const EdlibAlignConfig config);
 
 
@@ -247,5 +248,6 @@ char* edlibAlignmentToCigar(const unsigned char* alignment, int alignmentLength,
                             EdlibCigarFormat cigarFormat);
 
 
+#include "edlib.tpp"
 
 #endif // EDLIB_H
