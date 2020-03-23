@@ -4,11 +4,11 @@
 #include <cstring>
 #include <climits>
 
-#include "edlib.h"
+#include "edlib.hpp"
 #include "SimpleEditDistance.h"
 
 using namespace std;
-
+using namespace edlib;
 
 bool runRandomTests(int numTests, EdlibAlignMode mode, bool findAlignment);
 bool runTests();
@@ -79,7 +79,7 @@ int main(int argc, char* argv[]) {
 
 void fillRandomly(char* seq, int seqLength, int alphabetLength) {
     for (int i = 0; i < seqLength; i++)
-        seq[i] = static_cast<char>(rand()) % alphabetLength;
+        seq[i] = static_cast<char>(rand() % alphabetLength);
 }
 
 // Returns true if all tests passed, false otherwise.

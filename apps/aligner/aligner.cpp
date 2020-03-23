@@ -8,7 +8,7 @@
 #include <climits>
 #include <queue>
 
-#include "edlib.h"
+#include "edlib.hpp"
 
 using namespace std;
 

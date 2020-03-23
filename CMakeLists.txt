@@ -44,44 +44,60 @@ set(CMAKE_ARCHIVE_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/lib)
 set(CMAKE_LIBRARY_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/lib)
 set(CMAKE_RUNTIME_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/bin)
 
-file(GLOB SOURCES "edlib/src/*.cpp")
+# TODO: check with somebody else what is the best way to do this CMakeLists, before we merge into master.
+set(EDLIB_SOURCE_DIR edlib/src/)
+set(EDLIB_INCLUDE_DIR edlib/include/)
+include_directories(${EDLIB_INCLUDE_DIR})
+include_directories(${EDLIB_SOURCE_DIR})
+
+file(GLOB SOURCES "edlib/src/*")
 
 # Create libraries.
-add_library(edlib ${SOURCES})
-set_target_properties(edlib
-    PROPERTIES
-    VERSION ${PROJECT_VERSION}
-    SOVERSION ${PROJECT_VERSION})
-
-target_include_directories(edlib PUBLIC
-    $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/edlib/include>
-    $<INSTALL_INTERFACE:include>)
-
-# Build binaries.
-add_executable(helloWorld apps/hello-world/helloWorld.c)
-target_link_libraries(helloWorld edlib)
-
+#add_library(edlib ${SOURCES})
+#set_target_properties(edlib
+#    PROPERTIES
+#    VERSION ${PROJECT_VERSION}
+#    SOVERSION ${PROJECT_VERSION})
+#
+#target_include_directories(edlib PUBLIC
+#    $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/edlib/include>
+#    $<INSTALL_INTERFACE:include>)
+#
+## Build binaries.
+#add_executable(helloWorld apps/hello-world/helloWorld.c)
+#target_link_libraries(helloWorld edlib)
+#
 include(CTest)
 if (BUILD_TESTING)
   add_executable(runTests test/runTests.cpp)
-  target_link_libraries(runTests edlib)
-
+#  target_link_libraries(runTests edlib)
+#
   add_test(edlib_tests ${CMAKE_RUNTIME_OUTPUT_DIRECTORY}/runTests)
 endif()
 
-if (NOT WIN32) # If on windows, do not build binaries that do not support windows.
-  add_executable(edlib-aligner apps/aligner/aligner.cpp)
-  target_link_libraries(edlib-aligner edlib)
-endif()
+#Test multiple function definitions which may happen during linking process
+add_library(staticTestLib STATIC test/testMultiDefinition/staticTestLib.cpp)
+add_executable(testMultiDefinition test/testMultiDefinition/testMultiDefinition.cpp)
+target_link_libraries(testMultiDefinition staticTestLib)
 
+#
+#if (NOT WIN32) # If on windows, do not build binaries that do not support windows.
+#  add_executable(edlib-aligner apps/aligner/aligner.cpp)
+#  target_link_libraries(edlib-aligner edlib)
+#endif()
+#
+#
+## Create target 'install' for installing libraries.
+#install(TARGETS edlib DESTINATION ${CMAKE_INSTALL_LIBDIR})
+#install(FILES edlib/include/edlib.hpp DESTINATION ${CMAKE_INSTALL_INCLUDEDIR})
+#
+## configure and install pkg-config file
+#configure_file(
+#    ${CMAKE_CURRENT_SOURCE_DIR}/edlib.pc.in
+#    ${CMAKE_CURRENT_BINARY_DIR}/edlib-1.pc
+#    @ONLY)
+#install(FILES ${CMAKE_CURRENT_BINARY_DIR}/edlib-1.pc DESTINATION ${CMAKE_INSTALL_LIBDIR}/pkgconfig)
+#
 
-# Create target 'install' for installing libraries.
-install(TARGETS edlib DESTINATION ${CMAKE_INSTALL_LIBDIR})
-install(FILES edlib/include/edlib.h DESTINATION ${CMAKE_INSTALL_INCLUDEDIR})
-
-# configure and install pkg-config file
-configure_file(
-    ${CMAKE_CURRENT_SOURCE_DIR}/edlib.pc.in
-    ${CMAKE_CURRENT_BINARY_DIR}/edlib-1.pc
-    @ONLY)
-install(FILES ${CMAKE_CURRENT_BINARY_DIR}/edlib-1.pc DESTINATION ${CMAKE_INSTALL_LIBDIR}/pkgconfig)
+install(FILES edlib/include/edlib.hpp DESTINATION ${CMAKE_INSTALL_INCLUDEDIR})
+install(FILES edlib/src/edlib.tpp DESTINATION ${CMAKE_INSTALL_INCLUDEDIR})

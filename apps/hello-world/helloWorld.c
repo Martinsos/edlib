@@ -1,5 +1,5 @@
 #include <stdio.h>
-#include "edlib.h"
+#include "edlib.hpp"
 
 int main() {
     EdlibAlignResult result = edlibAlign("hello", 5, "world!", 6, edlibDefaultAlignConfig());
