@@ -10,16 +10,18 @@
 using namespace std;
 using namespace edlib;
 
-bool runRandomTests(int numTests, EdlibAlignMode mode, bool findAlignment);
+template <class Element, class AlphabetIdx>
+bool runRandomTestsForAllModes(int numTests, AlphabetIdx alphabetSize);
+
+template <class Element, class AlphabetIdx>
+bool runRandomTests(int numTests, EdlibAlignMode mode,
+                    bool findAlignment, AlphabetIdx alphabetSize);
 bool runTests();
 
-int calcEditDistanceSimple(const char* query, int queryLength,
-                           const char* target, int targetLength,
-                           EdlibAlignMode mode, int* score,
-                           int** positions, int* numPositions);
 
-bool checkAlignment(const char* query, int queryLength,
-                    const char* target,
+template <class Element=char>
+bool checkAlignment(const Element* query, int queryLength,
+                    const Element* target,
                     int score, int pos, EdlibAlignMode mode,
                     unsigned char* alignment, int alignmentLength);
 
@@ -37,34 +39,21 @@ int main(int argc, char* argv[]) {
     if (argc > 1) {
         numRandomTests = static_cast<int>(strtol(argv[1], NULL, 10));
     }
-
-    srand(42);
     bool allTestsPassed = true;
 
-    printf("Testing HW with alignment...\n");
-    allTestsPassed &= runRandomTests(numRandomTests, EDLIB_MODE_HW, true);
-    printf("\n");
+    printf("Running random tests for sequence of 'char', "
+           "alphabet idx of 'unsigned char' "
+           "and alphabet size of '50'\n");
+    allTestsPassed &=
+            runRandomTestsForAllModes<char, unsigned char>(numRandomTests, 50);
 
-    printf("Testing HW...\n");
-    allTestsPassed &= runRandomTests(numRandomTests, EDLIB_MODE_HW, false);
-    printf("\n");
+    printf("Running random tests for sequence of 'uint16_t', "
+           "alphabet idx of 'uint16_t' "
+           "and alphabet size of '500'\n");
+    allTestsPassed &=
+            runRandomTestsForAllModes<uint16_t , uint16_t>(numRandomTests, 500);
 
-    printf("Testing NW with alignment...\n");
-    allTestsPassed &= runRandomTests(numRandomTests, EDLIB_MODE_NW, true);
-    printf("\n");
-
-    printf("Testing NW...\n");
-    allTestsPassed &= runRandomTests(numRandomTests, EDLIB_MODE_NW, false);
-    printf("\n");
-
-    printf("Testing SHW with alignment...\n");
-    allTestsPassed &= runRandomTests(numRandomTests, EDLIB_MODE_SHW, true);
-    printf("\n");
-
-    printf("Testing SHW...\n");
-    allTestsPassed &= runRandomTests(numRandomTests, EDLIB_MODE_SHW, false);
-    printf("\n");
-
+    //TODO: make template functions for specific tests to run them with different element types
     printf("Specific tests:\n");
     bool specificTestsPassed = runTests();
     if (specificTestsPassed)
@@ -76,15 +65,54 @@ int main(int argc, char* argv[]) {
     return !allTestsPassed;
 }
 
-
-void fillRandomly(char* seq, int seqLength, int alphabetLength) {
+template <class Element, class AlphabetIdx>
+void fillRandomly(Element* seq, int seqLength, AlphabetIdx alphabetSize) {
     for (int i = 0; i < seqLength; i++)
-        seq[i] = static_cast<char>(rand() % alphabetLength);
+        seq[i] = static_cast<Element>(rand() % alphabetSize);
+}
+
+template <class Element, class AlphabetIdx>
+bool runRandomTestsForAllModes(int numTests, AlphabetIdx alphabetSize){
+    srand(42);
+    bool allTestsPassed = true;
+
+    printf("Testing HW with alignment...\n");
+    allTestsPassed &=
+        runRandomTests<Element, AlphabetIdx>(numTests, EDLIB_MODE_HW, true, alphabetSize);
+    printf("\n");
+
+    printf("Testing HW...\n");
+    allTestsPassed &=
+        runRandomTests<Element, AlphabetIdx>(numTests, EDLIB_MODE_HW, false, alphabetSize);
+    printf("\n");
+
+    printf("Testing NW with alignment...\n");
+    allTestsPassed &=
+        runRandomTests<Element, AlphabetIdx>(numTests, EDLIB_MODE_NW, true, alphabetSize);
+    printf("\n");
+
+    printf("Testing NW...\n");
+    allTestsPassed &=
+        runRandomTests<Element, AlphabetIdx>(numTests, EDLIB_MODE_NW, false, alphabetSize);
+    printf("\n");
+
+    printf("Testing SHW with alignment...\n");
+    allTestsPassed &=
+        runRandomTests<Element, AlphabetIdx>(numTests, EDLIB_MODE_SHW, true, alphabetSize);
+    printf("\n");
+
+    printf("Testing SHW...\n");
+    allTestsPassed &=
+        runRandomTests<Element, AlphabetIdx>(numTests, EDLIB_MODE_SHW, false, alphabetSize);
+    printf("\n");
+
+    return allTestsPassed;
 }
 
 // Returns true if all tests passed, false otherwise.
-bool runRandomTests(int numTests, EdlibAlignMode mode, bool findAlignment) {
-    int alphabetLength = 10;
+template <class Element, class AlphabetIdx>
+bool runRandomTests(int numTests, EdlibAlignMode mode,
+                    bool findAlignment, AlphabetIdx alphabetSize) {
     int numTestsFailed = 0;
     clock_t start;
     double timeEdlib = 0;
@@ -94,10 +122,10 @@ bool runRandomTests(int numTests, EdlibAlignMode mode, bool findAlignment) {
         bool failed = false;
         int queryLength = 50 + rand() % 300;
         int targetLength = 500 + rand() % 10000;
-        char* query = static_cast<char *>(malloc(sizeof(char) * queryLength));
-        char* target = static_cast<char *>(malloc(sizeof(char) * targetLength));
-        fillRandomly(query, queryLength, alphabetLength);
-        fillRandomly(target, targetLength, alphabetLength);
+        Element* query = static_cast<Element *>(malloc(sizeof(Element) * queryLength));
+        Element* target = static_cast<Element *>(malloc(sizeof(Element) * targetLength));
+        fillRandomly<Element, AlphabetIdx>(query, queryLength, alphabetSize);
+        fillRandomly<Element, AlphabetIdx>(target, targetLength, alphabetSize);
 
         // // Print query
         // printf("Query: ");
@@ -112,14 +140,14 @@ bool runRandomTests(int numTests, EdlibAlignMode mode, bool findAlignment) {
         // printf("\n");
 
         start = clock();
-        EdlibAlignResult result = edlibAlign(
+        EdlibAlignResult result = edlibAlign<Element, AlphabetIdx>(
                 query, queryLength, target, targetLength,
                 edlibNewAlignConfig(-1, mode, findAlignment ? EDLIB_TASK_PATH : EDLIB_TASK_DISTANCE, NULL, 0));
         timeEdlib += clock() - start;
         if (result.alignment) {
-            if (!checkAlignment(query, queryLength, target,
-                                result.editDistance, result.endLocations[0], mode,
-                                result.alignment, result.alignmentLength)) {
+            if (!checkAlignment<Element>(query, queryLength, target,
+                                         result.editDistance, result.endLocations[0], mode,
+                                         result.alignment, result.alignmentLength)) {
                 failed = true;
                 printf("Alignment is not correct\n");
             }
@@ -135,8 +163,8 @@ bool runRandomTests(int numTests, EdlibAlignMode mode, bool findAlignment) {
         start = clock();
         int score2; int numLocations2;
         int* endLocations2;
-        calcEditDistanceSimple(query, queryLength, target, targetLength,
-                               mode, &score2, &endLocations2, &numLocations2);
+        calcEditDistanceSimple<Element>(query, queryLength, target, targetLength,
+                                        mode, &score2, &endLocations2, &numLocations2);
         timeSimple += clock() - start;
 
         // Compare results
@@ -166,7 +194,7 @@ bool runRandomTests(int numTests, EdlibAlignMode mode, bool findAlignment) {
 
         for (int k = max(score2 - 1, 0); k <= score2 + 1; k++) {
             int scoreExpected = score2 > k ? -1 : score2;
-            EdlibAlignResult result3 = edlibAlign(
+            EdlibAlignResult result3 = edlibAlign<Element, AlphabetIdx>(
                     query, queryLength, target, targetLength,
                     edlibNewAlignConfig(k, mode, findAlignment ? EDLIB_TASK_PATH : EDLIB_TASK_DISTANCE, NULL, 0));
             if (result3.editDistance != scoreExpected) {
@@ -175,9 +203,9 @@ bool runRandomTests(int numTests, EdlibAlignMode mode, bool findAlignment) {
                        k, result3.editDistance, scoreExpected);
             }
             if (result3.alignment) {
-                if (!checkAlignment(query, queryLength, target,
-                                    result3.editDistance, result3.endLocations[0],
-                                    mode, result3.alignment, result3.alignmentLength)) {
+                if (!checkAlignment<Element>(query, queryLength, target,
+                                             result3.editDistance, result3.endLocations[0],
+                                             mode, result3.alignment, result3.alignmentLength)) {
                     failed = true;
                     printf("Alignment is not correct\n");
                 }
@@ -569,12 +597,39 @@ bool testEmptySequences() {
     return r;
 }
 
+/**
+ * Tests if AlphabetTooBig exception is thrown when the alphabet size is too big
+ */
+bool testException(){
+    // Here we generate two same sequences. They are having distinct element for
+    // each position, so the length of each sequence is same its alphabet size.
+    // An alphabet size of 260 should make edlibAlign throw AlphabetTooBig exception,
+    // since it is larger than 256, the largest value that can be saved in an unsigned character.
+    int seqLength = 260;
+    char* query = static_cast<char *>(malloc(sizeof(char) * seqLength));
+    char* target = static_cast<char *>(malloc(sizeof(char) * seqLength));
+    for (int i = 0; i < seqLength; i++) {
+        query[i] = static_cast<char>(i);
+        target[i] = static_cast<char>(i);
+    }
+    try {
+        EdlibAlignResult result =
+                edlibAlign(query, seqLength, target, seqLength, edlibDefaultAlignConfig());
+        edlibFreeAlignResult(result);
+    }catch(const AlphabetTooBigException& e) {
+        printf("\x1B[32m""OK""\x1B[0m\n");
+        return true;
+    }
+    printf("\x1B[31m""FAIL""\x1B[0m\n");
+    return false;
+}
+
 bool runTests() {
     // TODO: make this global vector where tests have to add themselves.
-    int numTests = 19;
+    int numTests = 20;
     bool (* tests [])() = {test1, test2, test3, test4, test5, test6,
                            test7, test8, test9, test10, test11, test12, test13, test14, test15, test16,
-                           testCigar, testCustomEqualityRelation, testEmptySequences};
+                           testCigar, testCustomEqualityRelation, testEmptySequences, testException};
 
     bool allTestsPassed = true;
     for (int i = 0; i < numTests; i++) {
@@ -586,11 +641,13 @@ bool runTests() {
     return allTestsPassed;
 }
 
+
 /**
  * Checks if alignment is correct.
  */
-bool checkAlignment(const char* query, int queryLength,
-                    const char* target,
+template <class Element>
+bool checkAlignment(const Element* query, int queryLength,
+                    const Element* target,
                     int score, int pos, EdlibAlignMode mode,
                     unsigned char* alignment, int alignmentLength) {
     int alignScore = 0;

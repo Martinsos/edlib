@@ -80,13 +80,12 @@ add_library(staticTestLib STATIC test/testMultiDefinition/staticTestLib.cpp)
 add_executable(testMultiDefinition test/testMultiDefinition/testMultiDefinition.cpp)
 target_link_libraries(testMultiDefinition staticTestLib)
 
-#
-#if (NOT WIN32) # If on windows, do not build binaries that do not support windows.
-#  add_executable(edlib-aligner apps/aligner/aligner.cpp)
-#  target_link_libraries(edlib-aligner edlib)
-#endif()
-#
-#
+
+if (NOT WIN32) # If on windows, do not build binaries that do not support windows.
+  add_executable(edlib-aligner apps/aligner/aligner.cpp)
+  #target_link_libraries(edlib-aligner edlib)
+endif()
+
 ## Create target 'install' for installing libraries.
 #install(TARGETS edlib DESTINATION ${CMAKE_INSTALL_LIBDIR})
 #install(FILES edlib/include/edlib.hpp DESTINATION ${CMAKE_INSTALL_INCLUDEDIR})

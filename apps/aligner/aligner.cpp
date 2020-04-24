@@ -11,6 +11,7 @@
 #include "edlib.hpp"
 
 using namespace std;
+using namespace edlib;
 
 int readFastaSequences(const char* path, vector< vector<char> >* seqs);
 
