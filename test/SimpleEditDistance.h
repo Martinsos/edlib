@@ -15,8 +15,9 @@ int min3(int x, int y, int z) {
     return min(x, min(y, z));
 }
 
-int calcEditDistanceSimple(const char* query, int queryLength,
-                           const char* target, int targetLength,
+template <class Element=char>
+int calcEditDistanceSimple(const Element* query, int queryLength,
+                           const Element* target, int targetLength,
                            const edlib::EdlibAlignMode mode, int* score,
                            int** positions_, int* numPositions_) {
     int bestScore = -1;
