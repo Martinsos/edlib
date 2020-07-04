@@ -142,7 +142,7 @@ bool runRandomTests(int numTests, EdlibAlignMode mode,
         start = clock();
         EdlibAlignResult result = edlibAlign<Element, AlphabetIdx>(
                 query, queryLength, target, targetLength,
-                edlibNewAlignConfig(-1, mode, findAlignment ? EDLIB_TASK_PATH : EDLIB_TASK_DISTANCE, NULL, 0));
+                edlibNewAlignConfig<Element>(-1, mode, findAlignment ? EDLIB_TASK_PATH : EDLIB_TASK_DISTANCE, NULL, 0));
         timeEdlib += clock() - start;
         if (result.alignment) {
             if (!checkAlignment<Element>(query, queryLength, target,
@@ -196,7 +196,7 @@ bool runRandomTests(int numTests, EdlibAlignMode mode,
             int scoreExpected = score2 > k ? -1 : score2;
             EdlibAlignResult result3 = edlibAlign<Element, AlphabetIdx>(
                     query, queryLength, target, targetLength,
-                    edlibNewAlignConfig(k, mode, findAlignment ? EDLIB_TASK_PATH : EDLIB_TASK_DISTANCE, NULL, 0));
+                    edlibNewAlignConfig<Element>(k, mode, findAlignment ? EDLIB_TASK_PATH : EDLIB_TASK_DISTANCE, NULL, 0));
             if (result3.editDistance != scoreExpected) {
                 failed = true;
                 printf("For k = %d score was %d but it should have been %d\n",
@@ -253,7 +253,7 @@ bool executeTest(const char* query, int queryLength,
                            mode, &scoreSimple, &endLocationsSimple, &numLocationsSimple);
 
     EdlibAlignResult result = edlibAlign(query, queryLength, target, targetLength,
-                                         edlibNewAlignConfig(-1, mode, EDLIB_TASK_PATH, NULL, 0));
+                                         edlibNewAlignConfig<char>(-1, mode, EDLIB_TASK_PATH, NULL, 0));
 
     if (result.editDistance != scoreSimple) {
         pass = false;
@@ -453,7 +453,7 @@ bool test11() {
 }
 
 bool test12() {
-    EdlibEqualityPair additionalEqualities[24] = {{'R','A'},{'R','G'},{'M','A'},{'M','C'},{'W','A'},{'W','T'},
+    EdlibEqualityPair<char> additionalEqualities[24] = {{'R','A'},{'R','G'},{'M','A'},{'M','C'},{'W','A'},{'W','T'},
                                                   {'S','C'},{'S','G'},{'Y','C'},{'Y','T'},{'K','G'},{'K','T'},
                                                   {'V','A'},{'V','C'},{'V','G'},{'H','A'},{'H','C'},{'H','T'},
                                                   {'D','A'},{'D','G'},{'D','T'},{'B','C'},{'B','G'},{'B','T'}};
@@ -462,7 +462,7 @@ bool test12() {
 
     EdlibAlignResult result = edlibAlign(query, static_cast<int>(std::strlen(query)),
                                          target, static_cast<int>(std::strlen(target)),
-                                         edlibNewAlignConfig(-1, EDLIB_MODE_HW,EDLIB_TASK_LOC, additionalEqualities, 24));
+                                         edlibNewAlignConfig<char>(-1, EDLIB_MODE_HW,EDLIB_TASK_LOC, additionalEqualities, 24));
     bool pass = result.status == EDLIB_STATUS_OK && result.editDistance == 0;
     printf(pass ? "\x1B[32m""OK""\x1B[0m\n" : "\x1B[31m""FAIL""\x1B[0m\n");
     edlibFreeAlignResult(result);
@@ -479,7 +479,7 @@ bool test13() {
 
     EdlibAlignResult result = edlibAlign(query, static_cast<int>(std::strlen(query)),
                                          target, static_cast<int>(std::strlen(target)),
-                                         edlibNewAlignConfig(-1, EDLIB_MODE_HW, EDLIB_TASK_PATH, NULL, 0));
+                                         edlibNewAlignConfig<char>(-1, EDLIB_MODE_HW, EDLIB_TASK_PATH, NULL, 0));
     bool pass = result.status == EDLIB_STATUS_OK && result.editDistance == 2;
     printf(pass ? "\x1B[32m""OK""\x1B[0m\n" : "\x1B[31m""FAIL""\x1B[0m\n");
     edlibFreeAlignResult(result);
@@ -496,7 +496,7 @@ bool test14() {
 
     EdlibAlignResult result = edlibAlign(query, static_cast<int>(std::strlen(query)),
                                          target, static_cast<int>(std::strlen(target)),
-                                         edlibNewAlignConfig(-1, EDLIB_MODE_SHW, EDLIB_TASK_PATH, NULL, 0));
+                                         edlibNewAlignConfig<char>(-1, EDLIB_MODE_SHW, EDLIB_TASK_PATH, NULL, 0));
     bool pass = result.status == EDLIB_STATUS_OK && result.editDistance == 2;
     printf(pass ? "\x1B[32m""OK""\x1B[0m\n" : "\x1B[31m""FAIL""\x1B[0m\n");
     edlibFreeAlignResult(result);
@@ -510,7 +510,7 @@ bool test15() {
 
     EdlibAlignResult result = edlibAlign(query, static_cast<int>(std::strlen(query)),
                                          target, static_cast<int>(std::strlen(target)),
-                                         edlibNewAlignConfig(-1, EDLIB_MODE_HW, EDLIB_TASK_LOC, NULL, 0));
+                                         edlibNewAlignConfig<char>(-1, EDLIB_MODE_HW, EDLIB_TASK_LOC, NULL, 0));
     bool pass = result.status == EDLIB_STATUS_OK && result.editDistance == 3;
     printf(pass ? "\x1B[32m""OK""\x1B[0m\n" : "\x1B[31m""FAIL""\x1B[0m\n");
     edlibFreeAlignResult(result);
@@ -524,7 +524,7 @@ bool test16() {
 
     EdlibAlignResult result = edlibAlign(query, static_cast<int>(std::strlen(query)),
                                          target, static_cast<int>(std::strlen(target)),
-                                         edlibNewAlignConfig(-1, EDLIB_MODE_HW, EDLIB_TASK_LOC, NULL, 0));
+                                         edlibNewAlignConfig<char>(-1, EDLIB_MODE_HW, EDLIB_TASK_LOC, NULL, 0));
     bool pass = result.status == EDLIB_STATUS_OK && result.editDistance == 3;
     printf(pass ? "\x1B[32m""OK""\x1B[0m\n" : "\x1B[31m""FAIL""\x1B[0m\n");
     edlibFreeAlignResult(result);
@@ -561,7 +561,7 @@ bool testCigar() {
 }
 
 bool testCustomEqualityRelation() {
-    EdlibEqualityPair additionalEqualities[6] = {{'R','A'},{'R','G'},{'N','A'},{'N','C'},{'N','T'},{'N','G'}};
+    EdlibEqualityPair<char> additionalEqualities[6] = {{'R','A'},{'R','G'},{'N','A'},{'N','C'},{'N','T'},{'N','G'}};
 
     bool allPass = true;
 
@@ -570,7 +570,7 @@ bool testCustomEqualityRelation() {
 
     printf("Degenerate nucleotides (HW): ");
     EdlibAlignResult result = edlibAlign(query, 19, target, 41,
-                                         edlibNewAlignConfig(-1, EDLIB_MODE_HW, EDLIB_TASK_PATH,
+                                         edlibNewAlignConfig<char>(-1, EDLIB_MODE_HW, EDLIB_TASK_PATH,
                                                              additionalEqualities, 6));
     bool pass = result.status == EDLIB_STATUS_OK && result.editDistance == 1;
     edlibFreeAlignResult(result);

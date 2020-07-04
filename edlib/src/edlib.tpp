@@ -1,4 +1,5 @@
 #include "edlib.hpp"
+#include "pairHash.hpp"
 
 #include <stdint.h>
 #include <cstdlib>
@@ -7,8 +8,11 @@
 #include <cstring>
 #include <string>
 #include <unordered_map>
+#include <unordered_set>
 
 namespace edlib {
+template<class T>
+using SetOfPairs = std::unordered_set< std::pair<T, T>,pair_hash<T, T>>;
 
 class AlphabetTooBigException: public std::exception{
 public:
@@ -65,41 +69,42 @@ struct Block {
 
 
 /**
- * Defines equality relation on alphabet characters.
- * By default each character is always equal only to itself, but you can also provide additional equalities.
+ * Defines equality relation on indexes of alphabet elements.
+ * By default each alphabet index is always equal only to itself, but you can also provide additional equalities.
  */
 template<class AlphabetIdx>
 class EqualityDefinition {
-public:/*
-    EqualityDefinition(const string& alphabet,
-                       const EdlibEqualityPair* additionalEqualities = NULL,
-                       const int additionalEqualitiesLength = 0) {
-        for (int i = 0; i < static_cast<int>(alphabet.size()); i++) {
-            for (int j = 0; j < static_cast<int>(alphabet.size()); j++) {
-                matrix[i][j] = (i == j);
-            }
+private:
+    SetOfPairs<AlphabetIdx> equalitySet;
+    // The boolean array, hasAdditionalEqualities shows which alphabet indexes have
+    // at least one additional equality.
+    std::vector<bool> hasAdditionalEqualities;
+public:
+    EqualityDefinition(const std::vector<EdlibEqualityPair<AlphabetIdx>>&  additionalEqualities,
+                       AlphabetIdx alphabetSize){
+        hasAdditionalEqualities.resize(alphabetSize);
+        std::fill(hasAdditionalEqualities.begin(), hasAdditionalEqualities.end(), false);
+        for (size_t i = 0; i < additionalEqualities.size(); i++){
+            AlphabetIdx a = additionalEqualities.at(i).first;
+            AlphabetIdx b = additionalEqualities.at(i).second;
+            equalitySet.insert(std::pair<AlphabetIdx, AlphabetIdx>(a, b));
+            equalitySet.insert(std::pair<AlphabetIdx, AlphabetIdx>(b, a));
+            hasAdditionalEqualities[a] = true;
+            hasAdditionalEqualities[b] = true;
         }
-        if (additionalEqualities != NULL) {
-            for (int i = 0; i < additionalEqualitiesLength; i++) {
-                size_t firstTransformed = alphabet.find(additionalEqualities[i].first);
-                size_t secondTransformed = alphabet.find(additionalEqualities[i].second);
-                if (firstTransformed != string::npos && secondTransformed != string::npos) {
-                    matrix[firstTransformed][secondTransformed] = matrix[secondTransformed][firstTransformed] = true;
-                }
-            }
-        }
-    }*/
-
-    /**
-     * @param a  Element from transformed sequence.
-     * @param b  Element from transformed sequence.
+    }
+    /*
+     * @param a  an alphabet index from transformed sequence.
+     * @param b  an alphabet index from transformed sequence.
      * @return True if a and b are defined as equal, false otherwise.
      */
-    // TODO: We need to implement areEqual later (to support additional equalities)
     bool areEqual(AlphabetIdx a, AlphabetIdx b) const {
-        return a == b;
+        return (a == b) || (hasAdditionalEqualities[a]
+                            && hasAdditionalEqualities[b]
+                            && equalitySet.count(std::pair<AlphabetIdx, AlphabetIdx>(a, b)));
     }
 };
+
 
 template<class AlphabetIdx>
 int myersCalcEditDistanceSemiGlobal(const Word* Peq, int W, int maxNumBlocks,
@@ -140,6 +145,12 @@ std::unordered_map<Element, AlphabetIdx> transformSequences(
         AlphabetIdx** queryTransformed,
         AlphabetIdx** targetTransformed);
 
+template<class Element, class AlphabetIdx>
+std::vector<EdlibEqualityPair<AlphabetIdx>> transformEqualityPairs(
+        const EdlibEqualityPair<Element>* additionalEqualities,
+        int additionalEqualitiesLength,
+        const std::unordered_map<Element,AlphabetIdx>& elementToAlphabetIdx);
+
 inline int ceilDiv(int x, int y);
 
 template<class E>
@@ -151,7 +162,6 @@ inline Word* buildPeq(
         const AlphabetIdx* query,
         const int queryLength,
         const EqualityDefinition<AlphabetIdx>& equalityDefinition);
-
 } // namespace internal
 
 /**
@@ -160,7 +170,7 @@ inline Word* buildPeq(
 template <class Element, class AlphabetIdx>
 EdlibAlignResult edlibAlign(const Element* const queryOriginal, const int queryLength,
                             const Element* const targetOriginal, const int targetLength,
-                            const EdlibAlignConfig config) {
+                            const EdlibAlignConfig<Element> config) {
     using namespace internal;
 
     EdlibAlignResult result;
@@ -201,9 +211,11 @@ EdlibAlignResult edlibAlign(const Element* const queryOriginal, const int queryL
     /*--------------------- INITIALIZATION ------------------*/
     int maxNumBlocks = ceilDiv(queryLength, WORD_SIZE); // bmax in Myers
     int W = maxNumBlocks * WORD_SIZE - queryLength; // number of redundant cells in last level blocks
-    // TODO: According to the future implementation of EqualityDefinition we need to modify instantiation
-    //EqualityDefinition equalityDefinition(elementToAlphabetIdx, config.additionalEqualities, config.additionalEqualitiesLength);
-    EqualityDefinition<AlphabetIdx> equalityDefinition;
+    std::vector<EdlibEqualityPair<AlphabetIdx>> additionalEqualities =
+            transformEqualityPairs(config.additionalEqualities,
+                                   config.additionalEqualitiesLength,
+                                   elementToAlphabetIdx);
+    EqualityDefinition<AlphabetIdx> equalityDefinition(additionalEqualities, elementToAlphabetIdx.size());
     Word* Peq = buildPeq<AlphabetIdx>(static_cast<AlphabetIdx>(elementToAlphabetIdx.size()), query, queryLength, equalityDefinition);
     /*-------------------------------------------------------*/
     /*------------------ MAIN CALCULATION -------------------*/
@@ -1501,12 +1513,41 @@ std::unordered_map<Element, AlphabetIdx> transformSequences(
     return elementToAlphabetIdx;
 }
 
+/**
+ * Takes additional equalities for alphabet elements, transforms them into index equalities
+ * @param [in] additionalEqualities
+ * @param [in] additionalEqualitiesLength
+ * @param [in] elementToAlphabetIdx
+ * @return  transformedEqualities A vector of pairs in which each pair contains the indexes of an additional equality
+ */
+template<class Element, class AlphabetIdx>
+std::vector<EdlibEqualityPair<AlphabetIdx>> transformEqualityPairs(
+        const EdlibEqualityPair<Element>* additionalEqualities,
+        int additionalEqualitiesLength,
+        const std::unordered_map<Element,AlphabetIdx>& elementToAlphabetIdx){
+    std::vector<EdlibEqualityPair<AlphabetIdx>> transformedEqualities;
+    for(int i = 0; i < additionalEqualitiesLength; i++){
+        Element a = additionalEqualities[i].first;
+        Element b = additionalEqualities[i].second;
+        if (elementToAlphabetIdx.count(a) && elementToAlphabetIdx.count(b)) {
+            EdlibEqualityPair<AlphabetIdx> transformedEquality;
+            transformedEquality.first = elementToAlphabetIdx.at(a);
+            transformedEquality.second = elementToAlphabetIdx.at(b);
+            transformedEqualities.push_back(transformedEquality);
+        }else{
+            continue;
+        }
+    }
+    return transformedEqualities;
+}
+
 } // namespace internal
 
-inline EdlibAlignConfig edlibNewAlignConfig(int k, EdlibAlignMode mode, EdlibAlignTask task,
-                                            EdlibEqualityPair* additionalEqualities,
-                                            int additionalEqualitiesLength) {
-    EdlibAlignConfig config;
+template <class Element>
+EdlibAlignConfig<Element> edlibNewAlignConfig(int k, EdlibAlignMode mode, EdlibAlignTask task,
+                                              const EdlibEqualityPair<Element>* additionalEqualities,
+                                              int additionalEqualitiesLength) {
+    EdlibAlignConfig<Element> config;
     config.k = k;
     config.mode = mode;
     config.task = task;
@@ -1515,8 +1556,9 @@ inline EdlibAlignConfig edlibNewAlignConfig(int k, EdlibAlignMode mode, EdlibAli
     return config;
 }
 
-inline EdlibAlignConfig edlibDefaultAlignConfig(void) {
-    return edlibNewAlignConfig(-1, EDLIB_MODE_NW, EDLIB_TASK_DISTANCE, NULL, 0);
+template <class Element>
+EdlibAlignConfig<Element> edlibDefaultAlignConfig(void) {
+    return edlibNewAlignConfig<Element>(-1, EDLIB_MODE_NW, EDLIB_TASK_DISTANCE, NULL, 0);
 }
 
 inline void edlibFreeAlignResult(EdlibAlignResult result) {
