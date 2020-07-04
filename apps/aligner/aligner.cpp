@@ -168,7 +168,7 @@ int main(int argc, char * const argv[]) {
         EdlibAlignResult result;
         for (int rep = 0; rep < numRepeats; rep++) {  // Redundant repetition, for performance measurements.
             result = edlibAlign(query, queryLength, target, targetLength,
-                                edlibNewAlignConfig(k, modeCode, alignTask, NULL, 0));
+                                edlibNewAlignConfig<char>(k, modeCode, alignTask, NULL, 0));
             if (rep < numRepeats - 1) edlibFreeAlignResult(result);
         }
 

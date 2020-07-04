@@ -78,15 +78,17 @@ namespace edlib {
 /**
  * @brief Defines two given characters as equal.
  */
-typedef struct {
-    char first;
-    char second;
-} EdlibEqualityPair;
+template <class Element=char>
+struct EdlibEqualityPair{
+    Element first;
+    Element second;
+};
 
 /**
  * @brief Configuration object for edlibAlign() function.
  */
-typedef struct {
+template <class Element=char>
+struct EdlibAlignConfig{
     /**
      * Set k to non-negative value to tell edlib that edit distance is not larger than k.
      * Smaller k can significantly improve speed of computation.
@@ -119,28 +121,30 @@ typedef struct {
      * or e.g. if you want edlib to be case insensitive.
      * Can be set to NULL if there are none.
      */
-    EdlibEqualityPair *additionalEqualities;
+    const EdlibEqualityPair<Element>* additionalEqualities;
 
     /**
      * Number of additional equalities, which is non-negative number.
      * 0 if there are none.
      */
     int additionalEqualitiesLength;
-} EdlibAlignConfig;
+};
 
 /**
  * Helper method for easy construction of configuration object.
  * @return Configuration object filled with given parameters.
  */
-inline EdlibAlignConfig edlibNewAlignConfig(int k, EdlibAlignMode mode, EdlibAlignTask task,
-                                            EdlibEqualityPair* additionalEqualities,
+template <class Element=char>
+EdlibAlignConfig<Element> edlibNewAlignConfig(int k, EdlibAlignMode mode, EdlibAlignTask task,
+                                            const EdlibEqualityPair<Element>* additionalEqualities,
                                             int additionalEqualitiesLength);
 
 /**
  * @return Default configuration object, with following defaults:
  *         k = -1, mode = EDLIB_MODE_NW, task = EDLIB_TASK_DISTANCE, no additional equalities.
  */
-inline EdlibAlignConfig edlibDefaultAlignConfig(void);
+template <class Element=char>
+EdlibAlignConfig<Element> edlibDefaultAlignConfig(void);
 
 
 /**
@@ -225,7 +229,7 @@ inline void edlibFreeAlignResult(EdlibAlignResult result);
 template<class Element=char, class AlphabetIdx=uint8_t>
 EdlibAlignResult edlibAlign(const Element* query, int queryLength,
                             const Element* target, int targetLength,
-                            const EdlibAlignConfig config);
+                            const EdlibAlignConfig<Element> config);
 
 
 /**
