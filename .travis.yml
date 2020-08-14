@@ -43,15 +43,6 @@ matrix:
       env:
         - MATRIX_EVAL="export CC=clang-5.0 && export CXX=clang++-5.0"
 
-    - name: "Clang Xcode 7.3 (Mac)"
-      os: osx
-      osx_image: xcode7.3
-      addons:
-        homebrew:
-          packages:
-            - ninja
-          update: true
-
     - name: "Clang Xcode 11 (Mac)"
       os: osx
       osx_image: xcode11
