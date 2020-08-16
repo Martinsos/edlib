@@ -115,7 +115,7 @@ extern "C" {
          * or e.g. if you want edlib to be case insensitive.
          * Can be set to NULL if there are none.
          */
-        EdlibEqualityPair* additionalEqualities;
+        const EdlibEqualityPair* additionalEqualities;
 
         /**
          * Number of additional equalities, which is non-negative number.
@@ -129,7 +129,7 @@ extern "C" {
      * @return Configuration object filled with given parameters.
      */
     EdlibAlignConfig edlibNewAlignConfig(int k, EdlibAlignMode mode, EdlibAlignTask task,
-                                         EdlibEqualityPair* additionalEqualities,
+                                         const EdlibEqualityPair* additionalEqualities,
                                          int additionalEqualitiesLength);
 
     /**
