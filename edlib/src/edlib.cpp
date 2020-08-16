@@ -1460,7 +1460,7 @@ static string transformSequences(const char* const queryOriginal, const int quer
 
 
 extern "C" EdlibAlignConfig edlibNewAlignConfig(int k, EdlibAlignMode mode, EdlibAlignTask task,
-                                                EdlibEqualityPair* additionalEqualities,
+                                                const EdlibEqualityPair* additionalEqualities,
                                                 int additionalEqualitiesLength) {
     EdlibAlignConfig config;
     config.k = k;
