@@ -112,15 +112,17 @@ def align(query, target, mode="NW", task="distance", k=-1, additionalEqualities=
 
     cdef bytes tmp_bytes;
     cdef char* tmp_cstring;
+    cdef cedlib.EdlibEqualityPair* c_additionalEqualities = NULL
     if additionalEqualities is None:
         cconfig.additionalEqualities = NULL
         cconfig.additionalEqualitiesLength = 0
     else:
-        cconfig.additionalEqualities = <cedlib.EdlibEqualityPair*> PyMem_Malloc(len(additionalEqualities)
+        c_additionalEqualities = <cedlib.EdlibEqualityPair*> PyMem_Malloc(len(additionalEqualities)
                                                                           * cython.sizeof(cedlib.EdlibEqualityPair))
         for i in range(len(additionalEqualities)):
-            cconfig.additionalEqualities[i].first = bytearray(additionalEqualities[i][0].encode('utf-8'))[0]
-            cconfig.additionalEqualities[i].second = bytearray(additionalEqualities[i][1].encode('utf-8'))[0]
+            c_additionalEqualities[i].first = bytearray(additionalEqualities[i][0].encode('utf-8'))[0]
+            c_additionalEqualities[i].second = bytearray(additionalEqualities[i][1].encode('utf-8'))[0]
+        cconfig.additionalEqualities = c_additionalEqualities
         cconfig.additionalEqualitiesLength = len(additionalEqualities)
 
     # Run alignment -- need to get len before disabling the GIL
@@ -128,7 +130,7 @@ def align(query, target, mode="NW", task="distance", k=-1, additionalEqualities=
     target_len = len(target)
     with nogil:
         cresult = cedlib.edlibAlign(cquery, query_len, ctarget, target_len, cconfig)
-    if cconfig.additionalEqualities != NULL: PyMem_Free(cconfig.additionalEqualities)
+    if c_additionalEqualities != NULL: PyMem_Free(c_additionalEqualities)
 
     if cresult.status == 1:
         raise Exception("There was an error.")
