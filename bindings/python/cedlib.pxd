@@ -12,11 +12,11 @@ cdef extern from "edlib.h" nogil:
          int k
          EdlibAlignMode mode
          EdlibAlignTask task
-         EdlibEqualityPair* additionalEqualities
+         const EdlibEqualityPair* additionalEqualities
          int additionalEqualitiesLength
 
      EdlibAlignConfig edlibNewAlignConfig(int k, EdlibAlignMode mode, EdlibAlignTask task,
-                                          EdlibEqualityPair* additionalEqualities,
+                                          const EdlibEqualityPair* additionalEqualities,
                                           int additionalEqualitiesLength)
      EdlibAlignConfig edlibDefaultAlignConfig()
 
