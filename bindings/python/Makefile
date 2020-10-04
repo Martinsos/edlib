@@ -1,10 +1,12 @@
 default: build
 
-
-edlib: ../../edlib
-	cp -R ../../edlib .
+.PHONY:
+edlib:
+	# create a clean (maybe updated) copy of edlib src
+	rm -rf edlib && cp -r ../../edlib .
 
 pyedlib.bycython.cpp: edlib.pyx cedlib.pxd
+	python -m pip install cython
 	cython --cplus edlib.pyx -o edlib.bycython.cpp
 
 # To build package, README.rst is needed, because it goes into long description of package,
@@ -19,6 +21,7 @@ buildWithoutREADME.rst: ${BUILD_SOURCE_FILES}
 	EDLIB_OMIT_README_RST=1 python setup.py build_ext -i
 
 README.rst: buildWithoutREADME.rst README-tmpl.rst
+	python -m pip install cogapp
 	cog -d -o README.rst README-tmpl.rst	
 
 BUILD_FILES=${BUILD_SOURCE_FILES} README.rst
