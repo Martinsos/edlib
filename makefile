@@ -15,7 +15,7 @@ integ-test:
 	${BDIR}/edlib-aligner ${TDIR}/query.fasta ${TDIR}/target.fasta
 install:
 	# Install into ${PREFIX}, per setup.
-	ninja -C $B install
+	ninja -C ${BDIR} install
 setup:
 	rm -rf ${BDIR}
 	meson setup ${BDIR} . --prefix=${PREFIX}

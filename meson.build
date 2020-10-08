@@ -16,6 +16,7 @@ edlib_lib = library('edlib',
   dependencies : [],
   install : true,
 )
+install_headers('edlib/include/edlib.h')
 edlib_dep = declare_dependency(
   include_directories : ['edlib/include'],
   link_with : edlib_lib
