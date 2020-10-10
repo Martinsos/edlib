@@ -17,20 +17,27 @@ all:
 
 configure:
 	rm -rf ${BUILD_DIR}
-	meson setup ${BUILD_DIR} .
+	meson setup --backend=ninja ${BUILD_DIR} .
 
 build:
-	ninja -v -C ${BUILD_DIR}
+	meson compile -v -C ${BUILD_DIR}
 
 test:
-	cd ${BUILD_DIR}; meson test -v
+	meson test -v -C ${BUILD_DIR}
 
 integration-tests:
 	${BUILD_DIR}/hello-world
 	${BUILD_DIR}/edlib-aligner ${TEST_DATA_DIR}/query.fasta ${TEST_DATA_DIR}/target.fasta
 
+# Valgrind Returns 2 if there was a memory leak/error,
+# otherwise returns runTests exit code, which is 0 if
+# all went fine or 1 if some of the tests failed.
+check-memory-leaks:
+	valgrind --quiet --error-exitcode=2 --tool=memcheck --leak-check=full \
+      ${BUILD_DIR}/runTests 2
+
 install:
-	cd ${BUILD_DIR}; meson install
+	meson install -C ${BUILD_DIR}
 
 clean:
 	rm -rf ${BUILD_DIR}

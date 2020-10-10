@@ -1,5 +1,10 @@
 language: cpp
-dist: trusty
+
+dist: xenial
+
+branches:
+  only:
+    - master # This will still build PRs.
 
 stages:
     - ccpp
@@ -11,29 +16,28 @@ env:
         # Encrypted TWINE_PASSWORD:
         - secure: "VfgRi/hcUMLDYzATLS8JOuZo+wg0VNCmEojIJ3gpy89LAXgPN1Qx/2n3c52PPgFWgWFdDgns2SdxhQ1/810qb+65choy2fOgTULnyFcH3ZFTM5nINVHlGB5dLDUesKjrqqfIKHnwB6LAskHqHHPm/qv7WxUjQbcpR6mICsKB7h3NI7yUSc3tRPmd8tVBc/mTUXpMRVznTxGFCo/rC4f2y57GI9odjDxS4VqGS8T9Igvgyteg+ougXYbl84FIi3Bij6TQITa1rP9cFw/lfXMTM2m1czTonzAbgGPC6q7798MCGhLpEdxr+Zu9NPCS8aWFYdxMUYmsisjffDtTdIagZFh/14YrnQb2RxqnLTqSi20E+xXx16GcHhnMOxw/sSOh6HUEaXcbLNtx/mqMEa7mQEcIFBdXHWs/czTHz8xEoGnHIVHI5zqItoK3nUD0W/X6XUex8GP8obvjSKVw2k8X/0bZUaqSyNVbTfYcLmOk53Kx8vfXd82BbTOWiJVZmvuugqrshIEaLOyRhSaoC4Bj5KjfijM/gKPa+n8wVEQ/4hF4HpJKr/33cAm1URDGsDnfvHfxfeEwizTq8gCIxnbpOzSsd1M6+3MQLr48DE8uYM+wkG2F+KsCKe3OexLiaqHG7rVZh1R99nOykoqfjhxek3H1KGfx7qFbdK80AaVBiQo="
 
-
-
 .ccpp: &ccpp
     stage: ccpp
     
     before_install:
+      - sudo -H pip3 install -U pip
+      - sudo -H pip3 install -U setuptools
       - eval "${MATRIX_EVAL}"
     
     install:
-      - if [ $TRAVIS_OS_NAME == "linux" ]; then sudo apt-get install valgrind; fi
+      - sudo -H pip3 install meson ninja # Needed to build C/CPP.
     
     before_script:
-      # Build C/C++ library and apps.
+      # Build C/C++ library and apps using Meson.
+      - CXXFLAGS="-Werror" make
+      # Also check that building with CMake works.
       - mkdir -p build && cd build && CXXFLAGS="-Werror" cmake -GNinja .. && ninja -v && cd ..
     
     script:
-      # Test C/C++ library using CTest.
-      - ninja -C build -v test && cat build/Testing/Temporary/LastTest.log
-      # Check for memory leaks. Returns 2 if there was a memory leak/error, otherwise returns runTests exit code,
-      # which is 0 if all went fine or 1 if some of the tests failed. I test for memory leaks only on linux because
-      # osx returns errors from system libraries, which I would have to supress.
-      # This is run only on smaller number of tests, since executing on valgrind is slow.
-      - if [ $TRAVIS_OS_NAME == "linux" ]; then valgrind --quiet --error-exitcode=2 --tool=memcheck --leak-check=full build/bin/runTests 2; fi
+      - make test
+      # I test for memory leaks only on linux because osx returns errors from
+      # system libraries, which I would have to supress.
+      - if [ $TRAVIS_OS_NAME == "linux" ]; then make check-memory-leaks; fi
 
 .python: &python
     stage: python
@@ -57,6 +61,7 @@ env:
         - if [ $DEPLOY_SDIST_TO_PYPI ]; then make sdist; fi
 
     after_success:
+        # Deploy wheel(s) and source (sdist) to PYPI (if commit is tagged).
         - |
             if [ $TRAVIS_TAG ]; then
                 cd bindings/python
@@ -81,11 +86,11 @@ jobs:
       os: linux
       addons:
         apt:
-          sources:
-            - ubuntu-toolchain-r-test
           packages:
             - g++-4.9
-            - ninja-build
+            - valgrind
+            - python3
+            - python3-pip
       env:
          - MATRIX_EVAL="export CC=gcc-4.9 && export CXX=g++-4.9"
       <<: *ccpp
@@ -95,10 +100,12 @@ jobs:
       addons:
         apt:
           sources:
-            - ubuntu-toolchain-r-test
+            - ubuntu-toolchain-r-test # For g++-9
           packages:
             - g++-9
-            - ninja-build
+            - valgrind
+            - python3
+            - python3-pip
       env:
         - MATRIX_EVAL="export CC=gcc-9 && export CXX=g++-9"
       <<: *ccpp
@@ -107,11 +114,11 @@ jobs:
       os: linux
       addons:
         apt:
-          sources:
-            - llvm-toolchain-trusty-5.0
           packages:
             - clang-5.0
-            - ninja-build
+            - valgrind
+            - python3
+            - python3-pip
       env:
         - MATRIX_EVAL="export CC=clang-5.0 && export CXX=clang++-5.0"
       <<: *ccpp
@@ -119,10 +126,6 @@ jobs:
     - name: "C/CPP (OSX; XCode 11; Clang)"
       os: osx
       osx_image: xcode11
-      addons:
-        homebrew:
-          packages:
-            - ninja
       <<: *ccpp
 
     - name: "Python wheel (Linux)"
