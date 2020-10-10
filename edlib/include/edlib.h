@@ -7,6 +7,27 @@
  * @brief Main header file, containing all public functions and structures.
  */
 
+// Define EDLIB_API macro that, when on Windows and building a DLL,
+// exports a function/struct so it is visible in the generated DLL.
+// While this happens by default on Unix, it does not
+// on Windows, and DLL will not be successfully linked, so we have to
+// explicitely put this macro in front of every function/struct in here
+// that is part of the Edlib API.
+// EDLIB_DLL_EXPORT should be defined in the .cpp that implements this header.
+// Check discussion here for more details:
+//   https://github.com/Martinsos/edlib/pull/165
+// or check this SO answer:
+//   https://stackoverflow.com/a/538179/1509394
+#if defined(_WIN32) || defined(_WIN64) || defined(__MINGW32__)
+#    ifdef EDLIB_DLL_EXPORT
+#        define EDLIB_API __declspec(dllexport)
+#    else
+#        define EDLIB_API __declspec(dllimport)
+#    endif
+#else
+#    define EDLIB_API
+#endif
+
 #ifdef __cplusplus
 extern "C" {
 #endif
@@ -18,7 +39,7 @@ extern "C" {
     /**
      * Alignment methods - how should Edlib treat gaps before and after query?
      */
-    typedef enum {
+    EDLIB_API typedef enum {
         /**
          * Global method. This is the standard method.
          * Useful when you want to find out how similar is first sequence to second sequence.
@@ -49,7 +70,7 @@ extern "C" {
     /**
      * Alignment tasks - what do you want Edlib to do?
      */
-    typedef enum {
+    EDLIB_API typedef enum {
         EDLIB_TASK_DISTANCE,  //!< Find edit distance and end locations.
         EDLIB_TASK_LOC,       //!< Find edit distance, end locations and start locations.
         EDLIB_TASK_PATH       //!< Find edit distance, end locations and start locations and alignment path.
@@ -60,7 +81,7 @@ extern "C" {
      * @see http://samtools.github.io/hts-specs/SAMv1.pdf
      * @see http://drive5.com/usearch/manual/cigar.html
      */
-    typedef enum {
+    EDLIB_API typedef enum {
         EDLIB_CIGAR_STANDARD,  //!< Match: 'M', Insertion: 'I', Deletion: 'D', Mismatch: 'M'.
         EDLIB_CIGAR_EXTENDED   //!< Match: '=', Insertion: 'I', Deletion: 'D', Mismatch: 'X'.
     } EdlibCigarFormat;
@@ -74,7 +95,7 @@ extern "C" {
     /**
      * @brief Defines two given characters as equal.
      */
-    typedef struct {
+    EDLIB_API typedef struct {
         char first;
         char second;
     } EdlibEqualityPair;
@@ -82,7 +103,7 @@ extern "C" {
     /**
      * @brief Configuration object for edlibAlign() function.
      */
-    typedef struct {
+    EDLIB_API typedef struct {
         /**
          * Set k to non-negative value to tell edlib that edit distance is not larger than k.
          * Smaller k can significantly improve speed of computation.
@@ -128,21 +149,23 @@ extern "C" {
      * Helper method for easy construction of configuration object.
      * @return Configuration object filled with given parameters.
      */
-    EdlibAlignConfig edlibNewAlignConfig(int k, EdlibAlignMode mode, EdlibAlignTask task,
-                                         const EdlibEqualityPair* additionalEqualities,
-                                         int additionalEqualitiesLength);
+    EDLIB_API EdlibAlignConfig edlibNewAlignConfig(
+        int k, EdlibAlignMode mode, EdlibAlignTask task,
+        const EdlibEqualityPair* additionalEqualities,
+        int additionalEqualitiesLength
+    );
 
     /**
      * @return Default configuration object, with following defaults:
      *         k = -1, mode = EDLIB_MODE_NW, task = EDLIB_TASK_DISTANCE, no additional equalities.
      */
-    EdlibAlignConfig edlibDefaultAlignConfig(void);
+    EDLIB_API EdlibAlignConfig edlibDefaultAlignConfig(void);
 
 
     /**
      * Container for results of alignment done by edlibAlign() function.
      */
-    typedef struct {
+    EDLIB_API typedef struct {
         /**
          * EDLIB_STATUS_OK or EDLIB_STATUS_ERROR. If error, all other fields will have undefined values.
          */
@@ -204,7 +227,7 @@ extern "C" {
      * Frees memory in EdlibAlignResult that was allocated by edlib.
      * If you do not use it, make sure to free needed members manually using free().
      */
-    void edlibFreeAlignResult(EdlibAlignResult result);
+    EDLIB_API void edlibFreeAlignResult(EdlibAlignResult result);
 
 
     /**
@@ -222,9 +245,11 @@ extern "C" {
      * @return  Result of alignment, which can contain edit distance, start and end locations and alignment path.
      *          Make sure to clean up the object using edlibFreeAlignResult() or by manually freeing needed members.
      */
-    EdlibAlignResult edlibAlign(const char* query, int queryLength,
-                                const char* target, int targetLength,
-                                const EdlibAlignConfig config);
+    EDLIB_API EdlibAlignResult edlibAlign(
+        const char* query, int queryLength,
+        const char* target, int targetLength,
+        const EdlibAlignConfig config
+    );
 
 
     /**
@@ -246,10 +271,10 @@ extern "C" {
      *     Needed memory is allocated and given pointer is set to it.
      *     Do not forget to free it later using free()!
      */
-    char* edlibAlignmentToCigar(const unsigned char* alignment, int alignmentLength,
-                                EdlibCigarFormat cigarFormat);
-
-
+    EDLIB_API char* edlibAlignmentToCigar(
+        const unsigned char* alignment, int alignmentLength,
+        EdlibCigarFormat cigarFormat
+    );
 
 #ifdef __cplusplus
 }

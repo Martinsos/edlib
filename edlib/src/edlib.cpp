@@ -1,3 +1,4 @@
+#define EDLIB_DLL_EXPORT
 #include "edlib.h"
 
 #include <stdint.h>
