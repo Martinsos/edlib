@@ -24,3 +24,6 @@ callgrind.out.*
 core
 
 TAGS
+
+/MESON/
+/PREFIX/
