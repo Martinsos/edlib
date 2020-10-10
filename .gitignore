@@ -25,5 +25,5 @@ core
 
 TAGS
 
-/MESON/
-/PREFIX/
+/meson-build
+/installation
