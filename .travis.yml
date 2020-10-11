@@ -1,12 +1,78 @@
 language: cpp
 dist: trusty
 
-# In order to catch as many weird edge cases in the code with -Werror as
-# possible, we want to test a large range of old and new compilers on both
-# Linux and macOS. This gives us the best possible coverage while maintaining
-# compatibility with a large number of compilers.
-matrix:
+stages:
+    - ccpp
+    - python
+
+env:
+    global:
+        # Uploading wheels to PyPI, TWINE_PASSWORD is set to a PyPI API token in Travis settings
+        - TWINE_USERNAME=__token__
+
+.ccpp: &ccpp
+    stage: ccpp
+    
+    before_install:
+      - eval "${MATRIX_EVAL}"
+    
+    install:
+      - if [ $TRAVIS_OS_NAME == "linux" ]; then sudo apt-get install valgrind; fi
+    
+    before_script:
+      # Build C/C++ library and apps.
+      - mkdir -p build && cd build && CXXFLAGS="-Werror" cmake -GNinja .. && ninja -v && cd ..
+    
+    script:
+      # Test C/C++ library using CTest.
+      - ninja -C build -v test && cat build/Testing/Temporary/LastTest.log
+      # Check for memory leaks. Returns 2 if there was a memory leak/error, otherwise returns runTests exit code,
+      # which is 0 if all went fine or 1 if some of the tests failed. I test for memory leaks only on linux because
+      # osx returns errors from system libraries, which I would have to supress.
+      # This is run only on smaller number of tests, since executing on valgrind is slow.
+      - if [ $TRAVIS_OS_NAME == "linux" ]; then valgrind --quiet --error-exitcode=2 --tool=memcheck --leak-check=full build/bin/runTests 2; fi
+
+.python: &python
+    stage: python
+
+    install:
+        - wget -qO- https://bootstrap.pypa.io/get-pip.py | python3
+        - python3 -m pip install cibuildwheel==1.6.1
+
+    script:
+        # build the wheels, put them into './wheelhouse'
+        # cibuildwheel needs to be run from python directory. The python
+        # directory is mounted in the docker build containers, so we need
+        # to copy the edlib source before running cibuild wheel
+        - cd bindings/python && make edlib
+        - |
+            CIBW_SKIP="cp27-* pp* *-manylinux_i686" \
+            CIBW_BEFORE_BUILD="make sdist" \
+            CIBW_TEST_COMMAND="python3 {project}/test.py" \
+            python3 -m cibuildwheel --output-dir wheelhouse
+        # TODO: mv sdist build (and upload) to distinct target
+        - if [ $TRAVIS_OS_NAME == "linux" ]; then make sdist; fi
+
+    after_success:
+        # if the release was tagged, upload them to PyPI
+        - cd bindings/python
+        - |
+            if [[ $TRAVIS_TAG ]]; then
+                python3 -m pip install twine
+                python3 -m twine upload wheelhouse/*.whl
+                if [ $TRAVIS_OS_NAME == "linux" ]; then python3 -m twine upload dist/edlib-*.tar.gz; fi
+            else
+                echo "Skipping twine upload because not a tag, files built:"
+                ls -l wheelhouse
+                ls -l dist
+            fi
+
+jobs:
   include:
+    # In order to catch as many weird edge cases in the code with -Werror as
+    # possible, we want to test a large range of old and new compilers on both
+    # Linux and macOS. This gives us the best possible coverage while maintaining
+    # compatibility with a large number of compilers.
     - name: "GCC 4.9 (Linux)"
       os: linux
       addons:
@@ -18,6 +84,7 @@ matrix:
             - ninja-build
       env:
          - MATRIX_EVAL="export CC=gcc-4.9 && export CXX=g++-4.9"
+      <<: *ccpp
 
     - name: "GCC 9 (Linux)"
       os: linux
@@ -30,6 +97,7 @@ matrix:
             - ninja-build
       env:
         - MATRIX_EVAL="export CC=gcc-9 && export CXX=g++-9"
+      <<: *ccpp
 
     - name: "Clang 5.0 (Linux)"
       os: linux
@@ -42,6 +110,7 @@ matrix:
             - ninja-build
       env:
         - MATRIX_EVAL="export CC=clang-5.0 && export CXX=clang++-5.0"
+      <<: *ccpp
 
     - name: "Clang Xcode 11 (Mac)"
       os: osx
@@ -50,35 +119,21 @@ matrix:
         homebrew:
           packages:
             - ninja
+      <<: *ccpp
 
-# NOTE: Currently I commented out testing of python binding on OSX because they do not support
-# Python building and I have to provide the tools myself. I could probably install correct pip
-# (and maybe python) version myself (homebrew?), however I haven't gotten to that yet.
+    #
+    # Building python wheels
+    #
+    - name: "linux wheel"
+      language: python
+      python:
+          - "3.6"
+      services: docker
+      <<: *python
 
-before_install:
-  - eval "${MATRIX_EVAL}"
+    - name: "macos wheel"
+      os: osx
+      language: shell
+      <<: *python
 
-install:
-  - if [ $TRAVIS_OS_NAME == "linux" ]; then sudo apt-get install valgrind; fi
-  - if [ $TRAVIS_OS_NAME == "linux" ]; then sudo -H pip install cython; fi  # Needed to build Python module.
-  - if [ $TRAVIS_OS_NAME == "linux" ]; then sudo -H pip install cogapp; fi  # Needed to build Python module.
-
-before_script:
-  # Build C/C++ library and apps.
-  - mkdir -p build && cd build && CXXFLAGS="-Werror" cmake -GNinja .. && ninja -v && cd ..
-
-  # Build Python source distribution and install Edlib from it.
-  - if [ $TRAVIS_OS_NAME == "linux" ]; then cd bindings/python && make sdist && cd ../..; fi
-  - if [ $TRAVIS_OS_NAME == "linux" ]; then sudo -H pip install bindings/python/dist/edlib*.tar.gz; fi
-
-script:
-  # Test C/C++ library using CTest.
-  - ninja -C build -v test && cat build/Testing/Temporary/LastTest.log
-  # Check for memory leaks. Returns 2 if there was a memory leak/error, otherwise returns runTests exit code,
-  # which is 0 if all went fine or 1 if some of the tests failed. I test for memory leaks only on linux because
-  # osx returns errors from system libraries, which I would have to supress.
-  # This is run only on smaller number of tests, since executing on valgrind is slow.
-  - if [ $TRAVIS_OS_NAME == "linux" ]; then valgrind --quiet --error-exitcode=2 --tool=memcheck --leak-check=full build/bin/runTests 2; fi
-
-  # Test Python module.
-  - if [ $TRAVIS_OS_NAME == "linux" ]; then sudo -H python bindings/python/test.py; fi
+    #TODO: Add windows x64 and linux aarch64 wheel build

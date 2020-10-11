@@ -5,17 +5,7 @@ This README contains only development information, you can check out full README
 README.rst is not commited to git because it is generated from [README-tmpl.rst](./README-tmpl.rst).
 
 
-## Development
-
-### Setup
-
-Besides python, you will need `cython` and `cog` to build edlib python package.
-
-Run `pip install cython` to install `cython`, which is used to wrap C/C++ code into python.
-
-Run `pip install cogapp` to install `cog`, which is used to generate README.rst from README-tmpl.rst.
-
-### Building
+## Building
 
 Run `make build` to generate an extension module as .so file.
 You can test it then by importing it from python interpreter `import edlib` and running `edlib.align(...)` (you have to be positioned in the directory where .so was built).
