@@ -45,19 +45,53 @@ There is also non-official [binding for Julia](https://github.com/cjdoris/Edlib.
 
 
 ## Building
-Edlib uses CMAKE to build libraries (static and shared) and binaries (apps and tests).
-Execute following commands to build Edlib using CMAKE:
+### Meson
+Primary way of building Edlib is via Meson build tool.
 
-1. `cd build`
-2. `cmake -D CMAKE_BUILD_TYPE=Release ..`
-3. `make`
+Requirements: make sure that you have `meson` installed on your system.
 
+Execute
+```
+make
+```
+to build libraries (static and shared) and binaries (apps and tests).
+They will be created in `meson-build` directory.
+
+To run tests and confirm all is ok, run
+```
+make test
+```
+
+Optionally, you can run
+```
+sudo make install
+```
+to install edlib library on your machine (on Linux, this will usually install it to `usr/local/lib` and `usr/local/include`).
+
+NOTE: If you need more control, use `meson` command directly, `makefile` is here only to make running common commands easier.
+
+### CMake
+Edlib can alternatively be built with CMake.
+
+Execute following command to build Edlib using CMAKE:
+```
+cd build && cmake -D CMAKE_BUILD_TYPE=Release .. && make
+```
 This will create binaries in `bin/` directory and libraries (static and shared) in `lib/` directory.
-You can run `./bin/runTests` to confirm that it works!
 
-Optionally, you can run `sudo make install` to install edlib library on your machine (on Linux, this will usually install it to `usr/local/lib` and `usr/local/include`).
+```
+./bin/runTests
+```
+to run tests.
 
-You may also install edlib using Conda [![Anaconda-Server Badge](https://anaconda.org/bioconda/edlib/badges/installer/conda.svg)](https://conda.anaconda.org/bioconda): `conda install edlib`.
+Optionally, you can run
+```
+sudo make install
+```
+to install edlib library on your machine.
+
+### Conda
+Edlib can also be installed via Conda: [![Anaconda-Server Badge](https://anaconda.org/bioconda/edlib/badges/installer/conda.svg)](https://conda.anaconda.org/bioconda): `conda install edlib`.
 
 
 ## Using Edlib in your project
@@ -115,7 +149,7 @@ helloWorld.cpp -> your program
 Now you can compile it with `c++ helloWorld.cpp -o helloWorld -I edlib/include -L edlib -ledlib`.
 
 ### Approach #3: Install edlib library on machine.
-Alternatively, you could avoid copying any Edlib files and instead install libraries by running `sudo make install` (check [Building](#building)). Now, all you have to do to compile your project is `c++ helloWorld.cpp -o helloWorld -ledlib`.
+Alternatively, you could avoid copying any Edlib files and instead install libraries by running `sudo make install` (check [Building](#building) for exact instructions depending on approach you used for building). Now, all you have to do to compile your project is `c++ helloWorld.cpp -o helloWorld -ledlib`.
 If you get error message like `cannot open shared object file: No such file or directory`, make sure that your linker includes path where edlib was installed.
 
 ### Approach #4: Use edlib in your project via CMake.
