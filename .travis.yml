@@ -7,8 +7,9 @@ stages:
 
 env:
     global:
-        # Uploading wheels to PyPI, TWINE_PASSWORD is set to a PyPI API token in Travis settings
-        - TWINE_USERNAME=__token__
+        - TWINE_USERNAME=Martinsos
+        # Encrypted TWINE_PASSWORD:
+        - secure: "Tr/LRAOeldVHF6ijp2idFxsTZ561IeJxDXiN78A4Pym9ra54Aiek/XvwbbvzGJjs8cbdQuHy2WhNXQ1p3ae83KmgHjSjNrkQ02eNmZGi5NDvldEsQ4Wst+6vh6IIRXB7OFGmXML8gm0jTX/0L/f/4WUite18yVPLkgjb0M+drHWoScYIalX0ZWuQYZTSHr7sW29vxFIzu+GVVEtg+vKc0Zg+M0EOS23bC+xuVAz5VzUpw5kcSPMWAvwUCqRVw1Xm8EFRuBr049Cuc6NxaOxagkKKBIhWXCfGbuBxZiuqAkUAaBsFfgdfPKwuy4B5g0sccFF/OU4tH9PMRsyc5GdohGqC2jlW4hGlHlVMB1z+2Kz8YQgY5lAj/NeyywwUvY5Drte+/tGoEIg8ZKP3tIjmg1cN2Y7RuWHs0RrXsVXPUNT2/O76sSZL1MMoqMIoEHENHVAVtClkmuJ04Cuz0zYtFFVeoDT0rSXCr/rK5G84+99PZoH7HeK8p1mQ5L906vtgqaL3sslx0epnXWZomcg7JGSKpYz5GyGNuwckIdY1bVNoZOwGFox4dckp9sN9ZShT7jKJ7pE1cby/9wDj9ZfVsElAWTVv2FqaJl0zsUZ9XihkfTmUe79PwEMCHkAD8ThG5a1wafpAAEP/bjDUQxSbl+8BNHeb3SQf4f+OxFz50WQ="
 
 .ccpp: &ccpp
     stage: ccpp
@@ -40,27 +41,28 @@ env:
         - python3 -m pip install cibuildwheel==1.6.1
 
     script:
-        # build the wheels, put them into './wheelhouse'
-        # cibuildwheel needs to be run from python directory. The python
-        # directory is mounted in the docker build containers, so we need
-        # to copy the edlib source before running cibuild wheel
-        - cd bindings/python && make edlib
+        # Build the wheels, put them into './wheelhouse'.
+        # cibuildwheel needs to be run from python directory.
+        # The python directory is mounted in the docker build containers,
+        # so we need to copy the edlib source before running cibuild wheel.
+        - cd bindings/python
+        - make edlib # Copies edlib source to python dir.
         - |
             CIBW_SKIP="cp27-* pp* *-manylinux_i686" \
             CIBW_BEFORE_BUILD="make sdist" \
             CIBW_TEST_COMMAND="python3 {project}/test.py" \
             python3 -m cibuildwheel --output-dir wheelhouse
-        # TODO: mv sdist build (and upload) to distinct target
-        - if [ $TRAVIS_OS_NAME == "linux" ]; then make sdist; fi
+        - if [ $DEPLOY_SDIST_TO_PYPI ]; then make sdist; fi
 
     after_success:
-        # if the release was tagged, upload them to PyPI
-        - cd bindings/python
         - |
-            if [[ $TRAVIS_TAG ]]; then
+            if [ $TRAVIS_TAG ]; then
+                cd bindings/python
                 python3 -m pip install twine
                 python3 -m twine upload wheelhouse/*.whl
-                if [ $TRAVIS_OS_NAME == "linux" ]; then python3 -m twine upload dist/edlib-*.tar.gz; fi
+                if [ $DEPLOY_SDIST_TO_PYPI ]; then
+                    python3 -m twine upload dist/edlib-*.tar.gz
+                fi
             else
                 echo "Skipping twine upload because not a tag, files built:"
                 ls -l wheelhouse
@@ -73,7 +75,7 @@ jobs:
     # possible, we want to test a large range of old and new compilers on both
     # Linux and macOS. This gives us the best possible coverage while maintaining
     # compatibility with a large number of compilers.
-    - name: "GCC 4.9 (Linux)"
+    - name: "C/CPP (Linux; GCC 4.9)"
       os: linux
       addons:
         apt:
@@ -86,7 +88,7 @@ jobs:
          - MATRIX_EVAL="export CC=gcc-4.9 && export CXX=g++-4.9"
       <<: *ccpp
 
-    - name: "GCC 9 (Linux)"
+    - name: "C/CPP (Linux; GCC 9)"
       os: linux
       addons:
         apt:
@@ -99,7 +101,7 @@ jobs:
         - MATRIX_EVAL="export CC=gcc-9 && export CXX=g++-9"
       <<: *ccpp
 
-    - name: "Clang 5.0 (Linux)"
+    - name: "C/CPP (Linux; Clang 5.0)"
       os: linux
       addons:
         apt:
@@ -112,7 +114,7 @@ jobs:
         - MATRIX_EVAL="export CC=clang-5.0 && export CXX=clang++-5.0"
       <<: *ccpp
 
-    - name: "Clang Xcode 11 (Mac)"
+    - name: "C/CPP (OSX; XCode 11; Clang)"
       os: osx
       osx_image: xcode11
       addons:
@@ -121,19 +123,20 @@ jobs:
             - ninja
       <<: *ccpp
 
-    #
-    # Building python wheels
-    #
-    - name: "linux wheel"
+    - name: "Python wheel (Linux)"
       language: python
       python:
           - "3.6"
       services: docker
+      env:
+        # We need to upload sdist only once, since it is same for all jobs,
+        # so with this flag we specify which job will take care of that (this one).
+        - DEPLOY_SDIST_TO_PYPI="true"
       <<: *python
 
-    - name: "macos wheel"
+    - name: "Python whell (OSX)"
       os: osx
       language: shell
       <<: *python
 
-    #TODO: Add windows x64 and linux aarch64 wheel build
+    # TODO: Add windows x64 and linux aarch64 python wheel builds? Edlib users said they need them.
