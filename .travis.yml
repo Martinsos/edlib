@@ -136,7 +136,7 @@ jobs:
         - DEPLOY_SDIST_TO_PYPI="true"
       <<: *python
 
-    - name: "Python whell (OSX)"
+    - name: "Python wheel (OSX)"
       os: osx
       language: shell
       <<: *python
