@@ -57,6 +57,7 @@ file(GLOB SOURCES "edlib/src/*.cpp")
 
 # Create libraries.
 add_library(edlib ${SOURCES})
+add_library(edlib::edlib ALIAS edlib)
 set_target_properties(edlib
   PROPERTIES
     CXX_VISIBILITY_PRESET hidden
