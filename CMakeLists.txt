@@ -63,11 +63,12 @@ set_target_properties(edlib
     CXX_VISIBILITY_PRESET hidden
     VISIBILITY_INLINES_HIDDEN ON
     VERSION ${PROJECT_VERSION}
+    DEFINE_SYMBOL EDLIB_BUILD_SHARED
     SOVERSION ${PROJECT_VERSION}
 )
 
 if(BUILD_SHARED_LIBS)
-  target_compile_definitions(edlib PUBLIC EDLIB_SHARED PRIVATE EDLIB_BUILD_SHARED)
+  target_compile_definitions(edlib PUBLIC EDLIB_SHARED)
 endif()
 
 target_include_directories(edlib PUBLIC
