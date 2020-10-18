@@ -121,6 +121,12 @@ if(EDLIB_ENABLE_INSTALL)
 		NAMESPACE edlib::)
 	
 	# Create target 'install' for installing libraries.
-	install(TARGETS edlib EXPORT ${targets_export_name} DESTINATION ${CMAKE_INSTALL_LIBDIR})
+	install(
+    TARGETS edlib
+    EXPORT ${targets_export_name} 
+    RUNTIME DESTINATION ${CMAKE_INSTALL_BINDIR}
+    LIBRARY DESTINATION ${CMAKE_INSTALL_LIBDIR}
+    ARCHIVE DESTINATION ${CMAKE_INSTALL_LIBDIR}
+  )
 	install(FILES edlib/include/edlib.h DESTINATION ${CMAKE_INSTALL_INCLUDEDIR})
 endif()
