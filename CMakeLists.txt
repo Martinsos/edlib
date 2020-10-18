@@ -2,6 +2,13 @@ cmake_minimum_required(VERSION 3.2 FATAL_ERROR)
 project(edlib VERSION 1.2.6)
 
 option(EDLIB_ENABLE_INSTALL "Generate the install target" ON)
+option(EDLIB_BUILD_EXAMPLES "Build examples" ON)
+option(EDLIB_BUILD_UTILITIES "Build utilities" ON)
+
+if(WIN32 AND EDLIB_BUILD_UTILITIES)
+  message("Do not build binaries that do not support windows: EDLIB_BUILD_UTILITIES is disabled")
+  set(EDLIB_BUILD_UTILITIES OFF)
+endif()
 
 set(MACOSX (${CMAKE_SYSTEM_NAME} MATCHES "Darwin"))
 
@@ -60,8 +67,10 @@ target_include_directories(edlib PUBLIC
     $<INSTALL_INTERFACE:include>)
 
 # Build binaries.
-add_executable(helloWorld apps/hello-world/helloWorld.c)
-target_link_libraries(helloWorld edlib)
+if(EDLIB_BUILD_EXAMPLES)
+  add_executable(helloWorld apps/hello-world/helloWorld.c)
+  target_link_libraries(helloWorld edlib)
+endif()
 
 include(CTest)
 if (BUILD_TESTING)
@@ -71,7 +80,7 @@ if (BUILD_TESTING)
   add_test(edlib_tests ${CMAKE_RUNTIME_OUTPUT_DIRECTORY}/runTests)
 endif()
 
-if (NOT WIN32) # If on windows, do not build binaries that do not support windows.
+if(EDLIB_BUILD_UTILITIES)
   add_executable(edlib-aligner apps/aligner/aligner.cpp)
   target_link_libraries(edlib-aligner edlib)
 endif()
