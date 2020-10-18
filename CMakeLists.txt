@@ -58,9 +58,16 @@ file(GLOB SOURCES "edlib/src/*.cpp")
 # Create libraries.
 add_library(edlib ${SOURCES})
 set_target_properties(edlib
-    PROPERTIES
+  PROPERTIES
+    CXX_VISIBILITY_PRESET hidden
+    VISIBILITY_INLINES_HIDDEN ON
     VERSION ${PROJECT_VERSION}
-    SOVERSION ${PROJECT_VERSION})
+    SOVERSION ${PROJECT_VERSION}
+)
+
+if(BUILD_SHARED_LIBS)
+  target_compile_definitions(edlib PUBLIC EDLIB_SHARED PRIVATE EDLIB_BUILD_SHARED)
+endif()
 
 target_include_directories(edlib PUBLIC
     $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/edlib/include>
