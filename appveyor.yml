@@ -1,29 +1,32 @@
 platform:
   - x64
 
-# General idea here is that we have app veyor build worker image (e.g. Visual Studio 2017)
-# on which we run certain commands. Specifically, we use cmake and tell it
-# which Visual Studio version to use to build edlib and then run tests.
+branches:
+  only:
+    - master # This will still build PRs.
+
+image:
+  - Visual Studio 2017
+  - Visual Studio 2019
 
 environment:
   matrix:
-  # Visual Studio 2017
-  - BUILD_TYPE: cmake
-    APPVEYOR_BUILD_WORKER_IMAGE: Visual Studio 2017
-    VS_VERSION: Visual Studio 15 Win64  # 15 because Visual Studio 2017 is actually version 15.0. Win64 because it is on x64 platform.
+    - arch: x86
+    - arch: x64
 
-  # Visual Studio 2019
-  - BUILD_TYPE: cmake
-    APPVEYOR_BUILD_WORKER_IMAGE: Visual Studio 2019
-    VS_VERSION: Visual Studio 16  # 16 because Visual Studio 2019 is actually version 16.0.
-
-shallow_clone: true
+install:
+  - cmd: if %arch%==x86 (set PYTHON_ROOT=C:\python37) else (set PYTHON_ROOT=C:\python37-x64)
+  - cmd: echo Using Python at %PYTHON_ROOT%
+  - cmd: set PATH=%cd%;%PYTHON_ROOT%;%PYTHON_ROOT%\Scripts;%PATH%
+  - cmd: pip install ninja meson
+  # Enable using MSVC through command line.
+  - cmd: if "%APPVEYOR_BUILD_WORKER_IMAGE%"=="Visual Studio 2017" ( call "C:\Program Files (x86)\Microsoft Visual Studio\2017\Community\VC\Auxiliary\Build\vcvarsall.bat" %arch% )
+  - cmd: if "%APPVEYOR_BUILD_WORKER_IMAGE%"=="Visual Studio 2019" ( call "C:\Program Files (x86)\Microsoft Visual Studio\2019\Community\VC\Auxiliary\Build\vcvarsall.bat" %arch% )
 
 build_script:
-  - cmake -G "%VS_VERSION%" .
-  - cmake --build . --config Release
+  - cmd: echo Building on image %APPVEYOR_BUILD_WORKER_IMAGE%, arch %arch%.
+  - cmd: meson setup --backend=ninja build_dir .
+  - cmd: meson compile -v -C build_dir
 
 test_script:
-  - bin\Release\runTests.exe
-
-deploy: off
+  - cmd: meson test -C build_dir

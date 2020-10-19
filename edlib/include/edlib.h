@@ -7,18 +7,19 @@
  * @brief Main header file, containing all public functions and structures.
  */
 
-#ifdef __cplusplus
-extern "C" {
-#endif
-
+// Define EDLIB_API macro to properly export symbols
 #ifndef EDLIB_SHARED
 #define EDLIB_API
 #elif !defined(_WIN32)
 #define EDLIB_API __attribute__ ((visibility ("default")))
-#elif defined(EDLIB_BUILD_SHARED)
+#elif defined(EDLIB_BUILD)
 #define EDLIB_API __declspec(dllexport)
 #else
 #define EDLIB_API __declspec(dllimport)
+#endif
+
+#ifdef __cplusplus
+extern "C" {
 #endif
 
 // Status codes
@@ -138,9 +139,11 @@ extern "C" {
      * Helper method for easy construction of configuration object.
      * @return Configuration object filled with given parameters.
      */
-    EDLIB_API EdlibAlignConfig edlibNewAlignConfig(int k, EdlibAlignMode mode, EdlibAlignTask task,
-                                                   const EdlibEqualityPair* additionalEqualities,
-                                                   int additionalEqualitiesLength);
+    EDLIB_API EdlibAlignConfig edlibNewAlignConfig(
+        int k, EdlibAlignMode mode, EdlibAlignTask task,
+        const EdlibEqualityPair* additionalEqualities,
+        int additionalEqualitiesLength
+    );
 
     /**
      * @return Default configuration object, with following defaults:
@@ -232,9 +235,11 @@ extern "C" {
      * @return  Result of alignment, which can contain edit distance, start and end locations and alignment path.
      *          Make sure to clean up the object using edlibFreeAlignResult() or by manually freeing needed members.
      */
-    EDLIB_API EdlibAlignResult edlibAlign(const char* query, int queryLength,
-                                          const char* target, int targetLength,
-                                          const EdlibAlignConfig config);
+    EDLIB_API EdlibAlignResult edlibAlign(
+        const char* query, int queryLength,
+        const char* target, int targetLength,
+        const EdlibAlignConfig config
+    );
 
 
     /**
@@ -256,10 +261,10 @@ extern "C" {
      *     Needed memory is allocated and given pointer is set to it.
      *     Do not forget to free it later using free()!
      */
-    EDLIB_API char* edlibAlignmentToCigar(const unsigned char* alignment, int alignmentLength,
-                                          EdlibCigarFormat cigarFormat);
-
-
+    EDLIB_API char* edlibAlignmentToCigar(
+        const unsigned char* alignment, int alignmentLength,
+        EdlibCigarFormat cigarFormat
+    );
 
 #ifdef __cplusplus
 }

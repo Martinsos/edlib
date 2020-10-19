@@ -1,3 +1,4 @@
+#define EDLIB_BUILD
 #include "edlib.h"
 
 #include <stdint.h>
