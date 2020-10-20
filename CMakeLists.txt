@@ -100,41 +100,41 @@ configure_file(
     @ONLY)
 
 if(EDLIB_ENABLE_INSTALL)
-	install(FILES ${CMAKE_CURRENT_BINARY_DIR}/edlib-1.pc DESTINATION ${CMAKE_INSTALL_LIBDIR}/pkgconfig)
-	include(CMakePackageConfigHelpers)
-	set(EDLIB_CMAKE_DIR "${CMAKE_INSTALL_LIBDIR}/cmake/edlib" CACHE STRING
-	  "Installation directory for cmake files, relative to ${CMAKE_INSTALL_PREFIX}.")
-	set(version_config "${PROJECT_BINARY_DIR}/edlib-config-version.cmake")
-	set(project_config "${PROJECT_BINARY_DIR}/edlib-config.cmake")
-	set(targets_export_name edlib-targets)
+  install(FILES ${CMAKE_CURRENT_BINARY_DIR}/edlib-1.pc DESTINATION ${CMAKE_INSTALL_LIBDIR}/pkgconfig)
+  include(CMakePackageConfigHelpers)
+  set(EDLIB_CMAKE_DIR "${CMAKE_INSTALL_LIBDIR}/cmake/edlib" CACHE STRING
+    "Installation directory for cmake files, relative to ${CMAKE_INSTALL_PREFIX}.")
+  set(version_config "${PROJECT_BINARY_DIR}/edlib-config-version.cmake")
+  set(project_config "${PROJECT_BINARY_DIR}/edlib-config.cmake")
+  set(targets_export_name edlib-targets)
 
-	# Generate the version, config and target files into the build directory.
-	write_basic_package_version_file(
-		${version_config}
-		VERSION ${VERSION}
-		COMPATIBILITY AnyNewerVersion)
-	configure_package_config_file(
-		${PROJECT_SOURCE_DIR}/edlib-config.cmake.in
-		${project_config}
-		INSTALL_DESTINATION ${EDLIB_CMAKE_DIR})
-	export(TARGETS edlib NAMESPACE edlib::
-		FILE ${PROJECT_BINARY_DIR}/${targets_export_name}.cmake)
+  # Generate the version, config and target files into the build directory.
+  write_basic_package_version_file(
+    ${version_config}
+    VERSION ${VERSION}
+    COMPATIBILITY AnyNewerVersion)
+  configure_package_config_file(
+    ${PROJECT_SOURCE_DIR}/edlib-config.cmake.in
+    ${project_config}
+    INSTALL_DESTINATION ${EDLIB_CMAKE_DIR})
+  export(TARGETS edlib NAMESPACE edlib::
+    FILE ${PROJECT_BINARY_DIR}/${targets_export_name}.cmake)
 
-	# Install version, config and target files.
-	# These are cmake config files and they are useful for some consumers, for example vcpkg.
-	install(
-		FILES ${project_config} ${version_config}
-		DESTINATION ${EDLIB_CMAKE_DIR})
-	install(EXPORT ${targets_export_name} DESTINATION ${EDLIB_CMAKE_DIR}
-		NAMESPACE edlib::)
-	
-	# Create target 'install' for installing libraries.
-	install(
+  # Install version, config and target files.
+  # These are cmake config files and they are useful for some consumers, for example vcpkg.
+  install(
+    FILES ${project_config} ${version_config}
+    DESTINATION ${EDLIB_CMAKE_DIR})
+  install(EXPORT ${targets_export_name} DESTINATION ${EDLIB_CMAKE_DIR}
+    NAMESPACE edlib::)
+  
+  # Create target 'install' for installing libraries.
+  install(
     TARGETS edlib
     EXPORT ${targets_export_name} 
     RUNTIME DESTINATION ${CMAKE_INSTALL_BINDIR}
     LIBRARY DESTINATION ${CMAKE_INSTALL_LIBDIR}
     ARCHIVE DESTINATION ${CMAKE_INSTALL_LIBDIR}
   )
-	install(FILES edlib/include/edlib.h DESTINATION ${CMAKE_INSTALL_INCLUDEDIR})
+  install(FILES edlib/include/edlib.h DESTINATION ${CMAKE_INSTALL_INCLUDEDIR})
 endif()
