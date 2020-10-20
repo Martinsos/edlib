@@ -6,4 +6,4 @@ Description: Lightweight and super fast C/C++ library for sequence alignment usi
 Version: @edlib_VERSION@
 
 Libs: -L${libdir} -ledlib
-Cflags: -I${includedir}
+Cflags: -I${includedir} @PKG_EDLIB_DEFS@
