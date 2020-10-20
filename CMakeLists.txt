@@ -5,11 +5,6 @@ option(EDLIB_ENABLE_INSTALL "Generate the install target" ON)
 option(EDLIB_BUILD_EXAMPLES "Build examples" ON)
 option(EDLIB_BUILD_UTILITIES "Build utilities" ON)
 
-if(WIN32 AND EDLIB_BUILD_UTILITIES)
-  message("Do not build binaries that do not support windows: EDLIB_BUILD_UTILITIES is disabled")
-  set(EDLIB_BUILD_UTILITIES OFF)
-endif()
-
 set(MACOSX (${CMAKE_SYSTEM_NAME} MATCHES "Darwin"))
 
 if(CMAKE_BUILD_TYPE MATCHES Debug)
@@ -89,8 +84,10 @@ if (BUILD_TESTING)
 endif()
 
 if(EDLIB_BUILD_UTILITIES)
-  add_executable(edlib-aligner apps/aligner/aligner.cpp)
-  target_link_libraries(edlib-aligner edlib)
+  if(NOT WIN32) # If on windows, do not build binaries that do not support windows.
+    add_executable(edlib-aligner apps/aligner/aligner.cpp)
+    target_link_libraries(edlib-aligner edlib)
+  endif()
 endif()
 
 # configure and install pkg-config file
