@@ -8,14 +8,18 @@
  */
 
 // Define EDLIB_API macro to properly export symbols
-#ifndef EDLIB_SHARED
-#define EDLIB_API
-#elif !defined(_WIN32)
-#define EDLIB_API __attribute__ ((visibility ("default")))
-#elif defined(EDLIB_BUILD)
-#define EDLIB_API __declspec(dllexport)
+#ifdef EDLIB_SHARED
+#    ifdef (_WIN32)
+#        ifdef EDLIB_BUILD
+#            define EDLIB_API __declspec(dllexport)
+#        else
+#            define EDLIB_API __declspec(dllimport)
+#        endif
+#    else
+#        define EDLIB_API __attribute__ ((visibility ("default")))
+#    endif
 #else
-#define EDLIB_API __declspec(dllimport)
+#    define EDLIB_API
 #endif
 
 #ifdef __cplusplus
