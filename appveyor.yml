@@ -15,6 +15,7 @@ environment:
     - arch: x64
 
 install:
+  # Configuration for Meson
   - cmd: if %arch%==x86 (set PYTHON_ROOT=C:\python37) else (set PYTHON_ROOT=C:\python37-x64)
   - cmd: echo Using Python at %PYTHON_ROOT%
   - cmd: set PATH=%cd%;%PYTHON_ROOT%;%PYTHON_ROOT%\Scripts;%PATH%
@@ -25,8 +26,17 @@ install:
 
 build_script:
   - cmd: echo Building on image %APPVEYOR_BUILD_WORKER_IMAGE%, arch %arch%.
+  # Build with Meson
   - cmd: meson setup --backend=ninja build_dir .
   - cmd: meson compile -v -C build_dir
+  # Build with CMake
+  - cmd: if "%APPVEYOR_BUILD_WORKER_IMAGE%"=="Visual Studio 2017" ( SET "VS_VERSION=Visual Studio 15 Win64" )  # 15 because Visual Studio 2017 is actually version 15.0. Win64 because it is on x64.
+  - cmd: if "%APPVEYOR_BUILD_WORKER_IMAGE%"=="Visual Studio 2019" ( SET "VS_VERSION=Visual Studio 16" )  # 16 because Visual Studio 2019 is actually version 16.0.
+  - cmd: cmake -G "%VS_VERSION%" .
+  - cmd: cmake --build . --config Release
 
 test_script:
+  # Test what Meson built.
   - cmd: meson test -C build_dir
+  # Test what CMake built.
+  - cmd: bin\Release\runTests.exe
