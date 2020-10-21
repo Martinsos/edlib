@@ -9,7 +9,7 @@
 
 // Define EDLIB_API macro to properly export symbols
 #ifdef EDLIB_SHARED
-#    ifdef (_WIN32)
+#    ifdef _WIN32
 #        ifdef EDLIB_BUILD
 #            define EDLIB_API __declspec(dllexport)
 #        else
