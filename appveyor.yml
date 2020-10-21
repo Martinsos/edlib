@@ -30,8 +30,8 @@ build_script:
   - cmd: meson setup --backend=ninja build_dir .
   - cmd: meson compile -v -C build_dir
   # Build with CMake
-  - cmd: if "%APPVEYOR_BUILD_WORKER_IMAGE%"=="Visual Studio 2017" ( SET VS_VERSION="Visual Studio 15 Win64" )  # 15 because Visual Studio 2017 is actually version 15.0. Win64 because it is on x64.
-  - cmd: if "%APPVEYOR_BUILD_WORKER_IMAGE%"=="Visual Studio 2019" ( SET VS_VERSION="Visual Studio 16" )  # 16 because Visual Studio 2019 is actually version 16.0.
+  - cmd: if "%APPVEYOR_BUILD_WORKER_IMAGE%"=="Visual Studio 2017" ( SET "VS_VERSION=Visual Studio 15 Win64" )  # 15 because Visual Studio 2017 is actually version 15.0. Win64 because it is on x64.
+  - cmd: if "%APPVEYOR_BUILD_WORKER_IMAGE%"=="Visual Studio 2019" ( SET "VS_VERSION=Visual Studio 16" )  # 16 because Visual Studio 2019 is actually version 16.0.
   - cmd: cmake -G "%VS_VERSION%" .
   - cmd: cmake --build . --config Release
 
