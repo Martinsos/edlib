@@ -12,31 +12,41 @@ project(
   meson_version : '>= 0.52.0',
 )
 
+project_version_major = meson.project_version().split('.')[0]
+
+###### Libraries ######
+
+edlib_lib_sources = files(['edlib/src/edlib.cpp'])
+edlib_lib_include_dirs = include_directories('edlib/include')
+
 edlib_lib_static = static_library('edlib',
-  sources : files(['edlib/src/edlib.cpp']),
-  include_directories : ['edlib/include'],
+  sources : edlib_lib_sources,
+  include_directories : edlib_lib_include_dirs,
   dependencies : [],
   install : true,
 )
-edlib_lib_shared = shared_library('edlib',
-  sources : files(['edlib/src/edlib.cpp']),
-  include_directories : ['edlib/include'],
-  dependencies : [],
-  install : true,
-  cpp_args: ['-DEDLIB_SHARED']
-)
-
-install_headers('edlib/include/edlib.h')
-
 edlib_dep_static = declare_dependency(
-  include_directories : include_directories('edlib/include'),
+  include_directories : edlib_lib_include_dirs,
   link_with : edlib_lib_static
 )
-edlib_dep_shared = declare_dependency(
-  include_directories : include_directories('edlib/include'),
-  compile_args : ['-DEDLIB_SHARED'],
-  link_with : edlib_lib_shared
+
+edlib_shared_compile_args = ['-DEDLIB_SHARED']
+edlib_lib_shared = shared_library('edlib',
+  sources : edlib_lib_sources,
+  include_directories : edlib_lib_include_dirs,
+  dependencies : [],
+  install : true,
+  cpp_args : edlib_shared_compile_args,
+  gnu_symbol_visibility : 'hidden',
+  soversion : project_version_major
 )
+edlib_dep_shared = declare_dependency(
+  include_directories : edlib_lib_include_dirs,
+  link_with : edlib_lib_shared,
+  compile_args : edlib_shared_compile_args
+)
+
+###### Executables ######
 
 hello_main = executable(
   'hello-world',
@@ -60,6 +70,8 @@ runTests_main = executable(
   include_directories : include_directories('test'),
 )
 
+###### Tests ######
+
 test('runTests', runTests_main)
 
 test('hello', hello_main)
@@ -73,7 +85,16 @@ if build_machine.system() != 'windows'
   )
 endif
 
+###### Install ######
+
+install_headers('edlib/include/edlib.h')
+
+# TODO: Should we also generate another pkg-config for static lib?
 pkg = import('pkgconfig')
-pkg.generate(edlib_lib_static,
+pkg.generate(edlib_lib_shared,
+  name: 'libedlib',
+  url: 'https://github.com/Martinsos/edlib',
+  filebase : 'edlib-' + project_version_major,
+  extra_cflags : edlib_shared_compile_args,
   description : 'Lightweight and super fast C/C++ library for sequence alignment using edit distance',
 )

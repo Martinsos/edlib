@@ -33,12 +33,12 @@ build_script:
   - cmd: if "%arch%"=="x64" ( SET "GENERATOR_VS_ARCH=x64" )
   - cmd: cmake -G "%GENERATOR_VS_VERSION%" -A %GENERATOR_VS_ARCH% .
   - cmd: cmake --build . --config Release
-  # # Build with Meson
-  # - cmd: meson setup --backend=ninja build_dir .
-  # - cmd: meson compile -v -C build_dir
+  # Build with Meson
+  - cmd: meson setup --backend=ninja build_dir .
+  - cmd: meson compile -v -C build_dir
 
 test_script:
   # Test what CMake built.
   - cmd: bin\Release\runTests.exe
-  # # Test what Meson built.
-  # - cmd: meson test -C build_dir
+  # Test what Meson built.
+  - cmd: meson test -C build_dir
