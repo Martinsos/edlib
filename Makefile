@@ -13,10 +13,8 @@ all:
 	${MAKE} configure
 	@printf "\n${YELLOW}${BOLD}Building ${LIBRARY_TYPE} library and binaries...${RESET}\n"
 	${MAKE} build
-	@printf "\n${YELLOW}${BOLD}Running unit tests...${RESET}\n"
+	@printf "\n${YELLOW}${BOLD}Running tests...${RESET}\n"
 	${MAKE} test
-	@printf "\n${YELLOW}${BOLD}Running integration tests...${RESET}\n"
-	${MAKE} integration-tests
 	@printf "\n${GREEN}${BOLD}Edlib successfully built! You can find built binaries and libraries in ${BUILD_DIR}/ directory.${RESET}\n"
 
 configure:
@@ -30,10 +28,6 @@ build:
 
 test:
 	meson test -v -C ${BUILD_DIR}
-
-integration-tests:
-	${BUILD_DIR}/hello-world
-	${BUILD_DIR}/edlib-aligner ${TEST_DATA_DIR}/query.fasta ${TEST_DATA_DIR}/target.fasta
 
 # Valgrind Returns 2 if there was a memory leak/error,
 # otherwise returns runTests exit code, which is 0 if
