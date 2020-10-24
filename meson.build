@@ -7,6 +7,7 @@ project(
     'warning_level=3',
     'cpp_std=c++14',
     'b_ndebug=if-release',
+    'default_library=static'
   ],
   license : 'MIT',
   meson_version : '>= 0.52.0',
@@ -16,34 +17,30 @@ project_version_major = meson.project_version().split('.')[0]
 
 ###### Libraries ######
 
-edlib_lib_sources = files(['edlib/src/edlib.cpp'])
-edlib_lib_include_dirs = include_directories('edlib/include')
+edlib_lib_compile_args = get_option('default_library') == 'static' ? [] : ['-DEDLIB_SHARED']
 
-edlib_lib_static = static_library('edlib',
-  sources : edlib_lib_sources,
-  include_directories : edlib_lib_include_dirs,
+# If default_library == 'static', library() builds and returns static library.
+# If default_library == 'shared', library() builds and returns shared library.
+# If default_library == 'both', library() builds both static and shared libraries,
+#   but only shared one is returned as value and therefore used in the rest of the build.
+if (get_option('default_library') == 'both')
+  error('\'both\' as a value for default_library option is not supported because it would'
+        + ' build static library with shared library flags, exporting symbols!'
+        + 'Instead, build twice, once with \'static\' and once with \'shared\'.')
+endif
+edlib_lib = library('edlib',
+  sources : files(['edlib/src/edlib.cpp']),
+  include_directories : include_directories('edlib/include'),
   dependencies : [],
   install : true,
-)
-edlib_dep_static = declare_dependency(
-  include_directories : edlib_lib_include_dirs,
-  link_with : edlib_lib_static
-)
-
-edlib_shared_compile_args = ['-DEDLIB_SHARED']
-edlib_lib_shared = shared_library('edlib',
-  sources : edlib_lib_sources,
-  include_directories : edlib_lib_include_dirs,
-  dependencies : [],
-  install : true,
-  cpp_args : edlib_shared_compile_args,
+  cpp_args : edlib_lib_compile_args,
   gnu_symbol_visibility : 'hidden',
-  soversion : project_version_major
+  soversion : project_version_major # Used only for shared library.
 )
-edlib_dep_shared = declare_dependency(
-  include_directories : edlib_lib_include_dirs,
-  link_with : edlib_lib_shared,
-  compile_args : edlib_shared_compile_args
+edlib_dep = declare_dependency(
+  include_directories : include_directories('edlib/include'),
+  link_with : edlib_lib,
+  compile_args : edlib_lib_compile_args
 )
 
 ###### Executables ######
@@ -51,14 +48,14 @@ edlib_dep_shared = declare_dependency(
 hello_main = executable(
   'hello-world',
   files(['apps/hello-world/helloWorld.c']),
-  dependencies : [edlib_dep_static],
+  dependencies : [edlib_dep],
 )
 
 if build_machine.system() != 'windows'
   aligner_main = executable(
     'edlib-aligner',
     files(['apps/aligner/aligner.cpp']),
-    dependencies : [edlib_dep_static],
+    dependencies : [edlib_dep],
     install : true,
   )
 endif
@@ -66,7 +63,7 @@ endif
 runTests_main = executable(
   'runTests',
   files(['test/runTests.cpp']),
-  dependencies : [edlib_dep_shared],
+  dependencies : [edlib_dep],
   include_directories : include_directories('test'),
 )
 
@@ -89,12 +86,11 @@ endif
 
 install_headers('edlib/include/edlib.h')
 
-# TODO: Should we also generate another pkg-config for static lib?
 pkg = import('pkgconfig')
-pkg.generate(edlib_lib_shared,
+pkg.generate(edlib_lib,
   name: 'libedlib',
   url: 'https://github.com/Martinsos/edlib',
   filebase : 'edlib-' + project_version_major,
-  extra_cflags : edlib_shared_compile_args,
+  extra_cflags : edlib_lib_compile_args,
   description : 'Lightweight and super fast C/C++ library for sequence alignment using edit distance',
 )

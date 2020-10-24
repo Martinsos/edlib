@@ -46,7 +46,7 @@ There is also non-official [binding for Julia](https://github.com/cjdoris/Edlib.
 
 ## Building
 ### Meson
-Primary way of building Edlib is via Meson build tool.
+Primary way of building Edlib is via [Meson](https://mesonbuild.com/) build tool.
 
 Requirements: make sure that you have `meson` installed on your system.
 
@@ -54,13 +54,11 @@ Execute
 ```
 make
 ```
-to build libraries (static and shared) and binaries (apps and tests).
-They will be created in `meson-build` directory.
+to build **static** library and binaries (apps and tests) and also run tests.  
+To build **shared** library and binaries, do `make LIBRARY_TYPE=shared`.
 
-To run tests and confirm all is ok, run
-```
-make test
-```
+Library and binaries will be created in `meson-build` directory.  
+You can choose alternate build directory like this: `make BUILD_DIR=some-other-dir`.
 
 Optionally, you can run
 ```
@@ -68,7 +66,9 @@ sudo make install
 ```
 to install edlib library on your machine (on Linux, this will usually install it to `usr/local/lib` and `usr/local/include`).
 
-NOTE: If you need more control, use `meson` command directly, `makefile` is here only to make running common commands easier.
+Check Makefile if you want to run individual steps on your own (building, tests, ...).
+
+NOTE: If you need more control, use `meson` command directly, `Makefile` is here only to help with common commands.
 
 ### CMake
 Edlib can alternatively be built with CMake.
