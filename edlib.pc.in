@@ -1,7 +1,7 @@
 libdir=@CMAKE_INSTALL_FULL_LIBDIR@
 includedir=@CMAKE_INSTALL_FULL_INCLUDEDIR@
 
-Name: Edlib
+Name: edlib
 Description: Lightweight and super fast C/C++ library for sequence alignment using edit distance
 Version: @edlib_VERSION@
 

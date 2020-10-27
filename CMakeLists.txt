@@ -14,7 +14,7 @@ endif()
 include(GNUInstallDirs)
 include(CheckCXXCompilerFlag)
 
-set(CMAKE_CXX_STANDARD 11)
+set(CMAKE_CXX_STANDARD 14)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)  # Falling back to different standard it not allowed.
 set(CMAKE_CXX_EXTENSIONS OFF)  # Make sure no compiler-specific features are used.
 
@@ -61,13 +61,14 @@ set_target_properties(edlib
     SOVERSION ${PROJECT_VERSION_MAJOR}
 )
 
+target_compile_definitions(edlib PRIVATE DLIB_BUILD)
 if(BUILD_SHARED_LIBS)
   target_compile_definitions(edlib PUBLIC EDLIB_SHARED)
 endif()
 
 target_include_directories(edlib PUBLIC
     $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/edlib/include>
-    $<INSTALL_INTERFACE:include>)
+    $<INSTALL_INTERFACE:${CMAKE_INSTALL_INCLUDEDIR}>)
 
 # Build binaries.
 if(EDLIB_BUILD_EXAMPLES)

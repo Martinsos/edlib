@@ -17,7 +17,10 @@ project_version_major = meson.project_version().split('.')[0]
 
 ###### Libraries ######
 
-edlib_lib_compile_args = get_option('default_library') == 'static' ? [] : ['-DEDLIB_SHARED']
+edlib_lib_compile_args = ['-DEDLIB_BUILD']
+if get_option('default_library') != 'static'
+  edlib_lib_compile_args += ['-DEDLIB_SHARED']
+endif
 
 # If default_library == 'static', library() builds and returns static library.
 # If default_library == 'shared', library() builds and returns shared library.
@@ -34,7 +37,7 @@ edlib_lib = library('edlib',
   dependencies : [],
   install : true,
   cpp_args : edlib_lib_compile_args,
-  gnu_symbol_visibility : 'hidden',
+  gnu_symbol_visibility : 'inlineshidden',
   soversion : project_version_major # Used only for shared library.
 )
 edlib_dep = declare_dependency(
@@ -88,7 +91,7 @@ install_headers('edlib/include/edlib.h')
 
 pkg = import('pkgconfig')
 pkg.generate(edlib_lib,
-  name: 'libedlib',
+  name: 'edlib',
   url: 'https://github.com/Martinsos/edlib',
   filebase : 'edlib-' + project_version_major,
   extra_cflags : edlib_lib_compile_args,
