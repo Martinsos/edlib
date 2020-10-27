@@ -7,22 +7,16 @@
  * @brief Main header file, containing all public functions and structures.
  */
 
-// Define EDLIB_API macro that, when on Windows and building a DLL,
-// exports a function/struct so it is visible in the generated DLL.
-// While this happens by default on Unix, it does not
-// on Windows, and DLL will not be successfully linked, so we have to
-// explicitely put this macro in front of every function/struct in here
-// that is part of the Edlib API.
-// EDLIB_DLL_EXPORT should be defined in the .cpp that implements this header.
-// Check discussion here for more details:
-//   https://github.com/Martinsos/edlib/pull/165
-// or check this SO answer:
-//   https://stackoverflow.com/a/538179/1509394
-#if defined(_WIN32) || defined(_WIN64) || defined(__MINGW32__)
-#    ifdef EDLIB_DLL_EXPORT
-#        define EDLIB_API __declspec(dllexport)
+// Define EDLIB_API macro to properly export symbols
+#ifdef EDLIB_SHARED
+#    ifdef _WIN32
+#        ifdef EDLIB_BUILD
+#            define EDLIB_API __declspec(dllexport)
+#        else
+#            define EDLIB_API __declspec(dllimport)
+#        endif
 #    else
-#        define EDLIB_API __declspec(dllimport)
+#        define EDLIB_API __attribute__ ((visibility ("default")))
 #    endif
 #else
 #    define EDLIB_API
@@ -39,7 +33,7 @@ extern "C" {
     /**
      * Alignment methods - how should Edlib treat gaps before and after query?
      */
-    EDLIB_API typedef enum {
+    typedef enum {
         /**
          * Global method. This is the standard method.
          * Useful when you want to find out how similar is first sequence to second sequence.
@@ -70,7 +64,7 @@ extern "C" {
     /**
      * Alignment tasks - what do you want Edlib to do?
      */
-    EDLIB_API typedef enum {
+    typedef enum {
         EDLIB_TASK_DISTANCE,  //!< Find edit distance and end locations.
         EDLIB_TASK_LOC,       //!< Find edit distance, end locations and start locations.
         EDLIB_TASK_PATH       //!< Find edit distance, end locations and start locations and alignment path.
@@ -81,7 +75,7 @@ extern "C" {
      * @see http://samtools.github.io/hts-specs/SAMv1.pdf
      * @see http://drive5.com/usearch/manual/cigar.html
      */
-    EDLIB_API typedef enum {
+    typedef enum {
         EDLIB_CIGAR_STANDARD,  //!< Match: 'M', Insertion: 'I', Deletion: 'D', Mismatch: 'M'.
         EDLIB_CIGAR_EXTENDED   //!< Match: '=', Insertion: 'I', Deletion: 'D', Mismatch: 'X'.
     } EdlibCigarFormat;
@@ -95,7 +89,7 @@ extern "C" {
     /**
      * @brief Defines two given characters as equal.
      */
-    EDLIB_API typedef struct {
+    typedef struct {
         char first;
         char second;
     } EdlibEqualityPair;
@@ -103,7 +97,7 @@ extern "C" {
     /**
      * @brief Configuration object for edlibAlign() function.
      */
-    EDLIB_API typedef struct {
+    typedef struct {
         /**
          * Set k to non-negative value to tell edlib that edit distance is not larger than k.
          * Smaller k can significantly improve speed of computation.
@@ -165,7 +159,7 @@ extern "C" {
     /**
      * Container for results of alignment done by edlibAlign() function.
      */
-    EDLIB_API typedef struct {
+    typedef struct {
         /**
          * EDLIB_STATUS_OK or EDLIB_STATUS_ERROR. If error, all other fields will have undefined values.
          */
