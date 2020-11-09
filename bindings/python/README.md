@@ -15,11 +15,15 @@ Run `make sdist` to create a source distribution, but not publish it - it is a t
 Use this to check that tarball is well structured and contains all needed files, before you publish.
 Good way to test it is to run `sudo pip install dist/edlib-*.tar.gz`, which will try to install edlib from it, same way as pip will do it when it is published.
 
-Run `make publish` to create a source distribution and publish it to the PyPI. Use this to publish new version of package.
-Make sure to bump the version in `setup.py` before publishing, if needed.
-
 `make clean` removes all generated files.
 
 README.rst is auto-generated from [README-tmpl.rst](./README-tmpl.rst), to run regeneration do `make README.rst`.
 README.rst is also automatically regenerated when building package (e.g. `make build`).
 This enables us to always have up to date results of code execution and help documentation of edlib methods in readme.
+
+## Publishing
+Remember to update version in setup.py before publishing.
+
+To trigger automatic publish to PyPI, create a tag and push it to Github -> Travis will create sdist, build wheels, and push them all to PyPI while publishing new version.
+
+You can also publish new version manually if needed: run `make publish` to create a source distribution and publish it to the PyPI.
