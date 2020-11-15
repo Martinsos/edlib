@@ -4,6 +4,8 @@ if: branch = master OR tag IS present
 
 language: cpp
 
+os: linux
+
 dist: xenial
 
 stages:
@@ -148,6 +150,7 @@ jobs:
       <<: *ccpp
 
     - name: "Python wheel (Linux)"
+      os: linux
       language: python
       python:
         - "3.6"
