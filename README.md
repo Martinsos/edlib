@@ -299,3 +299,8 @@ Martin Šošić, Mile Šikić; Edlib: a C/C ++ library for fast, exact sequenc
 Mile Šikić (@msikic) - Mentoring and guidance through whole project.
 
 Ivan Sović (@isovic) - Help with testing and prioritizing features, valuable comments on the manuscript.
+
+## FAQ
+
+### What do terms NW, HW and SHW stand for?
+NW stands for Needleman-Wunsch, HW for Hybrid Wunsch, and SHW for Semi Hybrid Wunsch. While NW is a common abbreviation, HW and SHW abbreviations were made up at the very start of this project to describe additional modes of alignment. Terms "global", "infix" and "prefix" probably describe the modes better, but terms NW, HW and SHW are still very present in the project.
