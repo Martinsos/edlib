@@ -115,7 +115,7 @@ The `add_subdirectory` command adds a folder to the build tree, meaning it will 
 For more example projects take a look at applications in [apps/](apps/).
 
 #### Using VCPKG
-Edlib is available on [VCPKG](https://github.com/microsoft/vcpkg) package manager. With VCPKG on your system, Edlib can be downloaded using the VCPKG install command `vcpkg install edlib`. Once the library has been downloaded, Add the following instructions to you CMakeLists.txt file:
+Edlib is available on [VCPKG](https://github.com/microsoft/vcpkg) package manager. With VCPKG on your system, Edlib can be downloaded using the VCPKG install command `vcpkg install edlib`. Once the library has been downloaded, add the following instructions to your CMakeLists.txt file:
 ```
 find_package(edlib CONFIG REQUIRED)
 target_link_libraries(MyProject PRIVATE edlib::edlib)
