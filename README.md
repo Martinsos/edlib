@@ -44,56 +44,6 @@ There is also non-official [binding for Julia](https://github.com/cjdoris/Edlib.
 - [Acknowledgements](#acknowledgements)
 
 
-## Building
-### Meson
-Primary way of building Edlib is via [Meson](https://mesonbuild.com/) build tool.
-
-Requirements: make sure that you have `meson` installed on your system.
-
-Execute
-```
-make
-```
-to build **static** library and binaries (apps and tests) and also run tests.  
-To build **shared** library and binaries, do `make LIBRARY_TYPE=shared`.
-
-Library and binaries will be created in `meson-build` directory.  
-You can choose alternate build directory like this: `make BUILD_DIR=some-other-dir`.
-
-Optionally, you can run
-```
-sudo make install
-```
-to install edlib library on your machine (on Linux, this will usually install it to `usr/local/lib` and `usr/local/include`).
-
-Check Makefile if you want to run individual steps on your own (building, tests, ...).
-
-NOTE: If you need more control, use `meson` command directly, `Makefile` is here only to help with common commands.
-
-### CMake
-Edlib can alternatively be built with CMake.
-
-Execute following command to build Edlib using CMAKE:
-```
-cd build && cmake -D CMAKE_BUILD_TYPE=Release .. && make
-```
-This will create binaries in `bin/` directory and libraries (static and shared) in `lib/` directory.
-
-```
-./bin/runTests
-```
-to run tests.
-
-Optionally, you can run
-```
-sudo make install
-```
-to install edlib library on your machine.
-
-### Conda
-Edlib can also be installed via Conda: [![Anaconda-Server Badge](https://anaconda.org/bioconda/edlib/badges/installer/conda.svg)](https://conda.anaconda.org/bioconda): `conda install edlib`.
-
-
 ## Using Edlib in your project
 You can use Edlib in you project by either directly copying header and source files from [edlib/](edlib/), or by linking Edlib library (see [Building](#building) for instructions how to build Edlib libraries).
 In any case, only thing that you have to do in your source files is to include `edlib.h`.
@@ -153,6 +103,7 @@ Alternatively, you could avoid copying any Edlib files and instead install libra
 If you get error message like `cannot open shared object file: No such file or directory`, make sure that your linker includes path where edlib was installed.
 
 ### Approach #4: Use edlib in your project via CMake.
+#### Using git submodule
 If you are using CMake for compilation, we suggest adding edlib as a git submodule with the command `git submodule add https://github.com/martinsos/edlib vendor/edlib`. Afterwards, modify your top level CMakeLists.txt file accordingly:
 ```
 add_subdirectory(vendor/edlib EXCLUDE_FROM_ALL)
@@ -162,6 +113,65 @@ The `add_subdirectory` command adds a folder to the build tree, meaning it will 
 
 
 For more example projects take a look at applications in [apps/](apps/).
+
+#### Using VCPKG
+Edlib is available on [VCPKG](https://github.com/microsoft/vcpkg) package manager. With VCPKG on your system, Edlib can be downloaded using the VCPKG install command `vcpkg install edlib`. Once the library has been downloaded, add the following instructions to your CMakeLists.txt file:
+```
+find_package(edlib CONFIG REQUIRED)
+target_link_libraries(MyProject PRIVATE edlib::edlib)
+```
+
+then you should be able to include the library header in your project (`#include "edlib.h`)
+
+
+## Building
+### Meson
+Primary way of building Edlib is via [Meson](https://mesonbuild.com/) build tool.
+
+Requirements: make sure that you have `meson` installed on your system.
+
+Execute
+```
+make
+```
+to build **static** library and binaries (apps and tests) and also run tests.  
+To build **shared** library and binaries, do `make LIBRARY_TYPE=shared`.
+
+Library and binaries will be created in `meson-build` directory.  
+You can choose alternate build directory like this: `make BUILD_DIR=some-other-dir`.
+
+Optionally, you can run
+```
+sudo make install
+```
+to install edlib library on your machine (on Linux, this will usually install it to `usr/local/lib` and `usr/local/include`).
+
+Check Makefile if you want to run individual steps on your own (building, tests, ...).
+
+NOTE: If you need more control, use `meson` command directly, `Makefile` is here only to help with common commands.
+
+### CMake
+Edlib can alternatively be built with CMake.
+
+Execute following command to build Edlib using CMAKE:
+```
+cd build && cmake -D CMAKE_BUILD_TYPE=Release .. && make
+```
+This will create binaries in `bin/` directory and libraries (static and shared) in `lib/` directory.
+
+```
+./bin/runTests
+```
+to run tests.
+
+Optionally, you can run
+```
+sudo make install
+```
+to install edlib library on your machine.
+
+### Conda
+Edlib can also be installed via Conda: [![Anaconda-Server Badge](https://anaconda.org/bioconda/edlib/badges/installer/conda.svg)](https://conda.anaconda.org/bioconda): `conda install edlib`.
 
 
 ## Usage and examples
