@@ -30,7 +30,6 @@ There is also non-official [binding for Julia](https://github.com/cjdoris/Edlib.
 
 ## Contents
 - [Features](#features)
-- [Installing](#installing)
 - [Building](#building)
 - [Using Edlib in your project](#using-edlib-in-your-project)
 - [Usage and examples](#usage-and-examples)
@@ -43,13 +42,6 @@ There is also non-official [binding for Julia](https://github.com/cjdoris/Edlib.
 - [Development and contributing](#development-and-contributing)
 - [Publication](#publication)
 - [Acknowledgements](#acknowledgements)
-
-
-## Installing
-### VCPKG
-With [VCPKG](https://github.com/microsoft/vcpkg) installed, simply run `vcpkg install edlib`.
-### Conda
-You may also install edlib using Conda [![Anaconda-Server Badge](https://anaconda.org/bioconda/edlib/badges/installer/conda.svg)](https://conda.anaconda.org/bioconda): `conda install edlib`.
 
 
 ## Building
@@ -97,6 +89,9 @@ Optionally, you can run
 sudo make install
 ```
 to install edlib library on your machine.
+
+### Conda
+Edlib can also be installed via Conda: [![Anaconda-Server Badge](https://anaconda.org/bioconda/edlib/badges/installer/conda.svg)](https://conda.anaconda.org/bioconda): `conda install edlib`.
 
 
 ## Using Edlib in your project
