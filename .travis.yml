@@ -6,7 +6,7 @@ language: cpp
 
 os: linux
 
-dist: xenial
+dist: focal
 
 stages:
   - ccpp
@@ -103,45 +103,32 @@ jobs:
     # possible, we want to test a large range of old and new compilers on both
     # Linux and macOS. This gives us the best possible coverage while maintaining
     # compatibility with a large number of compilers.
-    - name: "C/CPP (Linux; GCC 4.9)"
-      os: linux
-      addons:
-        apt:
-          packages:
-            - g++-4.9
-            - valgrind
-            - python3
-            - python3-pip
-      env:
-         - MATRIX_EVAL="export CC=gcc-4.9 && export CXX=g++-4.9"
-      <<: *ccpp
-
-    - name: "C/CPP (Linux; GCC 9)"
+    - name: "C/CPP (Linux; GCC 10)"
       os: linux
       addons:
         apt:
           sources:
-            - ubuntu-toolchain-r-test # For g++-9
+            - ubuntu-toolchain-r-test # For g++-10
           packages:
-            - g++-9
+            - g++-10
             - valgrind
             - python3
             - python3-pip
       env:
-        - MATRIX_EVAL="export CC=gcc-9 && export CXX=g++-9"
+        - MATRIX_EVAL="export CC=gcc-10 && export CXX=g++-10"
       <<: *ccpp
 
-    - name: "C/CPP (Linux; Clang 5.0)"
+    - name: "C/CPP (Linux; Clang 10.0)"
       os: linux
       addons:
         apt:
           packages:
-            - clang-5.0
+            - clang-10
             - valgrind
             - python3
             - python3-pip
       env:
-        - MATRIX_EVAL="export CC=clang-5.0 && export CXX=clang++-5.0"
+        - MATRIX_EVAL="export CC=clang-10 && export CXX=clang++-10"
       <<: *ccpp
 
     - name: "C/CPP (OSX; XCode 11; Clang)"
