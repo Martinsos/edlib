@@ -68,6 +68,17 @@ testFailed = testFailed or (not (result and result["editDistance"] == 0))
 result = edlib.align("telephone", "", mode="SHW")
 testFailed = testFailed or (not (result and result["editDistance"] == 9))
 
+# Unicode characters
+result = edlib.align("ты милая", "ты гений")
+testFailed = testFailed or (not (result and result["editDistance"] == 5 and result["alphabetLength"] == 12))
+
+# Long alphabet.
+long_alphabet = ''.join([chr(idx) for idx in range(1, 257)])
+long_seq1 = long_alphabet * 3
+long_seq2 = long_alphabet + long_alphabet[::-1] + long_alphabet
+result = edlib.align(long_seq1, long_seq2)
+testFailed = testFailed or (not (result and result["editDistance"] == 256))
+
 if testFailed:
     print("Some of the tests failed!")
 else:

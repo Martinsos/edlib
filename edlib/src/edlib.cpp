@@ -361,7 +361,7 @@ static inline Word* buildPeq(const int alphabetLength,
     Word* Peq = new Word[(alphabetLength + 1) * maxNumBlocks];
 
     // Build Peq (1 is match, 0 is mismatch). NOTE: last column is wildcard(symbol that matches anything) with just 1s
-    for (unsigned char symbol = 0; symbol <= alphabetLength; symbol++) {
+    for (int symbol = 0; symbol <= alphabetLength; symbol++) {
         for (int b = 0; b < maxNumBlocks; b++) {
             if (symbol < alphabetLength) {
                 Peq[symbol * maxNumBlocks + b] = 0;

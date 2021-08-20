@@ -1,7 +1,7 @@
 default: build
 
 .PHONY:
-edlib:
+edlib: $(shell find ../../edlib)
 	# create a clean (maybe updated) copy of edlib src
 	rm -rf edlib && cp -r ../../edlib .
 
