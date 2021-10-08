@@ -7,6 +7,7 @@
 #include <cstring>
 #include <string>
 #include <memory>
+#include <iostream>
 
 using namespace std;
 
@@ -98,17 +99,17 @@ static int obtainAlignment(
         const unsigned char* query, const unsigned char* rQuery, int queryLength,
         const unsigned char* target, const unsigned char* rTarget, int targetLength,
         const EqualityDefinition& equalityDefinition, int alphabetLength, int bestScore,
-        unsigned char** alignment, int* alignmentLength);
+        std::vector<unsigned char> & alignment);
 
 static int obtainAlignmentHirschberg(
         const unsigned char* query, const unsigned char* rQuery, int queryLength,
         const unsigned char* target, const unsigned char* rTarget, int targetLength,
         const EqualityDefinition& equalityDefinition, int alphabetLength, int bestScore,
-        unsigned char** alignment, int* alignmentLength);
+        std::vector<unsigned char> & alignment);
 
 static int obtainAlignmentTraceback(int queryLength, int targetLength,
                                     int bestScore, const AlignmentData* alignData,
-                                    unsigned char** alignment, int* alignmentLength);
+                                    std::vector<unsigned char> & alignment);
 
 static string transformSequences(const char* queryOriginal, int queryLength,
                                  const char* targetOriginal, int targetLength,
@@ -134,9 +135,9 @@ extern "C" EdlibAlignResult edlibAlign(const char* const queryOriginal, const in
     EdlibAlignResult result;
     result.status = EDLIB_STATUS_OK;
     result.editDistance = -1;
-    result.endLocations = result.startLocations = NULL;
+    result.endLocations = result.startLocations = nullptr;
     result.numLocations = 0;
-    result.alignment = NULL;
+    result.alignment = nullptr;
     result.alignmentLength = 0;
     result.alphabetLength = 0;
 
@@ -183,8 +184,16 @@ extern "C" EdlibAlignResult edlibAlign(const char* const queryOriginal, const in
         k = WORD_SIZE; // Gives better results than smaller k.
     }
 
+    //std::vector<int> endLocations;
     do {
         if (config.mode == EDLIB_MODE_HW || config.mode == EDLIB_MODE_SHW) {
+	  /* previously, myserCalcEditDistanceSemiGlobal will assign NULL to result.endLocations
+	     without checking if it holds any valid storage. As this is a loop, there is a chance
+	     for memory leak. I don't know the algo well enough to make an effective test case.
+	     
+	     Also note that there is another malloc to result.endLocations after this do loop.
+	     But it won't be used as config.mode is different.
+	   */
 	    myersCalcEditDistanceSemiGlobal(Peq.get(), W, maxNumBlocks,
                                             queryLength, target_.data(), targetLength,
                                             k, config.mode, result.editDistance,
@@ -197,6 +206,12 @@ extern "C" EdlibAlignResult edlibAlign(const char* const queryOriginal, const in
         }
         k *= 2;
     } while(dynamicK && result.editDistance == -1);
+
+    // assignment is intentional
+    //if ((result.numLocations = endLocations.size())) {
+    //  result.endLocations = new int[result.numLocations];
+    //  ::memcpy(result.endLocations,endLocations.data(),result.numLocations);
+    //}
 
     if (result.editDistance >= 0) {  // If there is solution.
         // If NW mode, set end location explicitly.
@@ -230,8 +245,8 @@ extern "C" EdlibAlignResult edlibAlign(const char* const queryOriginal, const in
                         //   search -> how can it do it right if these locations are negative or incorrect?
                         result.startLocations[i] = 0;  // I put 0 for now, but it does not make much sense.
                     } else {
-                        int bestScoreSHW, numPositionsSHW;
-                        int* positionsSHW;
+		        int bestScoreSHW, numPositionsSHW;
+			int* positionsSHW;
                         myersCalcEditDistanceSemiGlobal(
 				rPeq.get(), W, maxNumBlocks,
                                 queryLength, rTarget.get() + targetLength - endLocation - 1, endLocation + 1,
@@ -240,7 +255,7 @@ extern "C" EdlibAlignResult edlibAlign(const char* const queryOriginal, const in
                         // Taking last location as start ensures that alignment will not start with insertions
                         // if it can start with mismatches instead.
                         result.startLocations[i] = endLocation - positionsSHW[numPositionsSHW - 1];
-                        free(positionsSHW);
+			free(positionsSHW);
                     }
                 }
             } else {  // If mode is SHW or NW
@@ -259,10 +274,16 @@ extern "C" EdlibAlignResult edlibAlign(const char* const queryOriginal, const in
             const int alnTargetLength = alnEndLocation - alnStartLocation + 1;
             auto rAlnTarget = createReverseCopy(alnTarget, alnTargetLength);
             auto rQuery  = createReverseCopy(query_.data(), queryLength);
+	    std::vector<unsigned char> alignment;
             obtainAlignment(query_.data(), rQuery.get(), queryLength,
                             alnTarget, rAlnTarget.get(), alnTargetLength,
                             equalityDefinition, static_cast<int>(alphabet.size()), result.editDistance,
-                            &(result.alignment), &(result.alignmentLength));
+                            alignment);
+	    result.alignmentLength = int(alignment.size());
+	    if (result.alignmentLength) {
+	      result.alignment = new unsigned char[result.alignmentLength];
+	      ::memcpy(result.alignment,alignment.data(),result.alignmentLength);
+	    }
         }
     }
     /*-------------------------------------------------------*/
@@ -521,9 +542,10 @@ static int myersCalcEditDistanceSemiGlobal(
         const unsigned char* const target, const int targetLength,
         int k, const EdlibAlignMode mode,
         int & bestScore_, int** const positions_, int* const numPositions_) {
-    *positions_ = NULL;
+    //positions_.clear();
+    *positions_ = nullptr;
     *numPositions_ = 0;
-
+    
     // firstBlock is 0-based index of first block in Ukkonen band.
     // lastBlock is 0-based index of last block in Ukkonen band.
     int firstBlock = 0;
@@ -619,6 +641,7 @@ static int myersCalcEditDistanceSemiGlobal(
                 *positions_ = static_cast<int *>(malloc(sizeof(int) * static_cast<int>(positions.size())));
                 *numPositions_ = static_cast<int>(positions.size());
                 copy(positions.begin(), positions.end(), *positions_);
+		//std::swap(positions,positions_);
             }
             return EDLIB_STATUS_OK;
         }
@@ -667,6 +690,7 @@ static int myersCalcEditDistanceSemiGlobal(
         *positions_ = static_cast<int *>(malloc(sizeof(int) * static_cast<int>(positions.size())));
         *numPositions_ = static_cast<int>(positions.size());
         copy(positions.begin(), positions.end(), *positions_);
+	//std::swap(positions_,positions);
     }
 
     return EDLIB_STATUS_OK;
@@ -908,12 +932,11 @@ static int myersCalcEditDistanceNW(const Word* const Peq, const int W, const int
  */
 static int obtainAlignmentTraceback(const int queryLength, const int targetLength,
                                     const int bestScore, const AlignmentData* const alignData,
-                                    unsigned char** const alignment, int* const alignmentLength) {
+                                    std::vector<unsigned char> & alignment) {
     const int maxNumBlocks = ceilDiv(queryLength, WORD_SIZE);
     const int W = maxNumBlocks * WORD_SIZE - queryLength;
 
-    *alignment = static_cast<unsigned char*>(malloc((queryLength + targetLength - 1) * sizeof(unsigned char)));
-    *alignmentLength = 0;
+    alignment.reserve(queryLength + targetLength - 1);
     int c = targetLength - 1; // index of column
     int b = maxNumBlocks - 1; // index of block in column
     int currScore = bestScore; // Score of current cell
@@ -990,9 +1013,9 @@ static int obtainAlignmentTraceback(const int queryLength, const int targetLengt
             uScore = ulScore = -1;
             if (blockPos == 0) { // If entering new (upper) block
                 if (b == 0) { // If there are no cells above (only boundary cells)
-                    (*alignment)[(*alignmentLength)++] = EDLIB_EDOP_INSERT; // Move up
+		    alignment.push_back(EDLIB_EDOP_INSERT); // Move up
                     for (int i = 0; i < c + 1; i++) // Move left until end
-                        (*alignment)[(*alignmentLength)++] = EDLIB_EDOP_DELETE;
+		        alignment.push_back(EDLIB_EDOP_DELETE);
                     break;
                 } else {
                     blockPos = WORD_SIZE - 1;
@@ -1015,7 +1038,7 @@ static int obtainAlignmentTraceback(const int queryLength, const int targetLengt
                 lM <<= 1;
             }
             // Mark move
-            (*alignment)[(*alignmentLength)++] = EDLIB_EDOP_INSERT;
+            alignment.push_back(EDLIB_EDOP_INSERT);
         }
         // Move left - deletion from target - insertion to query
         else if (lScore != -1 && lScore + 1 == currScore) {
@@ -1024,10 +1047,10 @@ static int obtainAlignmentTraceback(const int queryLength, const int targetLengt
             lScore = ulScore = -1;
             c--;
             if (c == -1) { // If there are no cells to the left (only boundary cells)
-                (*alignment)[(*alignmentLength)++] = EDLIB_EDOP_DELETE; // Move left
+	        alignment.push_back(EDLIB_EDOP_DELETE); // Move left
                 int numUp = b * WORD_SIZE + blockPos + 1;
                 for (int i = 0; i < numUp; i++) // Move up until end
-                    (*alignment)[(*alignmentLength)++] = EDLIB_EDOP_INSERT;
+		    alignment.push_back(EDLIB_EDOP_INSERT);
                 break;
             }
             currP = lP;
@@ -1046,7 +1069,7 @@ static int obtainAlignmentTraceback(const int queryLength, const int targetLengt
                 }
             }
             // Mark move
-            (*alignment)[(*alignmentLength)++] = EDLIB_EDOP_DELETE;
+            alignment.push_back(EDLIB_EDOP_DELETE);
         }
         // Move up left - (mis)match
         else if (ulScore != -1) {
@@ -1055,17 +1078,17 @@ static int obtainAlignmentTraceback(const int queryLength, const int targetLengt
             uScore = lScore = ulScore = -1;
             c--;
             if (c == -1) { // If there are no cells to the left (only boundary cells)
-                (*alignment)[(*alignmentLength)++] = moveCode; // Move left
+	        alignment.push_back(moveCode); // Move left
                 int numUp = b * WORD_SIZE + blockPos;
                 for (int i = 0; i < numUp; i++) // Move up until end
-                    (*alignment)[(*alignmentLength)++] = EDLIB_EDOP_INSERT;
+		    alignment.push_back(EDLIB_EDOP_INSERT);
                 break;
             }
             if (blockPos == 0) { // If entering upper left block
                 if (b == 0) { // If there are no more cells above (only boundary cells)
-                    (*alignment)[(*alignmentLength)++] = moveCode; // Move up left
+		    alignment.push_back(moveCode); // Move up left
                     for (int i = 0; i < c + 1; i++) // Move left until end
-                        (*alignment)[(*alignmentLength)++] = EDLIB_EDOP_DELETE;
+		        alignment.push_back(EDLIB_EDOP_DELETE);
                     break;
                 }
                 blockPos = WORD_SIZE - 1;
@@ -1094,7 +1117,7 @@ static int obtainAlignmentTraceback(const int queryLength, const int targetLengt
                 }
             }
             // Mark move
-            (*alignment)[(*alignmentLength)++] = moveCode;
+            alignment.push_back(moveCode);
         } else {
             // Reached end - finished!
             break;
@@ -1102,8 +1125,11 @@ static int obtainAlignmentTraceback(const int queryLength, const int targetLengt
         //----------------------------------//
     }
 
-    *alignment = static_cast<unsigned char*>(realloc(*alignment, (*alignmentLength) * sizeof(unsigned char)));
-    reverse(*alignment, *alignment + (*alignmentLength));
+    // this realloc must be shrinking the array or will have unassigned values at the end
+    // *alignment = static_cast<unsigned char*>(realloc(*alignment, (*alignmentLength) * sizeof(unsigned char)));
+    // shrink_to_fit could be used to do what realloc does, but alignment will be destroyed very soon
+    // as storage in vector won't be passed outside to the extern "C" functions client; hence not doing it.
+    std::reverse(alignment.begin(),alignment.end());
     return EDLIB_STATUS_OK;
 }
 
@@ -1129,7 +1155,7 @@ static int obtainAlignment(
         const unsigned char* const query, const unsigned char* const rQuery, const int queryLength,
         const unsigned char* const target, const unsigned char* const rTarget, const int targetLength,
         const EqualityDefinition& equalityDefinition, const int alphabetLength, const int bestScore,
-        unsigned char** const alignment, int* const alignmentLength) {
+        std::vector<unsigned char> & alignment) {
 
     /* TODO: replace params alignment and alignmentLength with a std::vector output
        (*aligmnent)[(*alignmentLength)++] is like push_back, and realloc like resize
@@ -1141,11 +1167,10 @@ static int obtainAlignment(
   
     // Handle special case when one of sequences has length of 0.
     if (queryLength == 0 || targetLength == 0) {
-        *alignmentLength = targetLength + queryLength;
-        *alignment = static_cast<unsigned char*>(malloc((*alignmentLength) * sizeof(unsigned char)));
-        for (int i = 0; i < *alignmentLength; i++) {
-            (*alignment)[i] = queryLength == 0 ? EDLIB_EDOP_DELETE : EDLIB_EDOP_INSERT;
-        }
+        auto alignmentLength = targetLength + queryLength;
+	// previously this is a simple malloc call, so alignment must be nullptr. Now alignment must be empty
+	// Therefore, the resize will fill alignment with only one value
+        alignment.resize(alignmentLength,(unsigned char)(queryLength == 0 ? EDLIB_EDOP_DELETE : EDLIB_EDOP_INSERT));
         return EDLIB_STATUS_OK;
     }
 
@@ -1175,12 +1200,12 @@ static int obtainAlignment(
         //assert(endLocation_ == targetLength - 1);
 
         statusCode = obtainAlignmentTraceback(queryLength, targetLength,
-                                              bestScore, alignData.get(), alignment, alignmentLength);
+                                              bestScore, alignData.get(), alignment);
     } else {
         statusCode = obtainAlignmentHirschberg(query, rQuery, queryLength,
                                                target, rTarget, targetLength,
                                                equalityDefinition, alphabetLength, bestScore,
-                                               alignment, alignmentLength);
+                                               alignment);
     }
     return statusCode;
 }
@@ -1205,7 +1230,7 @@ static int obtainAlignmentHirschberg(
         const unsigned char* const query, const unsigned char* const rQuery, const int queryLength,
         const unsigned char* const target, const unsigned char* const rTarget, const int targetLength,
         const EqualityDefinition& equalityDefinition, const int alphabetLength, const int bestScore,
-        unsigned char** const alignment, int* const alignmentLength) {
+        std::vector<unsigned char> & alignment) {
 
     const int maxNumBlocks = ceilDiv(queryLength, WORD_SIZE);
     const int W = maxNumBlocks * WORD_SIZE - queryLength;
@@ -1338,30 +1363,24 @@ static int obtainAlignmentHirschberg(
     const int lrHeight = queryLength - ulHeight;
     const int ulWidth = leftHalfWidth;
     const int lrWidth = rightHalfWidth;
-    unsigned char* ulAlignment = NULL; int ulAlignmentLength;
+    std::vector<unsigned char> ulAlignment;
     int ulStatusCode = obtainAlignment(query, rQuery + lrHeight, ulHeight,
                                        target, rTarget + lrWidth, ulWidth,
                                        equalityDefinition, alphabetLength, leftScore,
-                                       &ulAlignment, &ulAlignmentLength);
-    unsigned char* lrAlignment = NULL; int lrAlignmentLength;
+                                       ulAlignment);
+    std::vector<unsigned char> lrAlignment;
     int lrStatusCode = obtainAlignment(query + ulHeight, rQuery, lrHeight,
                                        target + ulWidth, rTarget, lrWidth,
                                        equalityDefinition, alphabetLength, rightScore,
-                                       &lrAlignment, &lrAlignmentLength);
+                                       lrAlignment);
     if (ulStatusCode == EDLIB_STATUS_ERROR || lrStatusCode == EDLIB_STATUS_ERROR) {
-        if (ulAlignment) free(ulAlignment);
-        if (lrAlignment) free(lrAlignment);
         return EDLIB_STATUS_ERROR;
     }
 
     // Build alignment by concatenating upper left alignment with lower right alignment.
-    *alignmentLength = ulAlignmentLength + lrAlignmentLength;
-    *alignment = static_cast<unsigned char*>(malloc((*alignmentLength) * sizeof(unsigned char)));
-    memcpy(*alignment, ulAlignment, ulAlignmentLength);
-    memcpy(*alignment + ulAlignmentLength, lrAlignment, lrAlignmentLength);
+    alignment.resize(ulAlignment.size() + lrAlignment.size());
+    std::copy(lrAlignment.begin(),lrAlignment.end(),std::copy(ulAlignment.begin(), ulAlignment.end(),alignment.begin()));
 
-    free(ulAlignment);
-    free(lrAlignment);
     return EDLIB_STATUS_OK;
 }
 
@@ -1445,5 +1464,5 @@ extern "C" EdlibAlignConfig edlibDefaultAlignConfig(void) {
 extern "C" void edlibFreeAlignResult(EdlibAlignResult result) {
     if (result.endLocations) free(result.endLocations);
     if (result.startLocations) free(result.startLocations);
-    if (result.alignment) free(result.alignment);
+    if (result.alignment) delete [] result.alignment;
 }
