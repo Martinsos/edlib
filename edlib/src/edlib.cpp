@@ -85,7 +85,7 @@ static int myersCalcEditDistanceSemiGlobal(const Word* Peq, int W, int maxNumBlo
                                            int queryLength,
                                            const unsigned char* target, int targetLength,
                                            int k, EdlibAlignMode mode,
-                                           int & bestScore_, int** positions_, int* numPositions_);
+                                           int & bestScore_, std::vector<int> & positions_);
 
 static int myersCalcEditDistanceNW(const Word* Peq, int W, int maxNumBlocks,
                                    int queryLength,
@@ -152,12 +152,12 @@ extern "C" EdlibAlignResult edlibAlign(const char* const queryOriginal, const in
     if (queryLength == 0 || targetLength == 0) {
         if (config.mode == EDLIB_MODE_NW) {
             result.editDistance = std::max(queryLength, targetLength);
-            result.endLocations = static_cast<int *>(malloc(sizeof(int) * 1));
+            result.endLocations = new int[1];
             result.endLocations[0] = targetLength - 1;
             result.numLocations = 1;
         } else if (config.mode == EDLIB_MODE_SHW || config.mode == EDLIB_MODE_HW) {
             result.editDistance = queryLength;
-            result.endLocations = static_cast<int *>(malloc(sizeof(int) * 1));
+            result.endLocations = new int[1];
             result.endLocations[0] = -1;
             result.numLocations = 1;
         } else {
@@ -184,7 +184,7 @@ extern "C" EdlibAlignResult edlibAlign(const char* const queryOriginal, const in
         k = WORD_SIZE; // Gives better results than smaller k.
     }
 
-    //std::vector<int> endLocations;
+    std::vector<int> endLocs;
     do {
         if (config.mode == EDLIB_MODE_HW || config.mode == EDLIB_MODE_SHW) {
 	  /* previously, myserCalcEditDistanceSemiGlobal will assign NULL to result.endLocations
@@ -197,7 +197,7 @@ extern "C" EdlibAlignResult edlibAlign(const char* const queryOriginal, const in
 	    myersCalcEditDistanceSemiGlobal(Peq.get(), W, maxNumBlocks,
                                             queryLength, target_.data(), targetLength,
                                             k, config.mode, result.editDistance,
-                                            &(result.endLocations), &(result.numLocations));
+                                            endLocs);
         } else {  // mode == EDLIB_MODE_NW
 	    myersCalcEditDistanceNW(Peq.get(), W, maxNumBlocks,
                                     queryLength, target_.data(), targetLength,
@@ -208,22 +208,22 @@ extern "C" EdlibAlignResult edlibAlign(const char* const queryOriginal, const in
     } while(dynamicK && result.editDistance == -1);
 
     // assignment is intentional
-    //if ((result.numLocations = endLocations.size())) {
-    //  result.endLocations = new int[result.numLocations];
-    //  ::memcpy(result.endLocations,endLocations.data(),result.numLocations);
-    //}
+    if ((result.numLocations = endLocs.size())) {
+      result.endLocations = new int[result.numLocations];
+      ::memcpy(result.endLocations,endLocs.data(),result.numLocations * sizeof(int));
+    }
 
     if (result.editDistance >= 0) {  // If there is solution.
         // If NW mode, set end location explicitly.
         if (config.mode == EDLIB_MODE_NW) {
-            result.endLocations = static_cast<int *>(malloc(sizeof(int) * 1));
+            result.endLocations = new int[1];
             result.endLocations[0] = targetLength - 1;
             result.numLocations = 1;
         }
 
         // Find starting locations.
         if (config.task == EDLIB_TASK_LOC || config.task == EDLIB_TASK_PATH) {
-            result.startLocations = static_cast<int *>(malloc(result.numLocations * sizeof(int)));
+            result.startLocations = new int[result.numLocations];
             if (config.mode == EDLIB_MODE_HW) {  // If HW, I need to calculate start locations.
 	        auto rTarget = createReverseCopy(target_.data(), targetLength);
 		auto rQuery  = createReverseCopy(query_.data(), queryLength);
@@ -245,17 +245,16 @@ extern "C" EdlibAlignResult edlibAlign(const char* const queryOriginal, const in
                         //   search -> how can it do it right if these locations are negative or incorrect?
                         result.startLocations[i] = 0;  // I put 0 for now, but it does not make much sense.
                     } else {
-		        int bestScoreSHW, numPositionsSHW;
-			int* positionsSHW;
+		        int bestScoreSHW;
+			std::vector<int> positionsSHW;
                         myersCalcEditDistanceSemiGlobal(
 				rPeq.get(), W, maxNumBlocks,
                                 queryLength, rTarget.get() + targetLength - endLocation - 1, endLocation + 1,
                                 result.editDistance, EDLIB_MODE_SHW,
-                                bestScoreSHW, &positionsSHW, &numPositionsSHW);
+                                bestScoreSHW, positionsSHW);
                         // Taking last location as start ensures that alignment will not start with insertions
                         // if it can start with mismatches instead.
-                        result.startLocations[i] = endLocation - positionsSHW[numPositionsSHW - 1];
-			free(positionsSHW);
+                        result.startLocations[i] = endLocation - *positionsSHW.rbegin();
                     }
                 }
             } else {  // If mode is SHW or NW
@@ -335,7 +334,7 @@ extern "C" char* edlibAlignmentToCigar(const unsigned char* const alignment, con
     }
     cigar.push_back(0);  // Null character termination.
     char* cigar_ = static_cast<char *>(malloc(cigar.size() * sizeof(char)));
-    memcpy(cigar_, cigar.data(), cigar.size() * sizeof(char));
+    ::memcpy(cigar_, cigar.data(), cigar.size() * sizeof(char));
 
     return cigar_;
 }
@@ -541,10 +540,8 @@ static int myersCalcEditDistanceSemiGlobal(
         const int queryLength,
         const unsigned char* const target, const int targetLength,
         int k, const EdlibAlignMode mode,
-        int & bestScore_, int** const positions_, int* const numPositions_) {
-    //positions_.clear();
-    *positions_ = nullptr;
-    *numPositions_ = 0;
+        int & bestScore_, std::vector<int> & positions_) {
+    positions_.clear();
     
     // firstBlock is 0-based index of first block in Ukkonen band.
     // lastBlock is 0-based index of last block in Ukkonen band.
@@ -638,10 +635,7 @@ static int myersCalcEditDistanceSemiGlobal(
         if (lastBlock < firstBlock) {
             bestScore_ = bestScore;
             if (bestScore != -1) {
-                *positions_ = static_cast<int *>(malloc(sizeof(int) * static_cast<int>(positions.size())));
-                *numPositions_ = static_cast<int>(positions.size());
-                copy(positions.begin(), positions.end(), *positions_);
-		//std::swap(positions,positions_);
+		std::swap(positions,positions_);
             }
             return EDLIB_STATUS_OK;
         }
@@ -687,10 +681,7 @@ static int myersCalcEditDistanceSemiGlobal(
 
     bestScore_ = bestScore;
     if (bestScore != -1) {
-        *positions_ = static_cast<int *>(malloc(sizeof(int) * static_cast<int>(positions.size())));
-        *numPositions_ = static_cast<int>(positions.size());
-        copy(positions.begin(), positions.end(), *positions_);
-	//std::swap(positions_,positions);
+	std::swap(positions_,positions);
     }
 
     return EDLIB_STATUS_OK;
@@ -1462,7 +1453,7 @@ extern "C" EdlibAlignConfig edlibDefaultAlignConfig(void) {
 }
 
 extern "C" void edlibFreeAlignResult(EdlibAlignResult result) {
-    if (result.endLocations) free(result.endLocations);
-    if (result.startLocations) free(result.startLocations);
+    if (result.endLocations) delete [] result.endLocations;
+    if (result.startLocations) delete [] result.startLocations;
     if (result.alignment) delete [] result.alignment;
 }
