@@ -18,26 +18,23 @@ static const int MAX_UCHAR = 255;
 
 // Data needed to find alignment.
 struct AlignmentData {
-    Word* Ps;
+    std::vector<Word> Ps;
     Word* Ms;
-    int* scores;
-    std::vector<int> firstBlocks, lastBlocks;
+    std::vector<int> scores;
+    int * firstBlocks, * lastBlocks;
 
-    AlignmentData(int maxNumBlocks, int targetLength) {
+  AlignmentData(int maxNumBlocks, int targetLength) :
+    Ps(maxNumBlocks * targetLength * 2),
+    Ms(Ps.data() + maxNumBlocks * targetLength),
+    scores((maxNumBlocks + 2)* targetLength),
+    firstBlocks(scores.data() + maxNumBlocks * targetLength),
+    lastBlocks(firstBlocks + targetLength) {
         // We build a complete table and mark first and last block for each column
         // (because algorithm is banded so only part of each columns is used).
         // TODO: do not build a whole table, but just enough blocks for each column.
-         Ps     = new Word[maxNumBlocks * targetLength];
-         Ms     = new Word[maxNumBlocks * targetLength];
-         scores = new  int[maxNumBlocks * targetLength];
-         firstBlocks.resize(targetLength);
-         lastBlocks.resize(targetLength);
     }
 
     ~AlignmentData() {
-        delete[] Ps;
-        delete[] Ms;
-        delete[] scores;
     }
 };
 
@@ -106,17 +103,17 @@ static int obtainAlignment(
         const unsigned char* query, const unsigned char* rQuery, int queryLength,
         const unsigned char* target, const unsigned char* rTarget, int targetLength,
         const EqualityDefinition& equalityDefinition, int alphabetLength, int bestScore,
-        unsigned char** alignment, int* alignmentLength);
+        std::vector<unsigned char> & alignment);
 
 static int obtainAlignmentHirschberg(
         const unsigned char* query, const unsigned char* rQuery, int queryLength,
         const unsigned char* target, const unsigned char* rTarget, int targetLength,
         const EqualityDefinition& equalityDefinition, int alphabetLength, int bestScore,
-        unsigned char** alignment, int* alignmentLength);
+        std::vector<unsigned char> & alignment);
 
 static int obtainAlignmentTraceback(int queryLength, int targetLength,
                                     int bestScore, const AlignmentData* alignData,
-                                    unsigned char** alignment, int* alignmentLength);
+                                    std::vector<unsigned char> & alignment);
 
 static string transformSequences(const char* queryOriginal, int queryLength,
                                  const char* targetOriginal, int targetLength,
@@ -269,10 +266,16 @@ extern "C" EdlibAlignResult edlibAlign(const char* const queryOriginal, const in
             const int alnTargetLength = alnEndLocation - alnStartLocation + 1;
             auto rAlnTarget = createReverseCopy(alnTarget, alnTargetLength);
             auto rQuery  = createReverseCopy(query.data(), queryLength);
+            std::vector<unsigned char> alignment;
             obtainAlignment(query.data(), rQuery.get(), queryLength,
                             alnTarget, rAlnTarget.get(), alnTargetLength,
                             equalityDefinition, static_cast<int>(alphabet.size()), result.editDistance,
-                            &(result.alignment), &(result.alignmentLength));
+                            alignment);
+            result.alignmentLength = int(alignment.size());
+            if (result.alignmentLength) {
+              result.alignment = new unsigned char[result.alignmentLength];
+              ::memcpy(result.alignment,alignment.data(),result.alignmentLength * sizeof(unsigned char));
+            }
         }
     }
     /*-------------------------------------------------------*/
@@ -928,17 +931,16 @@ static int myersCalcEditDistanceNW(const Word* const Peq, const int W, const int
  * @param [in] bestScore  Best score.
  * @param [in] alignData  Data obtained during finding best score that is useful for finding alignment.
  * @param [out] alignment  Alignment.
- * @param [out] alignmentLength  Length of alignment.
  * @return Status code.
  */
 static int obtainAlignmentTraceback(const int queryLength, const int targetLength,
                                     const int bestScore, const AlignmentData* const alignData,
-                                    unsigned char** const alignment, int* const alignmentLength) {
+                                    std::vector<unsigned char> & alignment) {
     const int maxNumBlocks = ceilDiv(queryLength, WORD_SIZE);
     const int W = maxNumBlocks * WORD_SIZE - queryLength;
 
-    *alignment = static_cast<unsigned char*>(malloc((queryLength + targetLength - 1) * sizeof(unsigned char)));
-    *alignmentLength = 0;
+    alignment.reserve(queryLength + targetLength - 1);
+    //*alignmentLength = 0;
     int c = targetLength - 1; // index of column
     int b = maxNumBlocks - 1; // index of block in column
     int currScore = bestScore; // Score of current cell
@@ -1015,9 +1017,9 @@ static int obtainAlignmentTraceback(const int queryLength, const int targetLengt
             uScore = ulScore = -1;
             if (blockPos == 0) { // If entering new (upper) block
                 if (b == 0) { // If there are no cells above (only boundary cells)
-                    (*alignment)[(*alignmentLength)++] = EDLIB_EDOP_INSERT; // Move up
+                    alignment.push_back(EDLIB_EDOP_INSERT); // Move up
                     for (int i = 0; i < c + 1; i++) // Move left until end
-                        (*alignment)[(*alignmentLength)++] = EDLIB_EDOP_DELETE;
+                        alignment.push_back(EDLIB_EDOP_DELETE);
                     break;
                 } else {
                     blockPos = WORD_SIZE - 1;
@@ -1040,7 +1042,7 @@ static int obtainAlignmentTraceback(const int queryLength, const int targetLengt
                 lM <<= 1;
             }
             // Mark move
-            (*alignment)[(*alignmentLength)++] = EDLIB_EDOP_INSERT;
+            alignment.push_back(EDLIB_EDOP_INSERT);
         }
         // Move left - deletion from target - insertion to query
         else if (lScore != -1 && lScore + 1 == currScore) {
@@ -1049,10 +1051,10 @@ static int obtainAlignmentTraceback(const int queryLength, const int targetLengt
             lScore = ulScore = -1;
             c--;
             if (c == -1) { // If there are no cells to the left (only boundary cells)
-                (*alignment)[(*alignmentLength)++] = EDLIB_EDOP_DELETE; // Move left
+                alignment.push_back(EDLIB_EDOP_DELETE); // Move left
                 int numUp = b * WORD_SIZE + blockPos + 1;
                 for (int i = 0; i < numUp; i++) // Move up until end
-                    (*alignment)[(*alignmentLength)++] = EDLIB_EDOP_INSERT;
+                    alignment.push_back(EDLIB_EDOP_INSERT);
                 break;
             }
             currP = lP;
@@ -1071,7 +1073,7 @@ static int obtainAlignmentTraceback(const int queryLength, const int targetLengt
                 }
             }
             // Mark move
-            (*alignment)[(*alignmentLength)++] = EDLIB_EDOP_DELETE;
+            alignment.push_back(EDLIB_EDOP_DELETE);
         }
         // Move up left - (mis)match
         else if (ulScore != -1) {
@@ -1080,17 +1082,17 @@ static int obtainAlignmentTraceback(const int queryLength, const int targetLengt
             uScore = lScore = ulScore = -1;
             c--;
             if (c == -1) { // If there are no cells to the left (only boundary cells)
-                (*alignment)[(*alignmentLength)++] = moveCode; // Move left
+                alignment.push_back(moveCode); // Move left
                 int numUp = b * WORD_SIZE + blockPos;
                 for (int i = 0; i < numUp; i++) // Move up until end
-                    (*alignment)[(*alignmentLength)++] = EDLIB_EDOP_INSERT;
+                    alignment.push_back(EDLIB_EDOP_INSERT);
                 break;
             }
             if (blockPos == 0) { // If entering upper left block
                 if (b == 0) { // If there are no more cells above (only boundary cells)
-                    (*alignment)[(*alignmentLength)++] = moveCode; // Move up left
+                    alignment.push_back(moveCode); // Move up left
                     for (int i = 0; i < c + 1; i++) // Move left until end
-                        (*alignment)[(*alignmentLength)++] = EDLIB_EDOP_DELETE;
+                        alignment.push_back(EDLIB_EDOP_DELETE);
                     break;
                 }
                 blockPos = WORD_SIZE - 1;
@@ -1119,7 +1121,7 @@ static int obtainAlignmentTraceback(const int queryLength, const int targetLengt
                 }
             }
             // Mark move
-            (*alignment)[(*alignmentLength)++] = moveCode;
+            alignment.push_back(moveCode);
         } else {
             // Reached end - finished!
             break;
@@ -1127,8 +1129,8 @@ static int obtainAlignmentTraceback(const int queryLength, const int targetLengt
         //----------------------------------//
     }
 
-    *alignment = static_cast<unsigned char*>(realloc(*alignment, (*alignmentLength) * sizeof(unsigned char)));
-    reverse(*alignment, *alignment + (*alignmentLength));
+    //*alignment = static_cast<unsigned char*>(realloc(*alignment, (*alignmentLength) * sizeof(unsigned char)));
+    std::reverse(alignment.begin(), alignment.end());
     return EDLIB_STATUS_OK;
 }
 
@@ -1147,22 +1149,17 @@ static int obtainAlignmentTraceback(const int queryLength, const int targetLengt
  * @param [in] alphabetLength
  * @param [in] bestScore  Best(optimal) score.
  * @param [out] alignment  Sequence of edit operations that make target equal to query.
- * @param [out] alignmentLength  Length of alignment.
  * @return Status code.
  */
 static int obtainAlignment(
         const unsigned char* const query, const unsigned char* const rQuery, const int queryLength,
         const unsigned char* const target, const unsigned char* const rTarget, const int targetLength,
         const EqualityDefinition& equalityDefinition, const int alphabetLength, const int bestScore,
-        unsigned char** const alignment, int* const alignmentLength) {
+        std::vector<unsigned char> & alignment) {
 
     // Handle special case when one of sequences has length of 0.
     if (queryLength == 0 || targetLength == 0) {
-        *alignmentLength = targetLength + queryLength;
-        *alignment = static_cast<unsigned char*>(malloc((*alignmentLength) * sizeof(unsigned char)));
-        for (int i = 0; i < *alignmentLength; i++) {
-            (*alignment)[i] = queryLength == 0 ? EDLIB_EDOP_DELETE : EDLIB_EDOP_INSERT;
-        }
+        alignment.resize(targetLength + queryLength,queryLength == 0 ? EDLIB_EDOP_DELETE : EDLIB_EDOP_INSERT);
         return EDLIB_STATUS_OK;
     }
 
@@ -1192,14 +1189,14 @@ static int obtainAlignment(
         //assert(endLocation_ == targetLength - 1);
 
         statusCode = obtainAlignmentTraceback(queryLength, targetLength,
-                                              bestScore, alignData, alignment, alignmentLength);
+                                              bestScore, alignData, alignment);
         delete alignData;
         delete[] Peq;
     } else {
         statusCode = obtainAlignmentHirschberg(query, rQuery, queryLength,
                                                target, rTarget, targetLength,
                                                equalityDefinition, alphabetLength, bestScore,
-                                               alignment, alignmentLength);
+                                               alignment);
     }
     return statusCode;
 }
@@ -1217,14 +1214,13 @@ static int obtainAlignment(
  * @param [in] alphabetLength
  * @param [in] bestScore  Best(optimal) score.
  * @param [out] alignment  Sequence of edit operations that make target equal to query.
- * @param [out] alignmentLength  Length of alignment.
  * @return Status code.
  */
 static int obtainAlignmentHirschberg(
         const unsigned char* const query, const unsigned char* const rQuery, const int queryLength,
         const unsigned char* const target, const unsigned char* const rTarget, const int targetLength,
         const EqualityDefinition& equalityDefinition, const int alphabetLength, const int bestScore,
-        unsigned char** const alignment, int* const alignmentLength) {
+        std::vector<unsigned char>& alignment) {
 
     const int maxNumBlocks = ceilDiv(queryLength, WORD_SIZE);
     const int W = maxNumBlocks * WORD_SIZE - queryLength;
@@ -1360,30 +1356,24 @@ static int obtainAlignmentHirschberg(
     const int lrHeight = queryLength - ulHeight;
     const int ulWidth = leftHalfWidth;
     const int lrWidth = rightHalfWidth;
-    unsigned char* ulAlignment = NULL; int ulAlignmentLength;
+    std::vector<unsigned char> ulAlignment;
     int ulStatusCode = obtainAlignment(query, rQuery + lrHeight, ulHeight,
                                        target, rTarget + lrWidth, ulWidth,
                                        equalityDefinition, alphabetLength, leftScore,
-                                       &ulAlignment, &ulAlignmentLength);
-    unsigned char* lrAlignment = NULL; int lrAlignmentLength;
+                                       ulAlignment);
+    std::vector<unsigned char> lrAlignment;
     int lrStatusCode = obtainAlignment(query + ulHeight, rQuery, lrHeight,
                                        target + ulWidth, rTarget, lrWidth,
                                        equalityDefinition, alphabetLength, rightScore,
-                                       &lrAlignment, &lrAlignmentLength);
+                                       lrAlignment);
     if (ulStatusCode == EDLIB_STATUS_ERROR || lrStatusCode == EDLIB_STATUS_ERROR) {
-        if (ulAlignment) free(ulAlignment);
-        if (lrAlignment) free(lrAlignment);
         return EDLIB_STATUS_ERROR;
     }
 
     // Build alignment by concatenating upper left alignment with lower right alignment.
-    *alignmentLength = ulAlignmentLength + lrAlignmentLength;
-    *alignment = static_cast<unsigned char*>(malloc((*alignmentLength) * sizeof(unsigned char)));
-    memcpy(*alignment, ulAlignment, ulAlignmentLength);
-    memcpy(*alignment + ulAlignmentLength, lrAlignment, lrAlignmentLength);
+    alignment.resize(ulAlignment.size()+lrAlignment.size());
+    std::copy(lrAlignment.begin(),lrAlignment.end(),std::copy(ulAlignment.begin(), ulAlignment.end(),alignment.begin()));
 
-    free(ulAlignment);
-    free(lrAlignment);
     return EDLIB_STATUS_OK;
 }
 
@@ -1466,5 +1456,5 @@ extern "C" EdlibAlignConfig edlibDefaultAlignConfig(void) {
 extern "C" void edlibFreeAlignResult(EdlibAlignResult result) {
     if (result.endLocations) free(result.endLocations);
     if (result.startLocations) free(result.startLocations);
-    if (result.alignment) free(result.alignment);
+    if (result.alignment) delete [] result.alignment;
 }
