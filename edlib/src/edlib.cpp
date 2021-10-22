@@ -124,7 +124,7 @@ static inline int ceilDiv(int x, int y);
 
 static inline std::unique_ptr<unsigned char[]> createReverseCopy(const unsigned char* seq, int length);
 
-static inline Word* buildPeq(const int alphabetLength,
+static inline std::vector<Word> buildPeq(const int alphabetLength,
                              const unsigned char* query,
                              const int queryLength,
                              const EqualityDefinition& equalityDefinition);
@@ -175,7 +175,7 @@ extern "C" EdlibAlignResult edlibAlign(const char* const queryOriginal, const in
     int maxNumBlocks = ceilDiv(queryLength, WORD_SIZE); // bmax in Myers
     int W = maxNumBlocks * WORD_SIZE - queryLength; // number of redundant cells in last level blocks
     EqualityDefinition equalityDefinition(alphabet, config.additionalEqualities, config.additionalEqualitiesLength);
-    Word* Peq = buildPeq(static_cast<int>(alphabet.size()), query.data(), queryLength, equalityDefinition);
+    const auto & Peq = buildPeq(static_cast<int>(alphabet.size()), query.data(), queryLength, equalityDefinition);
     /*-------------------------------------------------------*/
 
     /*------------------ MAIN CALCULATION -------------------*/
@@ -191,12 +191,12 @@ extern "C" EdlibAlignResult edlibAlign(const char* const queryOriginal, const in
 
     do {
         if (config.mode == EDLIB_MODE_HW || config.mode == EDLIB_MODE_SHW) {
-            myersCalcEditDistanceSemiGlobal(Peq, W, maxNumBlocks,
+            myersCalcEditDistanceSemiGlobal(Peq.data(), W, maxNumBlocks,
                                             queryLength, target.data(), targetLength,
                                             k, config.mode, &(result.editDistance),
                                             &(result.endLocations), &(result.numLocations));
         } else {  // mode == EDLIB_MODE_NW
-            myersCalcEditDistanceNW(Peq, W, maxNumBlocks,
+            myersCalcEditDistanceNW(Peq.data(), W, maxNumBlocks,
                                     queryLength, target.data(), targetLength,
                                     k, &(result.editDistance), &positionNW,
                                     false, &alignData, -1);
@@ -219,7 +219,7 @@ extern "C" EdlibAlignResult edlibAlign(const char* const queryOriginal, const in
 	        auto rTarget = createReverseCopy(target.data(), targetLength);
                 auto rQuery  = createReverseCopy(query.data(), queryLength);
                 // Peq for reversed query.
-                Word* rPeq = buildPeq(static_cast<int>(alphabet.size()), rQuery.get(), queryLength, equalityDefinition);
+                const auto & rPeq = buildPeq(static_cast<int>(alphabet.size()), rQuery.get(), queryLength, equalityDefinition);
                 for (int i = 0; i < result.numLocations; i++) {
                     int endLocation = result.endLocations[i];
                     if (endLocation == -1) {
@@ -239,7 +239,7 @@ extern "C" EdlibAlignResult edlibAlign(const char* const queryOriginal, const in
                         int bestScoreSHW, numPositionsSHW;
                         int* positionsSHW;
                         myersCalcEditDistanceSemiGlobal(
-                                rPeq, W, maxNumBlocks,
+                                rPeq.data(), W, maxNumBlocks,
                                 queryLength, rTarget.get() + targetLength - endLocation - 1, endLocation + 1,
                                 result.editDistance, EDLIB_MODE_SHW,
                                 &bestScoreSHW, &positionsSHW, &numPositionsSHW);
@@ -249,7 +249,6 @@ extern "C" EdlibAlignResult edlibAlign(const char* const queryOriginal, const in
                         free(positionsSHW);
                     }
                 }
-                delete[] rPeq;
             } else {  // If mode is SHW or NW
                 for (int i = 0; i < result.numLocations; i++) {
                     result.startLocations[i] = 0;
@@ -281,7 +280,6 @@ extern "C" EdlibAlignResult edlibAlign(const char* const queryOriginal, const in
     /*-------------------------------------------------------*/
 
     //--- Free memory ---//
-    delete[] Peq;
     if (alignData) delete alignData;
     //-------------------//
 
@@ -301,7 +299,7 @@ extern "C" char* edlibAlignmentToCigar(const unsigned char* const alignment, con
         moveCodeToChar[0] = moveCodeToChar[3] = 'M';
     }
 
-    vector<char>* cigar = new vector<char>();
+    vector<char> cigar;
     char lastMove = 0;  // Char of last move. 0 if there was no previous move.
     int numOfSameMoves = 0;
     for (int i = 0; i <= alignmentLength; i++) {
@@ -310,17 +308,16 @@ extern "C" char* edlibAlignmentToCigar(const unsigned char* const alignment, con
             // Write number of moves to cigar string.
             int numDigits = 0;
             for (; numOfSameMoves; numOfSameMoves /= 10) {
-                cigar->push_back('0' + numOfSameMoves % 10);
+                cigar.push_back('0' + numOfSameMoves % 10);
                 numDigits++;
             }
-            reverse(cigar->end() - numDigits, cigar->end());
+            reverse(cigar.end() - numDigits, cigar.end());
             // Write code of move to cigar string.
-            cigar->push_back(lastMove);
+            cigar.push_back(lastMove);
             // If not at the end, start new sequence of moves.
             if (i < alignmentLength) {
                 // Check if alignment has valid values.
                 if (alignment[i] > 3) {
-                    delete cigar;
                     return 0;
                 }
                 numOfSameMoves = 0;
@@ -331,10 +328,9 @@ extern "C" char* edlibAlignmentToCigar(const unsigned char* const alignment, con
             numOfSameMoves++;
         }
     }
-    cigar->push_back(0);  // Null character termination.
-    char* cigar_ = static_cast<char *>(malloc(cigar->size() * sizeof(char)));
-    memcpy(cigar_, &(*cigar)[0], cigar->size() * sizeof(char));
-    delete cigar;
+    cigar.push_back(0);  // Null character termination.
+    char* cigar_ = static_cast<char *>(malloc(cigar.size() * sizeof(char)));
+    memcpy(cigar_, cigar.data(), cigar.size() * sizeof(char));
 
     return cigar_;
 }
@@ -343,15 +339,14 @@ extern "C" char* edlibAlignmentToCigar(const unsigned char* const alignment, con
  * Build Peq table for given query and alphabet.
  * Peq is table of dimensions alphabetLength+1 x maxNumBlocks.
  * Bit i of Peq[s * maxNumBlocks + b] is 1 if i-th symbol from block b of query equals symbol s, otherwise it is 0.
- * NOTICE: free returned array with delete[]!
  */
-static inline Word* buildPeq(const int alphabetLength,
+static inline std::vector<Word> buildPeq(const int alphabetLength,
                              const unsigned char* const query,
                              const int queryLength,
                              const EqualityDefinition& equalityDefinition) {
     int maxNumBlocks = ceilDiv(queryLength, WORD_SIZE);
     // table of dimensions alphabetLength+1 x maxNumBlocks. Last symbol is wildcard.
-    Word* Peq = new Word[(alphabetLength + 1) * maxNumBlocks];
+    std::vector<Word> Peq((alphabetLength + 1) * maxNumBlocks);
 
     // Build Peq (1 is match, 0 is mismatch). NOTE: last column is wildcard(symbol that matches anything) with just 1s
     for (int symbol = 0; symbol <= alphabetLength; symbol++) {
@@ -549,9 +544,7 @@ static int myersCalcEditDistanceSemiGlobal(
     // lastBlock is 0-based index of last block in Ukkonen band.
     int firstBlock = 0;
     int lastBlock = min(ceilDiv(k + 1, WORD_SIZE), maxNumBlocks) - 1; // y in Myers
-    Block *bl; // Current block
-
-    Block* blocks = new Block[maxNumBlocks];
+    std::vector<Block> blocks(maxNumBlocks);
 
     // For HW, solution will never be larger then queryLength.
     if (mode == EDLIB_MODE_HW) {
@@ -560,10 +553,10 @@ static int myersCalcEditDistanceSemiGlobal(
 
     // Each STRONG_REDUCE_NUM column is reduced in more expensive way.
     // This gives speed up of about 2 times for small k.
-    const int STRONG_REDUCE_NUM = 2048;
+    constexpr int STRONG_REDUCE_NUM = 2048;
 
     // Initialize P, M and score
-    bl = blocks;
+    Block *bl = blocks.data(); // Current block
     for (int b = 0; b <= lastBlock; b++) {
         bl->score = (b + 1) * WORD_SIZE;
         bl->P = static_cast<Word>(-1); // All 1s
@@ -580,7 +573,7 @@ static int myersCalcEditDistanceSemiGlobal(
 
         //----------------------- Calculate column -------------------------//
         int hout = startHout;
-        bl = blocks + firstBlock;
+        bl = blocks.data() + firstBlock;
         Peq_c += firstBlock;
         for (int b = firstBlock; b <= lastBlock; b++) {
             hout = calculateBlock(bl->P, bl->M, *Peq_c, hout, bl->P, bl->M);
@@ -641,7 +634,6 @@ static int myersCalcEditDistanceSemiGlobal(
                 *numPositions_ = static_cast<int>(positions.size());
                 copy(positions.begin(), positions.end(), *positions_);
             }
-            delete[] blocks;
             return EDLIB_STATUS_OK;
         }
         //------------------------------------------------------------------//
@@ -691,7 +683,6 @@ static int myersCalcEditDistanceSemiGlobal(
         copy(positions.begin(), positions.end(), *positions_);
     }
 
-    delete[] blocks;
     return EDLIB_STATUS_OK;
 }
 
@@ -745,12 +736,10 @@ static int myersCalcEditDistanceNW(const Word* const Peq, const int W, const int
     int firstBlock = 0;
     // This is optimal now, by my formula.
     int lastBlock = min(maxNumBlocks, ceilDiv(min(k, (k + queryLength - targetLength) / 2) + 1, WORD_SIZE)) - 1;
-    Block* bl; // Current block
-
-    Block* blocks = new Block[maxNumBlocks];
+    std::vector<Block> blocks(maxNumBlocks);
 
     // Initialize P, M and score
-    bl = blocks;
+    Block* bl = blocks.data(); // Current block
     for (int b = 0; b <= lastBlock; b++) {
         bl->score = (b + 1) * WORD_SIZE;
         bl->P = static_cast<Word>(-1); // All 1s
@@ -772,7 +761,7 @@ static int myersCalcEditDistanceNW(const Word* const Peq, const int W, const int
 
         //----------------------- Calculate column -------------------------//
         int hout = 1;
-        bl = blocks + firstBlock;
+        bl = blocks.data() + firstBlock;
         for (int b = firstBlock; b <= lastBlock; b++) {
             hout = calculateBlock(bl->P, bl->M, Peq_c[b], hout, bl->P, bl->M);
             bl->score += hout;
@@ -868,7 +857,6 @@ static int myersCalcEditDistanceNW(const Word* const Peq, const int W, const int
         // If band stops to exist finish
         if (lastBlock < firstBlock) {
             *bestScore_ = *position_ = -1;
-            delete[] blocks;
             return EDLIB_STATUS_OK;
         }
         //------------------------------------------------------------------//
@@ -876,7 +864,7 @@ static int myersCalcEditDistanceNW(const Word* const Peq, const int W, const int
 
         //---- Save column so it can be used for reconstruction ----//
         if (findAlignment && c < targetLength) {
-            bl = blocks + firstBlock;
+            bl = blocks.data() + firstBlock;
             for (int b = firstBlock; b <= lastBlock; b++) {
                 (*alignData)->Ps[maxNumBlocks * c + b] = bl->P;
                 (*alignData)->Ms[maxNumBlocks * c + b] = bl->M;
@@ -890,15 +878,14 @@ static int myersCalcEditDistanceNW(const Word* const Peq, const int W, const int
         //---- If this is stop column, save it and finish ----//
         if (c == targetStopPosition) {
             for (int b = firstBlock; b <= lastBlock; b++) {
-                (*alignData)->Ps[b] = (blocks + b)->P;
-                (*alignData)->Ms[b] = (blocks + b)->M;
-                (*alignData)->scores[b] = (blocks + b)->score;
+                (*alignData)->Ps[b] = blocks[b].P;
+                (*alignData)->Ms[b] = blocks[b].M;
+                (*alignData)->scores[b] = blocks[b].score;
                 (*alignData)->firstBlocks[0] = firstBlock;
                 (*alignData)->lastBlocks[0] = lastBlock;
             }
             *bestScore_ = -1;
             *position_ = targetStopPosition;
-            delete[] blocks;
             return EDLIB_STATUS_OK;
         }
         //----------------------------------------------------//
@@ -912,13 +899,11 @@ static int myersCalcEditDistanceNW(const Word* const Peq, const int W, const int
         if (bestScore <= k) {
             *bestScore_ = bestScore;
             *position_ = targetLength - 1;
-            delete[] blocks;
             return EDLIB_STATUS_OK;
         }
     }
 
     *bestScore_ = *position_ = -1;
-    delete[] blocks;
     return EDLIB_STATUS_OK;
 }
 
@@ -1129,7 +1114,9 @@ static int obtainAlignmentTraceback(const int queryLength, const int targetLengt
         //----------------------------------//
     }
 
-    //*alignment = static_cast<unsigned char*>(realloc(*alignment, (*alignmentLength) * sizeof(unsigned char)));
+    // realloc was used to shrink alignment -- a C array.
+    // shrink_to_fit could be used to do what realloc does, but alignment will be destroyed very soon
+    // as storage in vector won't be passed outside to the extern "C" functions client; hence not doing it.
     std::reverse(alignment.begin(), alignment.end());
     return EDLIB_STATUS_OK;
 }
@@ -1179,8 +1166,8 @@ static int obtainAlignment(
     if (alignmentDataSize < 1024 * 1024) {
         int score_, endLocation_;  // Used only to call function.
         AlignmentData* alignData = NULL;
-        Word* Peq = buildPeq(alphabetLength, query, queryLength, equalityDefinition);
-        myersCalcEditDistanceNW(Peq, W, maxNumBlocks,
+        const auto & Peq = buildPeq(alphabetLength, query, queryLength, equalityDefinition);
+        myersCalcEditDistanceNW(Peq.data(), W, maxNumBlocks,
                                 queryLength,
                                 target, targetLength,
                                 bestScore,
@@ -1191,7 +1178,6 @@ static int obtainAlignment(
         statusCode = obtainAlignmentTraceback(queryLength, targetLength,
                                               bestScore, alignData, alignment);
         delete alignData;
-        delete[] Peq;
     } else {
         statusCode = obtainAlignmentHirschberg(query, rQuery, queryLength,
                                                target, rTarget, targetLength,
@@ -1225,8 +1211,8 @@ static int obtainAlignmentHirschberg(
     const int maxNumBlocks = ceilDiv(queryLength, WORD_SIZE);
     const int W = maxNumBlocks * WORD_SIZE - queryLength;
 
-    Word* Peq = buildPeq(alphabetLength, query, queryLength, equalityDefinition);
-    Word* rPeq = buildPeq(alphabetLength, rQuery, queryLength, equalityDefinition);
+    const auto & Peq = buildPeq(alphabetLength, query, queryLength, equalityDefinition);
+    const auto & rPeq = buildPeq(alphabetLength, rQuery, queryLength, equalityDefinition);
 
     // Used only to call functions.
     int score_, endLocation_;
@@ -1238,17 +1224,14 @@ static int obtainAlignmentHirschberg(
     // Calculate left half.
     AlignmentData* alignDataLeftHalf = NULL;
     int leftHalfCalcStatus = myersCalcEditDistanceNW(
-            Peq, W, maxNumBlocks, queryLength, target, targetLength, bestScore,
+            Peq.data(), W, maxNumBlocks, queryLength, target, targetLength, bestScore,
             &score_, &endLocation_, false, &alignDataLeftHalf, leftHalfWidth - 1);
 
     // Calculate right half.
     AlignmentData* alignDataRightHalf = NULL;
     int rightHalfCalcStatus = myersCalcEditDistanceNW(
-            rPeq, W, maxNumBlocks, queryLength, rTarget, targetLength, bestScore,
+            rPeq.data(), W, maxNumBlocks, queryLength, rTarget, targetLength, bestScore,
             &score_, &endLocation_, false, &alignDataRightHalf, rightHalfWidth - 1);
-
-    delete[] Peq;
-    delete[] rPeq;
 
     if (leftHalfCalcStatus == EDLIB_STATUS_ERROR || rightHalfCalcStatus == EDLIB_STATUS_ERROR) {
         if (alignDataLeftHalf) delete alignDataLeftHalf;
