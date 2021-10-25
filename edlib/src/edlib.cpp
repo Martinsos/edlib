@@ -1235,11 +1235,11 @@ static int obtainAlignmentHirschberg(
     // scoresLeft contains scores from left column, starting with scoresLeftStartIdx row (query index)
     // and ending with scoresLeftEndIdx row (0-indexed).
     int scoresLeftLength = (lastBlockIdxLeft - firstBlockIdxLeft + 1) * WORD_SIZE;
-    int* scoresLeft = new int[scoresLeftLength];
+    std::vector<int> scoresLeft(scoresLeftLength);
     for (int blockIdx = firstBlockIdxLeft; blockIdx <= lastBlockIdxLeft; blockIdx++) {
         Block block(alignDataLeftHalf->Ps[blockIdx], alignDataLeftHalf->Ms[blockIdx],
                     alignDataLeftHalf->scores[blockIdx]);
-        readBlock(block, scoresLeft + (blockIdx - firstBlockIdxLeft) * WORD_SIZE);
+        readBlock(block, scoresLeft.data() + (blockIdx - firstBlockIdxLeft) * WORD_SIZE);
     }
     int scoresLeftStartIdx = firstBlockIdxLeft * WORD_SIZE;
     // If last block contains padding, shorten the length of scores for the length of padding.
@@ -1251,8 +1251,8 @@ static int obtainAlignmentHirschberg(
     int firstBlockIdxRight = alignDataRightHalf->firstBlocks[0];
     int lastBlockIdxRight = alignDataRightHalf->lastBlocks[0];
     int scoresRightLength = (lastBlockIdxRight - firstBlockIdxRight + 1) * WORD_SIZE;
-    int* scoresRight = new int[scoresRightLength];
-    int* scoresRightOriginalStart = scoresRight;
+    std::vector<int> scoresRight_(scoresRightLength);
+    int* scoresRight = scoresRight_.data();
     for (int blockIdx = firstBlockIdxRight; blockIdx <= lastBlockIdxRight; blockIdx++) {
         Block block(alignDataRightHalf->Ps[blockIdx], alignDataRightHalf->Ms[blockIdx],
                     alignDataRightHalf->scores[blockIdx]);
@@ -1312,9 +1312,6 @@ static int obtainAlignmentHirschberg(
             queryIdxLeftAlignmentFound = true;
         }
     }
-
-    delete[] scoresLeft;
-    delete[] scoresRightOriginalStart;
 
     if (queryIdxLeftAlignmentFound == false) {
         // If there was no move that is part of optimal alignment, then there is no such alignment
