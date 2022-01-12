@@ -16,7 +16,10 @@ edlibAlign("hello", 5, "world!", 6, edlibDefaultAlignConfig()).editDistance;
 
 Edlib is also available for **Python** [![PyPI version](https://img.shields.io/pypi/v/edlib.svg) (Click here for Python README)](https://pypi.python.org/pypi/edlib), with code residing at [bindings/python](bindings/python).
 
-There is also non-official [binding for Julia](https://github.com/cjdoris/Edlib.jl) by @cjdoris.
+Developers have created bindings to edlib in other languages as well:
+
+* Edlib.jl, Julia package created and supported by Christopher Rowley (@cjdoris)
+* edlibR, R package created and supported by Evan Biederstedt (@evanbiederstedt)
 
 ## Features
 * Calculates **edit distance (Levenshtein distance)**.
