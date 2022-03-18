@@ -84,7 +84,7 @@ target_include_directories(edlib PUBLIC
     $<INSTALL_INTERFACE:${CMAKE_INSTALL_INCLUDEDIR}>)
 
 # generate export header and attach it to somelib
-generate_export_header(edlib EXPORT_FILE_NAME edlib/include/export.h)
+generate_export_header(edlib EXPORT_FILE_NAME include/export.h)
 target_compile_definitions(edlib PUBLIC
   "$<$<NOT:$<BOOL:${BUILD_SHARED_LIBS}>>:EDLIB_STATIC_DEFINE>")
 target_include_directories(edlib PUBLIC
