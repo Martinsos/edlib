@@ -1,9 +1,14 @@
 cmake_minimum_required(VERSION 3.2 FATAL_ERROR)
 project(edlib VERSION 1.2.6)
 
+if (CMAKE_SOURCE_DIR STREQUAL PROJECT_SOURCE_DIR)
+  set(EDLIB_MAIN_PROJECT TRUE)
+endif ()
+
 option(EDLIB_ENABLE_INSTALL "Generate the install target" ON)
-option(EDLIB_BUILD_EXAMPLES "Build examples" ON)
-option(EDLIB_BUILD_UTILITIES "Build utilities" ON)
+option(EDLIB_BUILD_TESTS "Build edlib tests" ${EDLIB_MAIN_PROJECT})
+option(EDLIB_BUILD_EXAMPLES "Build examples" ${EDLIB_MAIN_PROJECT})
+option(EDLIB_BUILD_UTILITIES "Build utilities" ${EDLIB_MAIN_PROJECT})
 
 set(MACOSX (${CMAKE_SYSTEM_NAME} MATCHES "Darwin"))
 
@@ -17,6 +22,16 @@ include(CheckCXXCompilerFlag)
 set(CMAKE_CXX_STANDARD 14)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)  # Falling back to different standard it not allowed.
 set(CMAKE_CXX_EXTENSIONS OFF)  # Make sure no compiler-specific features are used.
+
+if (NOT EDLIB_MAIN_PROJECT)
+  if (NOT DEFINED CMAKE_CXX_VISIBILITY_PRESET AND
+      NOT DEFINED CMAKE_VISIBILITY_INLINES_HIDDEN)
+    set(CMAKE_CXX_VISIBILITY_PRESET hidden)
+    set(CMAKE_VISIBILITY_INLINES_HIDDEN YES)
+  endif ()
+endif ()
+
+include(GenerateExportHeader)
 
 # Build edlib as static library by default
 set(BUILD_SHARED_LIBS OFF CACHE BOOL "Build all libraries as shared")
@@ -55,8 +70,6 @@ add_library(edlib ${SOURCES})
 add_library(edlib::edlib ALIAS edlib)
 set_target_properties(edlib
   PROPERTIES
-    CXX_VISIBILITY_PRESET hidden
-    VISIBILITY_INLINES_HIDDEN ON
     VERSION ${PROJECT_VERSION}
     SOVERSION ${PROJECT_VERSION_MAJOR}
 )
@@ -70,6 +83,13 @@ target_include_directories(edlib PUBLIC
     $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/edlib/include>
     $<INSTALL_INTERFACE:${CMAKE_INSTALL_INCLUDEDIR}>)
 
+# generate export header and attach it to somelib
+generate_export_header(edlib EXPORT_FILE_NAME edlib/include/export.h)
+target_compile_definitions(edlib PUBLIC
+  "$<$<NOT:$<BOOL:${BUILD_SHARED_LIBS}>>:EDLIB_STATIC_DEFINE>")
+target_include_directories(edlib PUBLIC
+  "$<BUILD_INTERFACE:${CMAKE_CURRENT_BINARY_DIR}/include>")
+
 # Build binaries.
 if(EDLIB_BUILD_EXAMPLES)
   add_executable(helloWorld apps/hello-world/helloWorld.c)
@@ -77,7 +97,7 @@ if(EDLIB_BUILD_EXAMPLES)
 endif()
 
 include(CTest)
-if (BUILD_TESTING)
+if (EDLIB_BUILD_TESTS)
   add_executable(runTests test/runTests.cpp)
   target_link_libraries(runTests edlib)
 
