@@ -901,9 +901,9 @@ static int myersCalcEditDistanceNW(const Word* const Peq, const int W, const int
                 (*alignData)->Ps[b] = (blocks + b)->P;
                 (*alignData)->Ms[b] = (blocks + b)->M;
                 (*alignData)->scores[b] = (blocks + b)->score;
-                (*alignData)->firstBlocks[0] = firstBlock;
-                (*alignData)->lastBlocks[0] = lastBlock;
             }
+            (*alignData)->firstBlocks[0] = firstBlock;
+            (*alignData)->lastBlocks[0] = lastBlock;
             *bestScore_ = -1;
             *position_ = targetStopPosition;
             delete[] blocks;
