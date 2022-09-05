@@ -889,10 +889,10 @@ static int myersCalcEditDistanceNW(const Word* const Peq, const int W, const int
                 (*alignData)->Ps[maxNumBlocks * c + b] = bl->P;
                 (*alignData)->Ms[maxNumBlocks * c + b] = bl->M;
                 (*alignData)->scores[maxNumBlocks * c + b] = bl->score;
-                (*alignData)->firstBlocks[c] = firstBlock;
-                (*alignData)->lastBlocks[c] = lastBlock;
                 bl++;
             }
+            (*alignData)->firstBlocks[c] = firstBlock;
+            (*alignData)->lastBlocks[c] = lastBlock;
         }
         //----------------------------------------------------------//
         //---- If this is stop column, save it and finish ----//
