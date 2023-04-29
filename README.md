@@ -20,6 +20,7 @@ Developers have created bindings to edlib in other languages as well:
 
 * [Edlib.jl](https://github.com/cjdoris/Edlib.jl), a Julia package created and supported by Christopher Rowley ([@cjdoris](https://github.com/cjdoris))
 * [edlibR](https://github.com/evanbiederstedt/edlibr), an R package created and supported by Evan Biederstedt ([@evanbiederstedt](https://github.com/evanbiederstedt))
+* [ruby-edlib](https://github.com/kojix2/ruby-edlib), a Ruby package created and supported by [@kojix2](https://github.com/kojix2)
 
 ## Features
 * Calculates **edit distance (Levenshtein distance)**.
