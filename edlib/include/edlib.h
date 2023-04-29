@@ -8,19 +8,21 @@
  */
 
 // Define EDLIB_API macro to properly export symbols
-#ifdef EDLIB_SHARED
-#    ifdef _WIN32
-#        ifdef EDLIB_BUILD
-#            define EDLIB_API __declspec(dllexport)
-#        else
-#            define EDLIB_API __declspec(dllimport)
-#        endif
-#    else
-#        define EDLIB_API __attribute__ ((visibility ("default")))
-#    endif
-#else
-#    define EDLIB_API
-#endif
+// #ifdef EDLIB_SHARED
+// #    ifdef _WIN32
+// #        ifdef EDLIB_BUILD
+// #            define EDLIB_API __declspec(dllexport)
+// #        else
+// #            define EDLIB_API __declspec(dllimport)
+// #        endif
+// #    else
+// #        define EDLIB_API __attribute__ ((visibility ("default")))
+// #    endif
+// #else
+// #    define EDLIB_API
+// #endif
+
+#include "export.h"
 
 #ifdef __cplusplus
 extern "C" {
@@ -143,7 +145,7 @@ extern "C" {
      * Helper method for easy construction of configuration object.
      * @return Configuration object filled with given parameters.
      */
-    EDLIB_API EdlibAlignConfig edlibNewAlignConfig(
+    EDLIB_EXPORT EdlibAlignConfig edlibNewAlignConfig(
         int k, EdlibAlignMode mode, EdlibAlignTask task,
         const EdlibEqualityPair* additionalEqualities,
         int additionalEqualitiesLength
@@ -153,7 +155,7 @@ extern "C" {
      * @return Default configuration object, with following defaults:
      *         k = -1, mode = EDLIB_MODE_NW, task = EDLIB_TASK_DISTANCE, no additional equalities.
      */
-    EDLIB_API EdlibAlignConfig edlibDefaultAlignConfig(void);
+    EDLIB_EXPORT EdlibAlignConfig edlibDefaultAlignConfig(void);
 
 
     /**
@@ -221,7 +223,7 @@ extern "C" {
      * Frees memory in EdlibAlignResult that was allocated by edlib.
      * If you do not use it, make sure to free needed members manually using free().
      */
-    EDLIB_API void edlibFreeAlignResult(EdlibAlignResult result);
+    EDLIB_EXPORT void edlibFreeAlignResult(EdlibAlignResult result);
 
 
     /**
@@ -239,7 +241,7 @@ extern "C" {
      * @return  Result of alignment, which can contain edit distance, start and end locations and alignment path.
      *          Make sure to clean up the object using edlibFreeAlignResult() or by manually freeing needed members.
      */
-    EDLIB_API EdlibAlignResult edlibAlign(
+    EDLIB_EXPORT EdlibAlignResult edlibAlign(
         const char* query, int queryLength,
         const char* target, int targetLength,
         const EdlibAlignConfig config
@@ -265,7 +267,7 @@ extern "C" {
      *     Needed memory is allocated and given pointer is set to it.
      *     Do not forget to free it later using free()!
      */
-    EDLIB_API char* edlibAlignmentToCigar(
+    EDLIB_EXPORT char* edlibAlignmentToCigar(
         const unsigned char* alignment, int alignmentLength,
         EdlibCigarFormat cigarFormat
     );
