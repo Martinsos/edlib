@@ -81,7 +81,7 @@ jobs:
             deploy-sdist: true
           - os: macos-11
     runs-on: ${{ matrix.os }}
-     defaults:
+    defaults:
       run:
         working-directory: bindings/python
     steps:
