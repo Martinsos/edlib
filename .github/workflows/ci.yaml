@@ -91,7 +91,7 @@ jobs:
 
       - name: Install Python deps
         run: |
-          python3 -m pip install setuptools cibuildwheel==2.10.2
+          python3 -m pip install setuptools cibuildwheel==2.20.0
 
       - name: Build edlib python module
         run: |
