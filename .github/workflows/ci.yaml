@@ -10,10 +10,6 @@ on:
     branches:
       - master
 
-env:
-  TWINE_USERNAME: ${{ secrets.TWINE_USERNAME }}
-  TWINE_PASSWORD: ${{ secrets.TWINE_PASSWORD }}
-
 jobs:
   cpp_edlib:
     name: "Check that CPP edlib correctly builds and passes tests."
@@ -27,7 +23,7 @@ jobs:
     runs-on: ${{ matrix.os }}
     steps:
       - name: Checkout code
-        uses: actions/checkout@v2
+        uses: actions/checkout@v4
 
       - name: Install system dependencies (Linux)
         if: runner.os == 'Linux'
@@ -36,7 +32,7 @@ jobs:
           sudo apt-get install -y ${{ matrix.compiler }} valgrind
 
       - name: Set up Python
-        uses: actions/setup-python@v2
+        uses: actions/setup-python@v5
         with:
           python-version: '3.x'
 
@@ -86,10 +82,10 @@ jobs:
         working-directory: bindings/python
     steps:
       - name: Checkout code
-        uses: actions/checkout@v2
+        uses: actions/checkout@v4
 
       - name: Set up Python
-        uses: actions/setup-python@v2
+        uses: actions/setup-python@v5
         with:
           python-version: '3.x'
 
@@ -117,6 +113,9 @@ jobs:
 
       - name: Deploy sdist and Linux and Mac wheels to PyPI
         if: github.ref_type == 'tag'
+        env:
+          TWINE_USERNAME: __token__
+          TWINE_PASSWORD: ${{ secrets.PYPI_API_TOKEN }}
         run: |
           python3 -m pip install twine
 
@@ -127,3 +126,4 @@ jobs:
           if [ ${{ matrix.deploy-sdist }} == "true" ]; then
             python3 -m twine upload dist/edlib-*.tar.gz
           fi
+
