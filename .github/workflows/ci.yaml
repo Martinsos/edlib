@@ -21,9 +21,9 @@ jobs:
       matrix:
         os: [ubuntu-20.04, macos-11]
         compiler: [gcc-10, clang-10]
-      exclude:
-        - os: macos-11
-          compiler: gcc-10
+        exclude:
+          - os: macos-11
+            compiler: gcc-10
     runs-on: ${{ matrix.os }}
     steps:
       - name: Checkout code
