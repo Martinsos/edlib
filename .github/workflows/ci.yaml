@@ -15,11 +15,11 @@ jobs:
     name: "Check that CPP edlib correctly builds and passes tests."
     strategy:
       matrix:
-        os: [ubuntu-20.04, macos-11]
-        compiler: [gcc-10, clang-10]
-        exclude:
-          - os: macos-11
-            compiler: gcc-10
+        os: [ubuntu-22.04, macos-14]
+        compiler: [gcc-11, clang-17]
+        # exclude:
+        #   - os: macos-14
+        #     compiler: gcc-11
     runs-on: ${{ matrix.os }}
     steps:
       - name: Checkout code
@@ -42,11 +42,11 @@ jobs:
 
       - name: Set C/CPP compiler to use
         run: |
-          if [ ${{ matrix.compiler }} == "clang-10" ]; then
-            export CC=clang-10 && export CXX=clang++-10
+          if [ ${{ matrix.compiler }} == "clang-17" ]; then
+            export CC=clang-17 && export CXX=clang++-17
           fi
-          if [ ${{ matrix.compiler }} == "gcc-10" ]; then
-            export CC=gcc-10 && export CXX=g++-10
+          if [ ${{ matrix.compiler }} == "gcc-11" ]; then
+            export CC=gcc-11 && export CXX=g++-11
           fi
 
       - name: Build binaries and libraries and test them (with Meson)
@@ -73,9 +73,9 @@ jobs:
     strategy:
       matrix:
         include:
-          - os: ubuntu-20.04
+          - os: ubuntu-22.04
             deploy-sdist: true
-          - os: macos-11
+          - os: macos-14
     runs-on: ${{ matrix.os }}
     defaults:
       run:
@@ -107,7 +107,7 @@ jobs:
 
       - name: Build wheels
         run: |
-          CIBW_SKIP="cp27-* pp* *-manylinux_i686" \
+          CIBW_SKIP="pp* *-manylinux_i686" \
           CIBW_TEST_COMMAND="python3 {project}/test.py" \
           python3 -m cibuildwheel --output-dir wheelhouse
 
