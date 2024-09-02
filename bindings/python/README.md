@@ -4,6 +4,25 @@ This README contains only development information, you can check out full README
 
 README.rst is not commited to git because it is generated from [README-tmpl.rst](./README-tmpl.rst).
 
+## Setup
+
+Ensure you have the version of python you want to use installed. You can use `pyenv` to manage python versions and pick specific one, if needed.
+
+Let's now say that `python` is pointing to the python version you want to use.
+What you will most likely want to do now is run (from this dir, bindings/python/):
+```sh
+python -m venv .venv
+```
+to create the virtual environment if you don't have it yet, and then
+```sh
+source .venv/bin/activate
+```
+to activate it.
+
+This virtual environment will ensure all the python packages are installed locally for this project, and that local python packages are used.
+You will want to keep this virtual environment activated for the rest of the commands in this README.
+
+Actual installation of python deps (packages) is not done by the "requirements.txt" as is typical for python projects, but by the `Makefile`: read on for the details on how to build with it.
 
 ## Building
 

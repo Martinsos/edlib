@@ -35,6 +35,13 @@ sdist: edlib pyedlib.bycython.cpp setup.py README.rst MANIFEST.in
 publish: clean sdist
 	twine upload dist/*
 
+wheels: edlib README.rst
+	python -m pip install cibuildwheel==2.10.2
+	
+	CIBW_SKIP="cp27-* pp* *-manylinux_i686" \
+	CIBW_TEST_COMMAND="python3 {project}/test.py" \
+	python -m cibuildwheel --output-dir wheelhouse
+
 clean:
 	rm -rf edlib dist edlib.egg-info build
 	rm -f edlib.c *.bycython.* edlib.*.so

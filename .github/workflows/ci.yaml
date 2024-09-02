@@ -1,0 +1,125 @@
+name: CI
+
+on:
+  push:
+    branches:
+      - master
+    tags:
+      - '*'
+  pull_request:
+    branches:
+      - master
+
+env:
+  TWINE_USERNAME: ${{ secrets.TWINE_USERNAME }}
+  TWINE_PASSWORD: ${{ secrets.TWINE_PASSWORD }}
+
+jobs:
+  cpp_edlib:
+    name: "Check that CPP edlib correctly builds and passes tests."
+    strategy:
+      matrix:
+        os: [ubuntu-20.04, macos-11]
+        compiler: [gcc-10, clang-10]
+      exclude:
+        - os: macos-11
+          compiler: gcc-10
+    runs-on: ${{ matrix.os }}
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v2
+
+      - name: Install system dependencies (Linux)
+        if: runner.os == 'Linux'
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y ${{ matrix.compiler }} valgrind
+
+      - name: Set up Python
+        uses: actions/setup-python@v2
+        with:
+          python-version: '3.x'
+
+      - name: Install Python packages
+        run: |
+          python3 -m pip install --upgrade pip setuptools meson ninja
+
+      - name: Set C/CPP compiler to use
+        run: |
+          if [ ${{ matrix.compiler }} == "clang-10" ]; then
+            export CC=clang-10 && export CXX=clang++-10
+          fi
+          if [ ${{ matrix.compiler }} == "gcc-10" ]; then
+            export CC=gcc-10 && export CXX=g++-10
+          fi
+
+      - name: Build binaries and libraries and test them (with Meson)
+        run: |
+          make CXXFLAGS="-Werror" LIBRARY_TYPE=static BUILD_DIR=meson-build-static
+          make CXXFLAGS="-Werror" LIBRARY_TYPE=shared BUILD_DIR=meson-build-shared
+
+          # Check for memory leaks.
+          # I run this only on linux because osx returns errors from
+          # system libraries, which I would have to supress.
+          if [ ${{ runner.os }} == "Linux" ]; then
+            make check-memory-leaks BUILD_DIR=meson-build-static
+          fi
+
+      - name: Build binaries and libraries and test them (with CMake)
+        run: |
+          mkdir -p build && cd build
+          CXXFLAGS="-Werror" cmake -GNinja ..
+          ninja -v
+          bin/runTests
+
+  python_edlib:
+    name: "Build, test and possibly deploy python bindings for edlib"
+    strategy:
+      matrix:
+        include:
+          - os: ubuntu-20.04
+            deploy-sdist: true
+          - os: macos-11
+    runs-on: ${{ matrix.os }}
+     defaults:
+      run:
+        working-directory: bindings/python
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v2
+
+      - name: Set up Python
+        uses: actions/setup-python@v2
+        with:
+          python-version: '3.x'
+
+      - name: Install dependencies
+        run: |
+          python3 -m pip install cibuildwheel==2.10.2
+
+      - name: Build edlib python module
+        run: |
+          make build
+
+      - name: Test edlib python module
+        run: |
+          python3 test.py
+
+      - name: Build distributables (sdist and wheels)
+        run: |
+          make sdist
+
+          CIBW_SKIP="cp27-* pp* *-manylinux_i686" \
+          CIBW_TEST_COMMAND="python3 {project}/test.py" \
+          python3 -m cibuildwheel --output-dir wheelhouse
+
+      - name: Deploy to PyPI
+        if: github.ref_type == 'tag'
+        run: |
+          python3 -m pip install twine
+
+          python3 -m twine upload wheelhouse/*.whl
+
+          if [ ${{ matrix.deploy-sdist }} == "true" ]; then
+            python3 -m twine upload dist/edlib-*.tar.gz
+          fi
