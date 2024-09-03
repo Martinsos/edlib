@@ -37,7 +37,13 @@ publish: clean sdist
 
 wheels: sdist
 	python -m pip install cibuildwheel==2.20.0
-	CIBW_SKIP="pp* *-manylinux_i686" \
+	# TODO: Try using older ubuntu/mac on CI to build wheels, maybe that helps, and then I don't need to set newer manylinux here?
+	# Default manylinux image is 2014 but it is quite old and won't build
+	# so I explicitly specify a newer version.
+	CIBW_MANYLINUX_X86_64_IMAGE=manylinux_2_28 \
+	# TODO: I was producing wheels for musllinux before! Why doesn't it work anymore?
+	#  Is it possible that `make sdist` is issue?
+	CIBW_SKIP="pp* *-manylinux_i686 *-musllinux_*" \
 	CIBW_TEST_COMMAND="python3 {project}/test.py" \
 	python3 -m cibuildwheel --output-dir wheelhouse
 
