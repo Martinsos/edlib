@@ -40,7 +40,7 @@ wheels: sdist
 	# TODO: Try using older ubuntu/mac on CI to build wheels, maybe that helps, and then I don't need to set newer manylinux here?
 	# Default manylinux image is 2014 but it is quite old and won't build
 	# so I explicitly specify a newer version.
-	CIBW_MANYLINUX_X86_64_IMAGE=manylinux_2_28 \
+	# CIBW_MANYLINUX_X86_64_IMAGE=manylinux_2_28 \
 	# TODO: I was producing wheels for musllinux before! Why doesn't it work anymore?
 	#  Is it possible that `make sdist` is issue?
 	#  Or maybe it works in Github Actions? Yeah, try it there, maybe musl works there.

@@ -15,25 +15,11 @@ jobs:
     name: "Check that CPP edlib correctly builds and passes tests."
     strategy:
       matrix:
-        include:
-          - os: ubuntu-20.04
-          - compiler:
-            - { package: gcc-10, cc: gcc-10, cxx: g++-10 }
-          - os: ubuntu-20.04
-          - compiler:
-            - { package: clang-11, cc: clang-11, cxx: clang++-11 }
-          - os: ubuntu-22.04
-          - compiler:
-            - { package: gcc-11, cc: gcc-11, cxx: g++-11 }
-          - os: ubuntu-22.04
-          - compiler:
-            - { package: clang-15, cc: clang-15, cxx: clang++-15 }
-          - os: macos-12
-          - compiler:
-            - { package: clang-11, cc: clang-11, cxx: clang++-11 }
-          - os: macos-14
-          - compiler:
-            - { package: clang-15, cc: clang-15, cxx: clang++-15 }
+        # TODO: add some older combos also?
+        os: [ubuntu-22.04, macos-14]
+        compiler:
+          - { package: gcc-11, cc: gcc-11, cxx: g++-11 }
+          - { package: clang-15, cc: clang-15, cxx: clang++-15 }
     runs-on: ${{ matrix.os }}
     steps:
       - name: Checkout code
