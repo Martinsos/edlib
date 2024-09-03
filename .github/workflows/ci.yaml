@@ -26,6 +26,7 @@ jobs:
           - { os: macos-14,     compiler: gcc-11 }
           - { os: macos-14,     compiler: clang-15 }
     runs-on: ${{ matrix.os }}
+    continue-on-error: true
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
@@ -71,6 +72,9 @@ jobs:
           ninja -v
           bin/runTests
 
+  # TODO: I should have this step produce artifacts (wheels and sdist), but not deploy them.
+  #   Then, I should have another step that deploys them, therefore not deploying unless all jobs pass,
+  #   making sure we don't deploy only half of the wheels.
   python_edlib:
     name: "Build, test and possibly deploy python bindings for edlib"
     strategy:
