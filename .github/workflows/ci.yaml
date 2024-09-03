@@ -14,7 +14,7 @@ jobs:
   cpp_edlib:
     name: "Check that CPP edlib correctly builds and passes tests."
     strategy:
-      include:
+      includes:
         - os: ubuntu-20.04
         - compiler:
           - { package: gcc-10, cc: gcc-10, cxx: g++-10 }
