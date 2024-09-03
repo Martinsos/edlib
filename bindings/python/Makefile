@@ -21,7 +21,7 @@ BUILD_SOURCE_FILES=edlib pyedlib.bycython.cpp setup.py
 # and then finally build package again but with README.rst.
 buildWithoutREADME.rst: ${BUILD_SOURCE_FILES}
 	EDLIB_OMIT_README_RST=1 \
-	python -m pip install --editable .
+	python -m pip install .
 
 README.rst: buildWithoutREADME.rst README-tmpl.rst
 	python -m pip install cogapp
@@ -30,14 +30,11 @@ README.rst: buildWithoutREADME.rst README-tmpl.rst
 BUILD_FILES=${BUILD_SOURCE_FILES} README.rst
 
 build: ${BUILD_FILES}
-	python -m pip install --editable .
+	python -m pip install .
 
 sdist: ${BUILD_FILES} MANIFEST.in
 	python -m pip install build
 	python -m build --sdist
-
-publish: clean sdist
-	python -m twine upload dist/*
 
 # cibuildwheel builds wheels in docker containers. These containers are chosen and
 # configured in such way that generated wheels are as robust as they can be in regards
@@ -75,6 +72,9 @@ wheels: clean edlib
 	CIBW_BEFORE_BUILD="make sdist" \
 	CIBW_TEST_COMMAND="python3 {project}/test.py" \
 	python -m cibuildwheel --output-dir wheelhouse
+
+publish: clean sdist wheels
+	python -m twine upload dist/edlib-*.tar.gz wheelhouse/*.whl
 
 clean:
 	rm -rf edlib dist edlib.egg-info build wheelhouse
