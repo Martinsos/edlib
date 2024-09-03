@@ -16,10 +16,9 @@ jobs:
     strategy:
       matrix:
         os: [ubuntu-22.04, macos-14]
-        compiler: [gcc-11, clang-17]
-        # exclude:
-        #   - os: macos-14
-        #     compiler: gcc-11
+        compiler:
+          - { package: gcc-11, cc: gcc-11, cxx: g++-11 }
+          - { package: clang-16, cc: clang-16, cxx: clang++-16 }
     runs-on: ${{ matrix.os }}
     steps:
       - name: Checkout code
@@ -29,7 +28,7 @@ jobs:
         if: runner.os == 'Linux'
         run: |
           sudo apt-get update
-          sudo apt-get install -y ${{ matrix.compiler }} valgrind
+          sudo apt-get install -y ${{ matrix.compiler.package }} valgrind
 
       - name: Set up Python
         uses: actions/setup-python@v5
@@ -42,12 +41,7 @@ jobs:
 
       - name: Set C/CPP compiler to use
         run: |
-          if [ ${{ matrix.compiler }} == "clang-17" ]; then
-            export CC=clang-17 && export CXX=clang++-17
-          fi
-          if [ ${{ matrix.compiler }} == "gcc-11" ]; then
-            export CC=gcc-11 && export CXX=g++-11
-          fi
+          export CC=${{ matrix.compiler.cc }} && export CXX=${{ matrix.compiler.cxx }}
 
       - name: Build binaries and libraries and test them (with Meson)
         run: |
