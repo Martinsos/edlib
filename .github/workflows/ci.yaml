@@ -82,7 +82,8 @@ jobs:
         include:
           - os: ubuntu-22.04
             deploy-sdist: true
-          - os: macos-14
+          - os: macos-13  # intel runner
+          - os: macos-14  # apple silicon
     runs-on: ${{ matrix.os }}
     defaults:
       run:
