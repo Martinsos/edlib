@@ -22,7 +22,7 @@ buildWithoutREADME.rst: ${BUILD_SOURCE_FILES}
 
 README.rst: buildWithoutREADME.rst README-tmpl.rst
 	python -m pip install cogapp
-	cog -d -o README.rst README-tmpl.rst	
+	cog -d -o README.rst README-tmpl.rst
 
 BUILD_FILES=${BUILD_SOURCE_FILES} README.rst
 
@@ -35,14 +35,13 @@ sdist: edlib pyedlib.bycython.cpp setup.py README.rst MANIFEST.in
 publish: clean sdist
 	twine upload dist/*
 
-wheels: edlib README.rst
-	python -m pip install cibuildwheel==2.10.2
-	
-	CIBW_SKIP="cp27-* pp* *-manylinux_i686" \
+wheels: sdist
+	python -m pip install cibuildwheel==2.20.0
+	CIBW_SKIP="pp* *-manylinux_i686" \
 	CIBW_TEST_COMMAND="python3 {project}/test.py" \
-	python -m cibuildwheel --output-dir wheelhouse
+	python3 -m cibuildwheel --output-dir wheelhouse
 
 clean:
-	rm -rf edlib dist edlib.egg-info build
+	rm -rf edlib dist edlib.egg-info build wheelhouse
 	rm -f edlib.c *.bycython.* edlib.*.so
 	rm -f README.rst
