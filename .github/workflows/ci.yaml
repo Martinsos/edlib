@@ -18,7 +18,7 @@ jobs:
         os: [ubuntu-22.04, macos-14]
         compiler:
           - { package: gcc-11, cc: gcc-11, cxx: g++-11 }
-          - { package: clang-16, cc: clang-16, cxx: clang++-16 }
+          - { package: clang-15, cc: clang-15, cxx: clang++-15 }
     runs-on: ${{ matrix.os }}
     steps:
       - name: Checkout code

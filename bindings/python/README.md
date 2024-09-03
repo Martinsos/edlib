@@ -43,6 +43,11 @@ This enables us to always have up to date results of code execution and help doc
 ## Publishing
 Remember to update version in setup.py before publishing.
 
-To trigger automatic publish to PyPI, create a tag and push it to Github -> Travis will create sdist, build wheels, and push them all to PyPI while publishing new version.
+To trigger automatic publish to PyPI, create a tag and push it to Github -> Github Action will create sdist, build wheels, and push them all to PyPI while publishing new version.
 
 You can also publish new version manually if needed: run `make publish` to create a source distribution and publish it to the PyPI.
+
+## Common tasks for maintainers
+We use a pinned down version of cibuildwheel, which means that when new stable version of Python comes out, we won't be building wheels for it. Nor will we be publishing them.
+Therefore, every so and so, when new Python version comes out, we should update the version of cibuildwheel and then also publish a new version of edlib python package. Usually best way to do this is to update edlib version with `.postX` suffix and push to Github with a tag so that CI does all the work for us.
+
