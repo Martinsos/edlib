@@ -83,7 +83,8 @@ jobs:
           - os: ubuntu-22.04
             deploy-sdist: true
           - os: macos-13  # intel runner
-          - os: macos-14  # apple silicon
+          # TODO: Get macos-14 building, currently I have an error with arch mismatch.
+          # - os: macos-14  # apple silicon
     runs-on: ${{ matrix.os }}
     defaults:
       run:
