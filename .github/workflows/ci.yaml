@@ -44,7 +44,7 @@ jobs:
 
       - name: Install Python packages
         run: |
-          python3 -m pip install --upgrade pip setuptools meson ninja
+          python -m pip install --upgrade pip setuptools meson ninja
 
       - name: Set C/CPP compiler to use
         run: |
@@ -80,9 +80,9 @@ jobs:
     strategy:
       matrix:
         include:
-          - os: ubuntu-20.04
+          - os: ubuntu-22.04
             deploy-sdist: true
-          - os: macos-12
+          - os: macos-14
     runs-on: ${{ matrix.os }}
     defaults:
       run:
@@ -98,7 +98,7 @@ jobs:
 
       - name: Install Python deps
         run: |
-          python3 -m pip install setuptools
+          python -m pip install setuptools
 
       - name: Build edlib python module
         run: |
@@ -106,7 +106,7 @@ jobs:
 
       - name: Test edlib python module
         run: |
-          python3 test.py
+          python test.py
 
       - name: Build sdist
         run: |
@@ -122,13 +122,13 @@ jobs:
           TWINE_USERNAME: __token__
           TWINE_PASSWORD: ${{ secrets.PYPI_API_TOKEN }}
         run: |
-          python3 -m pip install twine
+          python -m pip install twine
 
-          python3 -m twine upload wheelhouse/*.whl
+          python -m twine upload wheelhouse/*.whl
 
           # While I do want to upload wheels for both Mac and Linux,
           # it makes no sense to upload sdist twice.
           if [ ${{ matrix.deploy-sdist }} == "true" ]; then
-            python3 -m twine upload dist/edlib-*.tar.gz
+            python -m twine upload dist/edlib-*.tar.gz
           fi
 
