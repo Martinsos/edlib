@@ -43,6 +43,7 @@ wheels: sdist
 	CIBW_MANYLINUX_X86_64_IMAGE=manylinux_2_28 \
 	# TODO: I was producing wheels for musllinux before! Why doesn't it work anymore?
 	#  Is it possible that `make sdist` is issue?
+	#  Or maybe it works in Github Actions? Yeah, try it there, maybe musl works there.
 	CIBW_SKIP="pp* *-manylinux_i686 *-musllinux_*" \
 	CIBW_TEST_COMMAND="python3 {project}/test.py" \
 	python3 -m cibuildwheel --output-dir wheelhouse
