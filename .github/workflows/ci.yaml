@@ -15,11 +15,16 @@ jobs:
     name: "Check that CPP edlib correctly builds and passes tests."
     strategy:
       matrix:
-        # TODO: add some older combos also?
-        os: [ubuntu-22.04, macos-14]
-        compiler:
-          - { package: gcc-11, cc: gcc-11, cxx: g++-11 }
-          - { package: clang-15, cc: clang-15, cxx: clang++-15 }
+        include:
+          # If you add another compiler, make sure to define its CC and CXX env vars in the step below.
+          - { os: ubuntu-20.04, compiler: gcc-10 }
+          - { os: ubuntu-20.04, compiler: clang-11 }
+          - { os: macos-12,     compiler: gcc-10 }
+          - { os: macos-12,     compiler: clang-11 }
+          - { os: ubuntu-22.04, compiler: gcc-11 }
+          - { os: ubuntu-22.04, compiler: clang-15 }
+          - { os: macos-14,     compiler: gcc-11 }
+          - { os: macos-14,     compiler: clang-15 }
     runs-on: ${{ matrix.os }}
     steps:
       - name: Checkout code
@@ -42,7 +47,10 @@ jobs:
 
       - name: Set C/CPP compiler to use
         run: |
-          export CC=${{ matrix.compiler.cc }} && export CXX=${{ matrix.compiler.cxx }}
+          if [[ "${{ matrix.compiler }}" == "gcc-10" ]]; then export CC=gcc-10 CXX=g++-10; fi
+          if [[ "${{ matrix.compiler }}" == "gcc-11" ]]; then export CC=gcc-11 CXX=g++-11; fi
+          if [[ "${{ matrix.compiler }}" == "clang-11" ]]; then export CC=clang-11 CXX=clang++-11; fi
+          if [[ "${{ matrix.compiler }}" == "clang-15" ]]; then export CC=clang-15 CXX=clang++-15; fi
 
       - name: Build binaries and libraries and test them (with Meson)
         run: |
