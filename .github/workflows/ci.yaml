@@ -116,6 +116,7 @@ jobs:
 
       - name: Build wheels
         run: |
+          CIBW_ARCHS_MACOS="x86_64 universal2" \
           make wheels
 
       - name: Deploy sdist and Linux and Mac wheels to PyPI
