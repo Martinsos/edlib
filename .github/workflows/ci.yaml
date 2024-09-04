@@ -84,7 +84,7 @@ jobs:
             deploy-sdist: true
           - os: macos-13  # intel runner
           # TODO: Get macos-14 building, currently I have an error with arch mismatch.
-          # - os: macos-14  # apple silicon
+          - os: macos-14  # apple silicon
     runs-on: ${{ matrix.os }}
     defaults:
       run:
@@ -116,7 +116,9 @@ jobs:
 
       - name: Build wheels
         run: |
-          CIBW_ARCHS_MACOS="x86_64 universal2" \
+          if [ ${{ matrix.os }} == "macos-14" ]; then
+            export CIBW_ARCHS_MACOS="arm64 universal2"
+          fi
           make wheels
 
       - name: Deploy sdist and Linux and Mac wheels to PyPI
