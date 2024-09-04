@@ -20,6 +20,7 @@ There are third-party bindings to edlib in other languages as well:
 
 * [Edlib.jl](https://github.com/cjdoris/Edlib.jl), a Julia package created and supported by Christopher Rowley ([@cjdoris](https://github.com/cjdoris))
 * [edlibR](https://github.com/evanbiederstedt/edlibr), an R package created and supported by Evan Biederstedt ([@evanbiederstedt](https://github.com/evanbiederstedt))
+* [ruby-edlib](https://github.com/kojix2/ruby-edlib), a Ruby package created and supported by [@kojix2](https://github.com/kojix2)
 * [Text::Levenshtein::Edlib](https://metacpan.org/pod/Text::Levenshtein::Edlib), a Perl wrapper created and supported by [Marius Gavrilescu](https://metacpan.org/author/MGV)
 
 ## Features
