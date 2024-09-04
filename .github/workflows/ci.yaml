@@ -133,11 +133,11 @@ jobs:
         run: |
           python -m pip install twine
 
-          python -m twine upload wheelhouse/*.whl
+          python -m twine upload --skip-existing wheelhouse/*.whl
 
           # While I do want to upload wheels for both Mac and Linux,
           # it makes no sense to upload sdist twice.
           if [ ${{ matrix.deploy-sdist }} == "true" ]; then
-            python -m twine upload sdist/edlib-*.tar.gz
+            python -m twine upload --skip-existing sdist/edlib-*.tar.gz
           fi
 
