@@ -21,7 +21,7 @@ BUILD_SOURCE_FILES=edlib pyedlib.bycython.cpp setup.py
 # and then finally build package again but with README.rst.
 buildWithoutREADME.rst: ${BUILD_SOURCE_FILES}
 	EDLIB_OMIT_README_RST=1 \
-	python -m pip install .
+	python -m pip install -e .
 
 README.rst: buildWithoutREADME.rst README-tmpl.rst
 	python -m pip install cogapp
@@ -30,7 +30,7 @@ README.rst: buildWithoutREADME.rst README-tmpl.rst
 BUILD_FILES=${BUILD_SOURCE_FILES} README.rst
 
 build: ${BUILD_FILES}
-	python -m pip install .
+	python -m pip install -e .
 
 sdist: ${BUILD_FILES} MANIFEST.in
 	python -m pip install build
