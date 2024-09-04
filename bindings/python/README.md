@@ -47,7 +47,7 @@ Remember to update version in setup.py before publishing.
 
 To trigger automatic publish to PyPI, create a tag and push it to Github -> Github Action will create sdist, build wheels, and push them all to PyPI while publishing new version.
 
-You can also publish new version manually if needed: run `make publish` to create a source distribution and wheels and publish it to the PyPI.
+You can also publish new version manually if needed: run `make publish` to create a source distribution and wheels and publish it to the PyPI. This will however produce wheels only for your platform / os.
 
 ## Common tasks for maintainers
 We use a pinned down version of cibuildwheel, which means that when new stable version of Python comes out, we won't be building wheels for it. Nor will we be publishing them.

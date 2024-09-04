@@ -68,7 +68,7 @@ sdist: ${BUILD_FILES} MANIFEST.in
 # running `make sdist` in the containers at the start of every wheel build.
 wheels: clean edlib
 	python -m pip install cibuildwheel==2.20.0
-	CIBW_SKIP="pp* *-manylinux_i686" \
+	CIBW_SKIP="pp* *-manylinux_i686 cp38-*" \
 	CIBW_BEFORE_BUILD="make sdist" \
 	CIBW_TEST_COMMAND="python3 {project}/test.py" \
 	python -m cibuildwheel --output-dir wheelhouse
