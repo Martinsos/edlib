@@ -113,6 +113,8 @@ jobs:
       - name: Build sdist
         run: |
           make sdist
+          # To ensure it doesn't get cleaned up by the `make wheels` or some other step.
+          mv dist sdist
 
       - name: Build wheels
         run: |
@@ -136,6 +138,6 @@ jobs:
           # While I do want to upload wheels for both Mac and Linux,
           # it makes no sense to upload sdist twice.
           if [ ${{ matrix.deploy-sdist }} == "true" ]; then
-            python -m twine upload dist/edlib-*.tar.gz
+            python -m twine upload sdist/edlib-*.tar.gz
           fi
 
