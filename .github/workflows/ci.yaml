@@ -117,6 +117,8 @@ jobs:
       - name: Build wheels
         run: |
           if [ ${{ matrix.os }} == "macos-13" ]; then
+            # Default is x86-64 only, but this way we also build universal2 wheels,
+            # which work on both intel (x86-64) and apple silicon (arm64).
             export CIBW_ARCHS_MACOS="x86-64 universal2"
           fi
           make wheels
