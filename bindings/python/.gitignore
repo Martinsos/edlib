@@ -1,5 +1,6 @@
 build/
 dist/
+wheelhouse/
 *.egg-info/
 edlib/
 edlib.c
@@ -8,3 +9,4 @@ edlib.*.so
 *.bycython.*
 README.rst
 README.html
+.venv

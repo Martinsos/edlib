@@ -1,0 +1,143 @@
+name: CI
+
+on:
+  push:
+    branches:
+      - master
+    tags:
+      - '*'
+  pull_request:
+    branches:
+      - master
+
+jobs:
+  cpp_edlib:
+    name: "Check that CPP edlib correctly builds and passes tests."
+    strategy:
+      matrix:
+        include:
+          # If you add another compiler, make sure to define its CC and CXX env vars in the step below.
+          - { os: ubuntu-20.04, compiler: gcc-10 }
+          - { os: ubuntu-20.04, compiler: clang-11 }
+          - { os: macos-12,     compiler: gcc-10 }
+          - { os: macos-12,     compiler: clang-11 }
+          - { os: ubuntu-22.04, compiler: gcc-11 }
+          - { os: ubuntu-22.04, compiler: clang-15 }
+          - { os: macos-14,     compiler: gcc-11 }
+          - { os: macos-14,     compiler: clang-15 }
+    runs-on: ${{ matrix.os }}
+    continue-on-error: true
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Install system dependencies (Linux)
+        if: runner.os == 'Linux'
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y ${{ matrix.compiler.package }} valgrind
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.x'
+
+      - name: Install Python packages
+        run: |
+          python -m pip install --upgrade pip setuptools meson ninja
+
+      - name: Set C/CPP compiler to use
+        run: |
+          if [[ "${{ matrix.compiler }}" == "gcc-10" ]]; then export CC=gcc-10 CXX=g++-10; fi
+          if [[ "${{ matrix.compiler }}" == "gcc-11" ]]; then export CC=gcc-11 CXX=g++-11; fi
+          if [[ "${{ matrix.compiler }}" == "clang-11" ]]; then export CC=clang-11 CXX=clang++-11; fi
+          if [[ "${{ matrix.compiler }}" == "clang-15" ]]; then export CC=clang-15 CXX=clang++-15; fi
+
+      - name: Build binaries and libraries and test them (with Meson)
+        run: |
+          make CXXFLAGS="-Werror" LIBRARY_TYPE=static BUILD_DIR=meson-build-static
+          make CXXFLAGS="-Werror" LIBRARY_TYPE=shared BUILD_DIR=meson-build-shared
+
+          # Check for memory leaks.
+          # I run this only on linux because osx returns errors from
+          # system libraries, which I would have to supress.
+          if [ ${{ runner.os }} == "Linux" ]; then
+            make check-memory-leaks BUILD_DIR=meson-build-static
+          fi
+
+      - name: Build binaries and libraries and test them (with CMake)
+        run: |
+          mkdir -p build && cd build
+          CXXFLAGS="-Werror" cmake -GNinja ..
+          ninja -v
+          bin/runTests
+
+  # TODO: I should have this step produce artifacts (wheels and sdist), but not deploy them.
+  #   Then, I should have another step that deploys them, therefore not deploying unless all jobs pass,
+  #   making sure we don't deploy only half of the wheels.
+  python_edlib:
+    name: "Build, test and possibly deploy python bindings for edlib"
+    strategy:
+      matrix:
+        include:
+          - os: ubuntu-22.04
+            deploy-sdist: true
+          - os: macos-13  # intel runner
+          # TODO: Get macos-14 building, currently I have an error with arch mismatch.
+          # - os: macos-14  # apple silicon
+    runs-on: ${{ matrix.os }}
+    defaults:
+      run:
+        working-directory: bindings/python
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.x'
+
+      - name: Install Python deps
+        run: |
+          python -m pip install setuptools
+
+      - name: Build edlib python module
+        run: |
+          make build
+
+      - name: Test edlib python module
+        run: |
+          python test.py
+
+      - name: Build sdist
+        run: |
+          make sdist
+          # To ensure it doesn't get cleaned up by the `make wheels` or some other step.
+          mv dist sdist
+
+      - name: Build wheels
+        run: |
+          if [ ${{ matrix.os }} == "macos-13" ]; then
+            # Default is x86-64 only, but this way we also build universal2 wheels,
+            # which work on both intel (x86_64) and apple silicon (arm64).
+            export CIBW_ARCHS_MACOS="x86_64 universal2"
+          fi
+          make wheels
+
+      - name: Deploy sdist and Linux and Mac wheels to PyPI
+        if: github.ref_type == 'tag'
+        env:
+          TWINE_USERNAME: __token__
+          TWINE_PASSWORD: ${{ secrets.PYPI_API_TOKEN }}
+        run: |
+          python -m pip install twine
+
+          python -m twine upload --skip-existing wheelhouse/*.whl
+
+          # While I do want to upload wheels for both Mac and Linux,
+          # it makes no sense to upload sdist twice.
+          if [ ${{ matrix.deploy-sdist }} == "true" ]; then
+            python -m twine upload --skip-existing sdist/edlib-*.tar.gz
+          fi
+
