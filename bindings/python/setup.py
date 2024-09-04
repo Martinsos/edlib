@@ -42,6 +42,7 @@ setup(
                              include_dirs=["edlib/include"],
                              depends=["edlib/include/edlib.h"],
                              language="c++",
+                             compiler_directives={'language_level': '3'},
                              extra_compile_args=["-O3", "-std=c++11"])],
     cmdclass = cmdclass
 )
