@@ -1,9 +1,9 @@
 Edlib
 &middot;
 [![Latest Github release](https://img.shields.io/github/release/Martinsos/edlib.svg)](https://github.com/Martinsos/edlib/releases/latest)
-[![Build status of the master branch on Linux/OSX](https://img.shields.io/travis/Martinsos/edlib/master?label=Linux%20%2F%20OSX%20build)](https://travis-ci.com/Martinsos/edlib)
+[![Build status of the master branch on Linux/OSX](https://img.shields.io/github/actions/workflow/status/Martinsos/edlib/ci.yaml?branch=master&label=Linux%2FOSX%20build)
+](https://github.com/Martinsos/edlib/actions?query=branch%3Amaster)
 [![Build status of the master branch on Windows](https://img.shields.io/appveyor/build/Martinsos/edlib/master?label=Windows%20build)](https://ci.appveyor.com/project/Martinsos/edlib/branch/master)
-[![Chat on Gitter](https://img.shields.io/gitter/room/Martinsos/edlib.svg?colorB=753a88)](https://gitter.im/Martinsos/edlib)
 [![Published in Bioinformatics](https://img.shields.io/badge/Published%20in-Bioinformatics-167DA4.svg)](https://doi.org/10.1093/bioinformatics/btw753)
 =====
 
@@ -16,10 +16,11 @@ edlibAlign("hello", 5, "world!", 6, edlibDefaultAlignConfig()).editDistance;
 
 Edlib is also available for **Python** [![PyPI version](https://img.shields.io/pypi/v/edlib.svg) (Click here for Python README)](https://pypi.python.org/pypi/edlib), with code residing at [bindings/python](bindings/python).
 
-Developers have created bindings to edlib in other languages as well:
+There are third-party bindings to edlib in other languages as well:
 
 * [Edlib.jl](https://github.com/cjdoris/Edlib.jl), a Julia package created and supported by Christopher Rowley ([@cjdoris](https://github.com/cjdoris))
 * [edlibR](https://github.com/evanbiederstedt/edlibr), an R package created and supported by Evan Biederstedt ([@evanbiederstedt](https://github.com/evanbiederstedt))
+* [Text::Levenshtein::Edlib](https://metacpan.org/pod/Text::Levenshtein::Edlib), a Perl wrapper created and supported by [Marius Gavrilescu](https://metacpan.org/author/MGV)
 
 ## Features
 * Calculates **edit distance (Levenshtein distance)**.
