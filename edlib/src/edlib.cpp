@@ -1,6 +1,7 @@
 #include "edlib.h"
 
 #include <stdint.h>
+#include <array>
 #include <cstdlib>
 #include <algorithm>
 #include <vector>
@@ -466,8 +467,8 @@ static inline int max(const int x, const int y) {
  * @param [in] block
  * @return Values of cells in block, starting with bottom cell in block.
  */
-static inline vector<int> getBlockCellValues(const Block block) {
-    vector<int> scores(WORD_SIZE);
+static inline std::array<int, WORD_SIZE> getBlockCellValues(const Block block) {
+    std::array<int, WORD_SIZE> scores;
     int score = block.score;
     Word mask = HIGH_BIT_MASK;
     for (int i = 0; i < WORD_SIZE - 1; i++) {
@@ -520,7 +521,7 @@ static inline void readBlockReverse(const Block block, int* const dest) {
  * @return True if all cells in block have value larger than k, otherwise false.
  */
 static inline bool allBlockCellsLarger(const Block block, const int k) {
-    vector<int> scores = getBlockCellValues(block);
+    std::array<int, WORD_SIZE> scores = getBlockCellValues(block);
     for (int i = 0; i < WORD_SIZE; i++) {
         if (scores[i] <= k) return false;
     }
@@ -678,7 +679,7 @@ static int myersCalcEditDistanceSemiGlobal(
 
     // Obtain results for last W columns from last column.
     if (lastBlock == maxNumBlocks - 1) {
-        vector<int> blockScores = getBlockCellValues(blocks[bl]);
+        std::array<int, WORD_SIZE> blockScores = getBlockCellValues(blocks[bl]);
         for (int i = 0; i < W; i++) {
             int colScore = blockScores[i + 1];
             if (colScore <= k && (bestScore == -1 || colScore <= bestScore)) {
@@ -834,7 +835,7 @@ static int myersCalcEditDistanceNW(const Word* const Peq, const int W, const int
         if (c % STRONG_REDUCE_NUM == 0) { // Every some columns do more expensive but more efficient reduction
             while (lastBlock >= firstBlock) {
                 // If all cells outside of band, remove block
-                vector<int> scores = getBlockCellValues(blocks[bl]);
+                std::array<int, WORD_SIZE> scores = getBlockCellValues(blocks[bl]);
                 int numCells = lastBlock == maxNumBlocks - 1 ? WORD_SIZE - W : WORD_SIZE;
                 int r = lastBlock * WORD_SIZE + numCells - 1;
                 bool reduce = true;
@@ -852,7 +853,7 @@ static int myersCalcEditDistanceNW(const Word* const Peq, const int W, const int
 
             while (firstBlock <= lastBlock) {
                 // If all cells outside of band, remove block
-                vector<int> scores = getBlockCellValues(blocks[firstBlock]);
+                std::array<int, WORD_SIZE> scores = getBlockCellValues(blocks[firstBlock]);
                 int numCells = firstBlock == maxNumBlocks - 1 ? WORD_SIZE - W : WORD_SIZE;
                 int r = firstBlock * WORD_SIZE + numCells - 1;
                 bool reduce = true;
