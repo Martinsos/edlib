@@ -1416,16 +1416,17 @@ static int obtainAlignmentHirschberg(
  */
 static string transformSequences(const char* const queryOriginal, const int queryLength,
                                  const char* const targetOriginal, const int targetLength,
-                                 unsigned char** const queryTransformed,
-                                 unsigned char** const targetTransformed) {
+                                 unsigned char** const queryTransformed_,
+                                 unsigned char** const targetTransformed_) {
     // Alphabet is constructed from letters that are present in sequences.
     // Each letter is assigned an ordinal number, starting from 0 up to alphabetLength - 1,
     // and new query and target are created in which letters are replaced with their ordinal numbers.
     // This query and target are used in all the calculations later.
-    *queryTransformed = static_cast<unsigned char *>(malloc(sizeof(unsigned char) * queryLength));
-    *targetTransformed = static_cast<unsigned char *>(malloc(sizeof(unsigned char) * targetLength));
+    unsigned char *queryTransformed = static_cast<unsigned char *>(malloc(sizeof(unsigned char) * queryLength));
+    unsigned char *targetTransformed = static_cast<unsigned char *>(malloc(sizeof(unsigned char) * targetLength));
 
-    string alphabet = "";
+    char alphabet[MAX_UCHAR + 1];
+    int alphabetSize = 0;
 
     // Alphabet information, it is constructed on fly while transforming sequences.
     // letterIdx[c] is index of letter c in alphabet.
@@ -1437,22 +1438,27 @@ static string transformSequences(const char* const queryOriginal, const int quer
         unsigned char c = static_cast<unsigned char>(queryOriginal[i]);
         if (!inAlphabet[c]) {
             inAlphabet[c] = true;
-            letterIdx[c] = static_cast<unsigned char>(alphabet.size());
-            alphabet += queryOriginal[i];
+            const unsigned char idx = static_cast<unsigned char>(alphabetSize++);
+            letterIdx[c] = idx;
+            alphabet[idx] = queryOriginal[i];
         }
-        (*queryTransformed)[i] = letterIdx[c];
+        queryTransformed[i] = letterIdx[c];
     }
     for (int i = 0; i < targetLength; i++) {
         unsigned char c = static_cast<unsigned char>(targetOriginal[i]);
         if (!inAlphabet[c]) {
             inAlphabet[c] = true;
-            letterIdx[c] = static_cast<unsigned char>(alphabet.size());
-            alphabet += targetOriginal[i];
+            const unsigned char idx = static_cast<unsigned char>(alphabetSize++);
+            letterIdx[c] = idx;
+            alphabet[idx] = targetOriginal[i];
         }
-        (*targetTransformed)[i] = letterIdx[c];
+        targetTransformed[i] = letterIdx[c];
     }
 
-    return alphabet;
+    *queryTransformed_  = queryTransformed;
+    *targetTransformed_ = targetTransformed;
+
+    return std::string(alphabet, alphabetSize);
 }
 
 
