@@ -312,7 +312,7 @@ extern "C" char* edlibAlignmentToCigar(const unsigned char* const alignment, con
         moveCodeToChar[0] = moveCodeToChar[3] = 'M';
     }
 
-    vector<char>* cigar = new vector<char>();
+    vector<char> cigar;
     char lastMove = 0;  // Char of last move. 0 if there was no previous move.
     int numOfSameMoves = 0;
     for (int i = 0; i <= alignmentLength; i++) {
@@ -321,17 +321,16 @@ extern "C" char* edlibAlignmentToCigar(const unsigned char* const alignment, con
             // Write number of moves to cigar string.
             int numDigits = 0;
             for (; numOfSameMoves; numOfSameMoves /= 10) {
-                cigar->push_back('0' + numOfSameMoves % 10);
+                cigar.push_back('0' + numOfSameMoves % 10);
                 numDigits++;
             }
-            reverse(cigar->end() - numDigits, cigar->end());
+            reverse(cigar.end() - numDigits, cigar.end());
             // Write code of move to cigar string.
-            cigar->push_back(lastMove);
+            cigar.push_back(lastMove);
             // If not at the end, start new sequence of moves.
             if (i < alignmentLength) {
                 // Check if alignment has valid values.
                 if (alignment[i] > 3) {
-                    delete cigar;
                     return 0;
                 }
                 numOfSameMoves = 0;
@@ -342,10 +341,9 @@ extern "C" char* edlibAlignmentToCigar(const unsigned char* const alignment, con
             numOfSameMoves++;
         }
     }
-    cigar->push_back(0);  // Null character termination.
-    char* cigar_ = static_cast<char *>(malloc(cigar->size() * sizeof(char)));
-    memcpy(cigar_, &(*cigar)[0], cigar->size() * sizeof(char));
-    delete cigar;
+    cigar.push_back(0);  // Null character termination.
+    char* cigar_ = static_cast<char *>(malloc(cigar.size() * sizeof(char)));
+    memcpy(cigar_, cigar.data(), cigar.size() * sizeof(char));
 
     return cigar_;
 }
@@ -581,7 +579,7 @@ static int myersCalcEditDistanceSemiGlobal(
 
     int bestScore = -1;
     int bl = 0; // Current block index
-    vector<int> positions; // TODO: Maybe put this on heap?
+    vector<int> positions;
     const int startHout = mode == EDLIB_MODE_HW ? 0 : 1; // If 0 then gap before query is not penalized;
     const unsigned char* targetChar = target;
     for (int c = 0; c < targetLength; c++) { // for each column
