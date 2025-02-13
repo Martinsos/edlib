@@ -7,6 +7,8 @@
 #include <cstring>
 #include <string>
 
+namespace {
+
 using namespace std;
 
 typedef uint64_t Word;
@@ -89,6 +91,8 @@ public:
         return matrix[a][b];
     }
 };
+
+} // anonymous namespace
 
 static int myersCalcEditDistanceSemiGlobal(const Word* Peq, int W, int maxNumBlocks,
                                            int queryLength,
