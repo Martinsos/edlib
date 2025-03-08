@@ -16,14 +16,18 @@ jobs:
     strategy:
       matrix:
         include:
-          # If you add another compiler, make sure to define its CC and CXX env vars in the step below.
-          - { os: ubuntu-20.04, compiler: gcc-10 }
-          - { os: ubuntu-20.04, compiler: clang-11 }
-          - { os: macos-12,     compiler: gcc-10 }
-          - { os: macos-12,     compiler: clang-11 }
+          # I use different combos of OSes and compiler versions to cover as much version space as it reasonably makes sense.
+          # ubuntu-22.04 comes with gcc 10, 11 and 12, and clang 13, 14 and 15.
           - { os: ubuntu-22.04, compiler: gcc-11 }
-          - { os: ubuntu-22.04, compiler: clang-15 }
-          - { os: macos-14,     compiler: gcc-11 }
+          - { os: ubuntu-22.04, compiler: clang-13 }
+          # ubuntu-24.04 comes with gcc 12, 13 and 14, and clang 16, 17 and 18.
+          - { os: ubuntu-24.04, compiler: gcc-14 }
+          - { os: ubuntu-24.04, compiler: clang-18 }
+          # macos-13 comes with gcc 12, 13 and 14, and clang 14.
+          - { os: macos-13,     compiler: gcc-12 }
+          - { os: macos-13,     compiler: clang-14 }
+          # macos-14 comes with gcc 12, 13 and 14, and clang 15.
+          - { os: macos-14,     compiler: gcc-13 }
           - { os: macos-14,     compiler: clang-15 }
     runs-on: ${{ matrix.os }}
     continue-on-error: true
@@ -35,7 +39,7 @@ jobs:
         if: runner.os == 'Linux'
         run: |
           sudo apt-get update
-          sudo apt-get install -y ${{ matrix.compiler.package }} valgrind
+          sudo apt-get install -y valgrind
 
       - name: Set up Python
         uses: actions/setup-python@v5
@@ -48,10 +52,15 @@ jobs:
 
       - name: Set C/CPP compiler to use
         run: |
-          if [[ "${{ matrix.compiler }}" == "gcc-10" ]]; then export CC=gcc-10 CXX=g++-10; fi
-          if [[ "${{ matrix.compiler }}" == "gcc-11" ]]; then export CC=gcc-11 CXX=g++-11; fi
-          if [[ "${{ matrix.compiler }}" == "clang-11" ]]; then export CC=clang-11 CXX=clang++-11; fi
-          if [[ "${{ matrix.compiler }}" == "clang-15" ]]; then export CC=clang-15 CXX=clang++-15; fi
+          compiler="${{ matrix.compiler }}"
+          if [[ "$compiler" =~ ^(gcc|clang)-[0-9]+$ ]]; then
+            export CC="$compiler"
+            export CXX="$(echo "$compiler" | sed -e 's/gcc/g++/' -e 's/clang/clang++/')"
+            printenv CC CXX
+          else
+            echo "Error: Don't know how to set CC and CXX env vars for compiler '$compiler'" >&2
+            exit 1
+          fi
 
       - name: Build binaries and libraries and test them (with Meson)
         run: |
