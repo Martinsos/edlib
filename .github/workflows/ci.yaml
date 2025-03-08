@@ -17,14 +17,14 @@ jobs:
       matrix:
         include:
           # If you add another compiler, make sure to define its CC and CXX env vars in the step below.
-          - { os: ubuntu-20.04, compiler: gcc-10 }
-          - { os: ubuntu-20.04, compiler: clang-11 }
-          - { os: macos-12,     compiler: gcc-10 }
-          - { os: macos-12,     compiler: clang-11 }
           - { os: ubuntu-22.04, compiler: gcc-11 }
           - { os: ubuntu-22.04, compiler: clang-15 }
-          - { os: macos-14,     compiler: gcc-11 }
+          - { os: macos-13,     compiler: gcc-12 }
+          - { os: macos-13,     compiler: clang-14 }
+          - { os: macos-14,     compiler: gcc-14 }
           - { os: macos-14,     compiler: clang-15 }
+          - { os: ubuntu-24.04, compiler: gcc-13 }
+          - { os: ubuntu-24.04, compiler: clang-18 }
     runs-on: ${{ matrix.os }}
     continue-on-error: true
     steps:
@@ -48,10 +48,13 @@ jobs:
 
       - name: Set C/CPP compiler to use
         run: |
-          if [[ "${{ matrix.compiler }}" == "gcc-10" ]]; then export CC=gcc-10 CXX=g++-10; fi
           if [[ "${{ matrix.compiler }}" == "gcc-11" ]]; then export CC=gcc-11 CXX=g++-11; fi
-          if [[ "${{ matrix.compiler }}" == "clang-11" ]]; then export CC=clang-11 CXX=clang++-11; fi
+          if [[ "${{ matrix.compiler }}" == "gcc-12" ]]; then export CC=gcc-12 CXX=g++-12; fi
+          if [[ "${{ matrix.compiler }}" == "gcc-13" ]]; then export CC=gcc-13 CXX=g++-13; fi
+          if [[ "${{ matrix.compiler }}" == "gcc-14" ]]; then export CC=gcc-14 CXX=g++-14; fi
+          if [[ "${{ matrix.compiler }}" == "clang-14" ]]; then export CC=clang-14 CXX=clang++-14; fi
           if [[ "${{ matrix.compiler }}" == "clang-15" ]]; then export CC=clang-15 CXX=clang++-15; fi
+          if [[ "${{ matrix.compiler }}" == "clang-18" ]]; then export CC=clang-18 CXX=clang++-18; fi
 
       - name: Build binaries and libraries and test them (with Meson)
         run: |
