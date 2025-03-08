@@ -56,6 +56,7 @@ jobs:
           if [[ "$compiler" =~ ^(gcc|clang)-[0-9]+$ ]]; then
             export CC="$compiler"
             export CXX="$(echo "$compiler" | sed -e 's/gcc/g++/' -e 's/clang/clang++/')"
+            printenv CC CXX
           else
             echo "Error: Don't know how to set CC and CXX env vars for compiler '$compiler'" >&2
             exit 1
