@@ -150,4 +150,3 @@ jobs:
           if [ ${{ matrix.deploy-sdist }} == "true" ]; then
             python -m twine upload --skip-existing sdist/edlib-*.tar.gz
           fi
-
