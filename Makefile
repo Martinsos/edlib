@@ -1,6 +1,8 @@
 BUILD_DIR ?= meson-build
 # Can be 'static' or 'shared'.
 LIBRARY_TYPE ?= static
+# Additional arguments for meson setup
+MESON_SETUP_ARGS ?=
 TEST_DATA_DIR ?= apps/aligner/test_data
 
 YELLOW = \033[33m
@@ -21,7 +23,8 @@ configure:
 	rm -rf ${BUILD_DIR}
 	meson setup ${BUILD_DIR} . \
 		--backend=ninja \
-    -Ddefault_library=${LIBRARY_TYPE}
+		-Ddefault_library=${LIBRARY_TYPE} \
+		${MESON_SETUP_ARGS}
 
 build:
 	meson compile -v -C ${BUILD_DIR}
