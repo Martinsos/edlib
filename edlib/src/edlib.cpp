@@ -557,8 +557,6 @@ static int myersCalcEditDistanceSemiGlobal(
     // lastBlock is 0-based index of last block in Ukkonen band.
     int firstBlock = 0;
     int lastBlock = min(ceilDiv(k + 1, WORD_SIZE), maxNumBlocks) - 1; // y in Myers
-    Block *bl; // Current block
-
     Block* blocks = new Block[maxNumBlocks];
 
     // For HW, solution will never be larger then queryLength.
@@ -571,15 +569,14 @@ static int myersCalcEditDistanceSemiGlobal(
     const int STRONG_REDUCE_NUM = 2048;
 
     // Initialize P, M and score
-    bl = blocks;
     for (int b = 0; b <= lastBlock; b++) {
-        bl->score = (b + 1) * WORD_SIZE;
-        bl->P = static_cast<Word>(-1); // All 1s
-        bl->M = static_cast<Word>(0);
-        bl++;
+        blocks[b].score = (b + 1) * WORD_SIZE;
+        blocks[b].P = static_cast<Word>(-1); // All 1s
+        blocks[b].M = static_cast<Word>(0);
     }
 
     int bestScore = -1;
+    int bl = 0; // Current block index
     vector<int> positions; // TODO: Maybe put this on heap?
     const int startHout = mode == EDLIB_MODE_HW ? 0 : 1; // If 0 then gap before query is not penalized;
     const unsigned char* targetChar = target;
@@ -588,26 +585,26 @@ static int myersCalcEditDistanceSemiGlobal(
 
         //----------------------- Calculate column -------------------------//
         int hout = startHout;
-        bl = blocks + firstBlock;
+        bl = firstBlock;
         Peq_c += firstBlock;
         for (int b = firstBlock; b <= lastBlock; b++) {
-            hout = calculateBlock(bl->P, bl->M, *Peq_c, hout, bl->P, bl->M);
-            bl->score += hout;
+            hout = calculateBlock(blocks[bl].P, blocks[bl].M, *Peq_c, hout, blocks[bl].P, blocks[bl].M);
+            blocks[bl].score += hout;
             bl++; Peq_c++;
         }
         bl--; Peq_c--;
         //------------------------------------------------------------------//
 
         //---------- Adjust number of blocks according to Ukkonen ----------//
-        if ((lastBlock < maxNumBlocks - 1) && (bl->score - hout <= k) // bl is pointing to last block
+        if ((lastBlock < maxNumBlocks - 1) && (blocks[bl].score - hout <= k) // bl is pointing to last block
             && ((*(Peq_c + 1) & WORD_1) || hout < 0)) { // Peq_c is pointing to last block
             // If score of left block is not too big, calculate one more block
             lastBlock++; bl++; Peq_c++;
-            bl->P = static_cast<Word>(-1); // All 1s
-            bl->M = static_cast<Word>(0);
-            bl->score = (bl - 1)->score - hout + WORD_SIZE + calculateBlock(bl->P, bl->M, *Peq_c, hout, bl->P, bl->M);
+            blocks[bl].P = static_cast<Word>(-1); // All 1s
+            blocks[bl].M = static_cast<Word>(0);
+            blocks[bl].score = blocks[bl - 1].score - hout + WORD_SIZE + calculateBlock(blocks[bl].P, blocks[bl].M, *Peq_c, hout, blocks[bl].P, blocks[bl].M);
         } else {
-            while (lastBlock >= firstBlock && bl->score >= k + WORD_SIZE) {
+            while (lastBlock >= firstBlock && blocks[bl].score >= k + WORD_SIZE) {
                 lastBlock--; bl--; Peq_c--;
             }
         }
@@ -617,7 +614,7 @@ static int myersCalcEditDistanceSemiGlobal(
         //
         // Reduce the band by decreasing last block if possible.
         if (c % STRONG_REDUCE_NUM == 0) {
-            while (lastBlock >= 0 && lastBlock >= firstBlock && allBlockCellsLarger(*bl, k)) {
+            while (lastBlock >= 0 && lastBlock >= firstBlock && allBlockCellsLarger(blocks[bl], k)) {
                 lastBlock--; bl--; Peq_c--;
             }
         }
@@ -656,7 +653,7 @@ static int myersCalcEditDistanceSemiGlobal(
 
         //------------------------- Update best score ----------------------//
         if (lastBlock == maxNumBlocks - 1) {
-            int colScore = bl->score;
+            int colScore = blocks[bl].score;
             if (colScore <= k) { // Scores > k dont have correct values (so we cannot use them), but are certainly > k.
                 // NOTE: Score that I find in column c is actually score from column c-W
                 if (bestScore == -1 || colScore <= bestScore) {
@@ -679,7 +676,7 @@ static int myersCalcEditDistanceSemiGlobal(
 
     // Obtain results for last W columns from last column.
     if (lastBlock == maxNumBlocks - 1) {
-        vector<int> blockScores = getBlockCellValues(*bl);
+        vector<int> blockScores = getBlockCellValues(blocks[bl]);
         for (int i = 0; i < W; i++) {
             int colScore = blockScores[i + 1];
             if (colScore <= k && (bestScore == -1 || colScore <= bestScore)) {
@@ -753,17 +750,13 @@ static int myersCalcEditDistanceNW(const Word* const Peq, const int W, const int
     int firstBlock = 0;
     // This is optimal now, by my formula.
     int lastBlock = min(maxNumBlocks, ceilDiv(min(k, (k + queryLength - targetLength) / 2) + 1, WORD_SIZE)) - 1;
-    Block* bl; // Current block
-
     Block* blocks = new Block[maxNumBlocks];
 
     // Initialize P, M and score
-    bl = blocks;
     for (int b = 0; b <= lastBlock; b++) {
-        bl->score = (b + 1) * WORD_SIZE;
-        bl->P = static_cast<Word>(-1); // All 1s
-        bl->M = static_cast<Word>(0);
-        bl++;
+        blocks[b].score = (b + 1) * WORD_SIZE;
+        blocks[b].P = static_cast<Word>(-1); // All 1s
+        blocks[b].M = static_cast<Word>(0);
     }
 
     // If we want to find alignment, we have to store needed data.
@@ -774,16 +767,17 @@ static int myersCalcEditDistanceNW(const Word* const Peq, const int W, const int
     else
         *alignData = NULL;
 
+    int bl = 0; // Current block index
     const unsigned char* targetChar = target;
     for (int c = 0; c < targetLength; c++) { // for each column
         const Word* Peq_c = Peq + *targetChar * maxNumBlocks;
 
         //----------------------- Calculate column -------------------------//
         int hout = 1;
-        bl = blocks + firstBlock;
+        bl = firstBlock;
         for (int b = firstBlock; b <= lastBlock; b++) {
-            hout = calculateBlock(bl->P, bl->M, Peq_c[b], hout, bl->P, bl->M);
-            bl->score += hout;
+            hout = calculateBlock(blocks[bl].P, blocks[bl].M, Peq_c[b], hout, blocks[bl].P, blocks[bl].M);
+            blocks[bl].score += hout;
             bl++;
         }
         bl--;
@@ -792,7 +786,7 @@ static int myersCalcEditDistanceNW(const Word* const Peq, const int W, const int
 
         // Update k. I do it only on end of column because it would slow calculation too much otherwise.
         // NOTICE: I add W when in last block because it is actually result from W cells to the left and W cells up.
-        k = min(k, bl->score
+        k = min(k, blocks[bl].score
                 + max(targetLength - c - 1, queryLength - ((1 + lastBlock) * WORD_SIZE - 1) - 1)
                 + (lastBlock == maxNumBlocks - 1 ? W : 0));
 
@@ -802,12 +796,12 @@ static int myersCalcEditDistanceNW(const Word* const Peq, const int W, const int
         if (lastBlock + 1 < maxNumBlocks
             && !(//score[lastBlock] >= k + WORD_SIZE ||  // NOTICE: this condition could be satisfied if above block also!
                  ((lastBlock + 1) * WORD_SIZE - 1
-                  > k - bl->score + 2 * WORD_SIZE - 2 - targetLength + c + queryLength))) {
+                  > k - blocks[bl].score + 2 * WORD_SIZE - 2 - targetLength + c + queryLength))) {
             lastBlock++; bl++;
-            bl->P = static_cast<Word>(-1); // All 1s
-            bl->M = static_cast<Word>(0);
-            int newHout = calculateBlock(bl->P, bl->M, Peq_c[lastBlock], hout, bl->P, bl->M);
-            bl->score = (bl - 1)->score - hout + WORD_SIZE + newHout;
+            blocks[bl].P = static_cast<Word>(-1); // All 1s
+            blocks[bl].M = static_cast<Word>(0);
+            int newHout = calculateBlock(blocks[bl].P, blocks[bl].M, Peq_c[lastBlock], hout, blocks[bl].P, blocks[bl].M);
+            blocks[bl].score = blocks[bl - 1].score - hout + WORD_SIZE + newHout;
             hout = newHout;
         }
 
@@ -815,10 +809,10 @@ static int myersCalcEditDistanceNW(const Word* const Peq, const int W, const int
         // NOTE: Condition used here is more loose than the one from the article, since I simplified the max() part of it.
         // I could consider adding that max part, for optimal performance.
         while (lastBlock >= firstBlock
-               && (bl->score >= k + WORD_SIZE
+               && (blocks[bl].score >= k + WORD_SIZE
                    || ((lastBlock + 1) * WORD_SIZE - 1 >
                        // TODO: Does not work if do not put +1! Why???
-                       k - bl->score + 2 * WORD_SIZE - 2 - targetLength + c + queryLength + 1))) {
+                       k - blocks[bl].score + 2 * WORD_SIZE - 2 - targetLength + c + queryLength + 1))) {
             lastBlock--; bl--;
         }
         //-------------------------//
@@ -838,7 +832,7 @@ static int myersCalcEditDistanceNW(const Word* const Peq, const int W, const int
         if (c % STRONG_REDUCE_NUM == 0) { // Every some columns do more expensive but more efficient reduction
             while (lastBlock >= firstBlock) {
                 // If all cells outside of band, remove block
-                vector<int> scores = getBlockCellValues(*bl);
+                vector<int> scores = getBlockCellValues(blocks[bl]);
                 int numCells = lastBlock == maxNumBlocks - 1 ? WORD_SIZE - W : WORD_SIZE;
                 int r = lastBlock * WORD_SIZE + numCells - 1;
                 bool reduce = true;
@@ -884,11 +878,11 @@ static int myersCalcEditDistanceNW(const Word* const Peq, const int W, const int
 
         //---- Save column so it can be used for reconstruction ----//
         if (findAlignment && c < targetLength) {
-            bl = blocks + firstBlock;
+            bl = firstBlock;
             for (int b = firstBlock; b <= lastBlock; b++) {
-                (*alignData)->Ps[maxNumBlocks * c + b] = bl->P;
-                (*alignData)->Ms[maxNumBlocks * c + b] = bl->M;
-                (*alignData)->scores[maxNumBlocks * c + b] = bl->score;
+                (*alignData)->Ps[maxNumBlocks * c + b] = blocks[bl].P;
+                (*alignData)->Ms[maxNumBlocks * c + b] = blocks[bl].M;
+                (*alignData)->scores[maxNumBlocks * c + b] = blocks[bl].score;
                 bl++;
             }
             (*alignData)->firstBlocks[c] = firstBlock;
