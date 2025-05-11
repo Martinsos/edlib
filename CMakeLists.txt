@@ -1,4 +1,4 @@
-cmake_minimum_required(VERSION 3.5 FATAL_ERROR)
+cmake_minimum_required(VERSION 3.20 FATAL_ERROR)
 project(edlib VERSION 1.2.6)
 
 option(EDLIB_ENABLE_INSTALL "Generate the install target" ON)
