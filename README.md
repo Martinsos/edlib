@@ -3,8 +3,8 @@ Edlib
 [![Latest Github release](https://img.shields.io/github/release/Martinsos/edlib.svg)](https://github.com/Martinsos/edlib/releases/latest)
 [![Build status of the master branch on Linux/OSX](https://img.shields.io/github/actions/workflow/status/Martinsos/edlib/ci.yaml?branch=master&label=Linux%2FOSX%20build)
 ](https://github.com/Martinsos/edlib/actions?query=branch%3Amaster)
-[![Build status of the master branch on Windows](https://img.shields.io/appveyor/build/Martinsos/edlib/master?label=Windows%20build)](https://ci.appveyor.com/project/Martinsos/edlib/branch/master)
 [![Published in Bioinformatics](https://img.shields.io/badge/Published%20in-Bioinformatics-167DA4.svg)](https://doi.org/10.1093/bioinformatics/btw753)
+
 =====
 
 A lightweight and super fast C/C++ library for sequence alignment using [edit distance](https://en.wikipedia.org/wiki/Edit_distance).
