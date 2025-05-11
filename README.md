@@ -4,7 +4,6 @@ Edlib
 [![Build status of the master branch on Linux/OSX](https://img.shields.io/github/actions/workflow/status/Martinsos/edlib/ci.yaml?branch=master&label=Linux%2FOSX%20build)
 ](https://github.com/Martinsos/edlib/actions?query=branch%3Amaster)
 [![Published in Bioinformatics](https://img.shields.io/badge/Published%20in-Bioinformatics-167DA4.svg)](https://doi.org/10.1093/bioinformatics/btw753)
-
 =====
 
 A lightweight and super fast C/C++ library for sequence alignment using [edit distance](https://en.wikipedia.org/wiki/Edit_distance).
