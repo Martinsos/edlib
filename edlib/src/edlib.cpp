@@ -1,6 +1,7 @@
 #include "edlib.h"
 
 #include <stdint.h>
+#include <array>
 #include <cstdlib>
 #include <algorithm>
 #include <vector>
@@ -312,7 +313,7 @@ extern "C" char* edlibAlignmentToCigar(const unsigned char* const alignment, con
         moveCodeToChar[0] = moveCodeToChar[3] = 'M';
     }
 
-    vector<char>* cigar = new vector<char>();
+    vector<char> cigar;
     char lastMove = 0;  // Char of last move. 0 if there was no previous move.
     int numOfSameMoves = 0;
     for (int i = 0; i <= alignmentLength; i++) {
@@ -321,17 +322,16 @@ extern "C" char* edlibAlignmentToCigar(const unsigned char* const alignment, con
             // Write number of moves to cigar string.
             int numDigits = 0;
             for (; numOfSameMoves; numOfSameMoves /= 10) {
-                cigar->push_back('0' + numOfSameMoves % 10);
+                cigar.push_back('0' + numOfSameMoves % 10);
                 numDigits++;
             }
-            reverse(cigar->end() - numDigits, cigar->end());
+            reverse(cigar.end() - numDigits, cigar.end());
             // Write code of move to cigar string.
-            cigar->push_back(lastMove);
+            cigar.push_back(lastMove);
             // If not at the end, start new sequence of moves.
             if (i < alignmentLength) {
                 // Check if alignment has valid values.
                 if (alignment[i] > 3) {
-                    delete cigar;
                     return 0;
                 }
                 numOfSameMoves = 0;
@@ -342,10 +342,9 @@ extern "C" char* edlibAlignmentToCigar(const unsigned char* const alignment, con
             numOfSameMoves++;
         }
     }
-    cigar->push_back(0);  // Null character termination.
-    char* cigar_ = static_cast<char *>(malloc(cigar->size() * sizeof(char)));
-    memcpy(cigar_, &(*cigar)[0], cigar->size() * sizeof(char));
-    delete cigar;
+    cigar.push_back(0);  // Null character termination.
+    char* cigar_ = static_cast<char *>(malloc(cigar.size() * sizeof(char)));
+    memcpy(cigar_, cigar.data(), cigar.size() * sizeof(char));
 
     return cigar_;
 }
@@ -468,8 +467,8 @@ static inline int max(const int x, const int y) {
  * @param [in] block
  * @return Values of cells in block, starting with bottom cell in block.
  */
-static inline vector<int> getBlockCellValues(const Block block) {
-    vector<int> scores(WORD_SIZE);
+static inline std::array<int, WORD_SIZE> getBlockCellValues(const Block block) {
+    std::array<int, WORD_SIZE> scores;
     int score = block.score;
     Word mask = HIGH_BIT_MASK;
     for (int i = 0; i < WORD_SIZE - 1; i++) {
@@ -522,7 +521,7 @@ static inline void readBlockReverse(const Block block, int* const dest) {
  * @return True if all cells in block have value larger than k, otherwise false.
  */
 static inline bool allBlockCellsLarger(const Block block, const int k) {
-    vector<int> scores = getBlockCellValues(block);
+    std::array<int, WORD_SIZE> scores = getBlockCellValues(block);
     for (int i = 0; i < WORD_SIZE; i++) {
         if (scores[i] <= k) return false;
     }
@@ -581,7 +580,7 @@ static int myersCalcEditDistanceSemiGlobal(
 
     int bestScore = -1;
     int bl = 0; // Current block index
-    vector<int> positions; // TODO: Maybe put this on heap?
+    vector<int> positions;
     const int startHout = mode == EDLIB_MODE_HW ? 0 : 1; // If 0 then gap before query is not penalized;
     const unsigned char* targetChar = target;
     for (int c = 0; c < targetLength; c++) { // for each column
@@ -680,7 +679,7 @@ static int myersCalcEditDistanceSemiGlobal(
 
     // Obtain results for last W columns from last column.
     if (lastBlock == maxNumBlocks - 1) {
-        vector<int> blockScores = getBlockCellValues(blocks[bl]);
+        std::array<int, WORD_SIZE> blockScores = getBlockCellValues(blocks[bl]);
         for (int i = 0; i < W; i++) {
             int colScore = blockScores[i + 1];
             if (colScore <= k && (bestScore == -1 || colScore <= bestScore)) {
@@ -836,7 +835,7 @@ static int myersCalcEditDistanceNW(const Word* const Peq, const int W, const int
         if (c % STRONG_REDUCE_NUM == 0) { // Every some columns do more expensive but more efficient reduction
             while (lastBlock >= firstBlock) {
                 // If all cells outside of band, remove block
-                vector<int> scores = getBlockCellValues(blocks[bl]);
+                std::array<int, WORD_SIZE> scores = getBlockCellValues(blocks[bl]);
                 int numCells = lastBlock == maxNumBlocks - 1 ? WORD_SIZE - W : WORD_SIZE;
                 int r = lastBlock * WORD_SIZE + numCells - 1;
                 bool reduce = true;
@@ -854,7 +853,7 @@ static int myersCalcEditDistanceNW(const Word* const Peq, const int W, const int
 
             while (firstBlock <= lastBlock) {
                 // If all cells outside of band, remove block
-                vector<int> scores = getBlockCellValues(blocks[firstBlock]);
+                std::array<int, WORD_SIZE> scores = getBlockCellValues(blocks[firstBlock]);
                 int numCells = firstBlock == maxNumBlocks - 1 ? WORD_SIZE - W : WORD_SIZE;
                 int r = firstBlock * WORD_SIZE + numCells - 1;
                 bool reduce = true;
@@ -1417,16 +1416,17 @@ static int obtainAlignmentHirschberg(
  */
 static string transformSequences(const char* const queryOriginal, const int queryLength,
                                  const char* const targetOriginal, const int targetLength,
-                                 unsigned char** const queryTransformed,
-                                 unsigned char** const targetTransformed) {
+                                 unsigned char** const queryTransformed_,
+                                 unsigned char** const targetTransformed_) {
     // Alphabet is constructed from letters that are present in sequences.
     // Each letter is assigned an ordinal number, starting from 0 up to alphabetLength - 1,
     // and new query and target are created in which letters are replaced with their ordinal numbers.
     // This query and target are used in all the calculations later.
-    *queryTransformed = static_cast<unsigned char *>(malloc(sizeof(unsigned char) * queryLength));
-    *targetTransformed = static_cast<unsigned char *>(malloc(sizeof(unsigned char) * targetLength));
+    unsigned char *queryTransformed = static_cast<unsigned char *>(malloc(sizeof(unsigned char) * queryLength));
+    unsigned char *targetTransformed = static_cast<unsigned char *>(malloc(sizeof(unsigned char) * targetLength));
 
-    string alphabet = "";
+    char alphabet[MAX_UCHAR + 1];
+    int alphabetSize = 0;
 
     // Alphabet information, it is constructed on fly while transforming sequences.
     // letterIdx[c] is index of letter c in alphabet.
@@ -1438,22 +1438,27 @@ static string transformSequences(const char* const queryOriginal, const int quer
         unsigned char c = static_cast<unsigned char>(queryOriginal[i]);
         if (!inAlphabet[c]) {
             inAlphabet[c] = true;
-            letterIdx[c] = static_cast<unsigned char>(alphabet.size());
-            alphabet += queryOriginal[i];
+            const unsigned char idx = static_cast<unsigned char>(alphabetSize++);
+            letterIdx[c] = idx;
+            alphabet[idx] = queryOriginal[i];
         }
-        (*queryTransformed)[i] = letterIdx[c];
+        queryTransformed[i] = letterIdx[c];
     }
     for (int i = 0; i < targetLength; i++) {
         unsigned char c = static_cast<unsigned char>(targetOriginal[i]);
         if (!inAlphabet[c]) {
             inAlphabet[c] = true;
-            letterIdx[c] = static_cast<unsigned char>(alphabet.size());
-            alphabet += targetOriginal[i];
+            const unsigned char idx = static_cast<unsigned char>(alphabetSize++);
+            letterIdx[c] = idx;
+            alphabet[idx] = targetOriginal[i];
         }
-        (*targetTransformed)[i] = letterIdx[c];
+        targetTransformed[i] = letterIdx[c];
     }
 
-    return alphabet;
+    *queryTransformed_  = queryTransformed;
+    *targetTransformed_ = targetTransformed;
+
+    return std::string(alphabet, alphabetSize);
 }
 
 
