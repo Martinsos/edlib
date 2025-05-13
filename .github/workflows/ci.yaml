@@ -66,6 +66,7 @@ jobs:
         run: |
           make CXXFLAGS="-Werror" LIBRARY_TYPE=static BUILD_DIR=meson-build-static
           make CXXFLAGS="-Werror" LIBRARY_TYPE=shared BUILD_DIR=meson-build-shared
+          make CXXFLAGS="-Werror" LIBRARY_TYPE=static MESON_SETUP_ARGS="--buildtype debugoptimized -Db_sanitize=address,undefined -Db_lundef=true" BUILD_DIR=meson-build-static-debopt-ubasan
 
           # Check for memory leaks.
           # I run this only on linux because osx returns errors from
@@ -149,4 +150,3 @@ jobs:
           if [ ${{ matrix.deploy-sdist }} == "true" ]; then
             python -m twine upload --skip-existing sdist/edlib-*.tar.gz
           fi
-
