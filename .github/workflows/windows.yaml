@@ -1,0 +1,84 @@
+on:
+  push:
+    branches:
+      - master
+    tags:
+      - "*"
+  pull_request:
+    branches:
+      - master
+
+jobs:
+  cmake_build:
+    name: "CMake build"
+    strategy:
+      matrix:
+        arch:
+          - x64
+          - x86
+    runs-on: windows-2022
+    steps:
+      - uses: actions/checkout@v4
+      - uses: microsoft/setup-msbuild@v2
+        with:
+          vs-version: 17
+          msbuild-architecture: ${{ matrix.arch }}
+      - name: Build
+        run: |
+          cmake -A ${{ matrix.arch == 'x86' && 'Win32' || matrix.arch }} .
+          cmake --build . --config Release
+      - name: Test
+        run: |
+          bin\Release\runTests.exe
+
+  mason_build:
+    name: "meson build"
+    strategy:
+      matrix:
+        linking:
+          - static
+          - shared
+    runs-on: windows-2022
+    steps:
+      - uses: actions/checkout@v4
+      - uses: microsoft/setup-msbuild@v2
+        with:
+          vs-version: 17
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.x"
+      - name: install dependencies
+        run: python -m pip install ninja meson
+      - name: Build
+        run: |
+          meson setup --backend=ninja -Ddefault_library=${{ matrix.linking }} meson-build-${{ matrix.linking }} .
+          meson compile -v -C meson-build-${{ matrix.linking }}
+      - name: Test
+        run: |
+          meson test -C meson-build-${{ matrix.linking }}
+
+  python:
+    name: "python bindings"
+    runs-on: windows-2022
+    steps:
+      - uses: actions/checkout@v4
+      - uses: microsoft/setup-msbuild@v2
+        with:
+          vs-version: 17
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.x"
+      - name: install dependencies
+        run: python -m pip install cython build cibuildwheel cogapp
+      - name: Build
+        env:
+          EDLIB_OMIT_README_RST: 1
+          CIBW_TEST_COMMAND: "python {project}/test.py"
+        run: |
+          cd bindings/python
+          robocopy ..\..\edlib edlib /E
+          python -m pip install -e .
+          cython --cplus edlib.pyx -o edlib.bycython.cpp
+          cog -d -o README.rst README-tmpl.rst
+          python -m build --sdist
+          python -m cibuildwheel --output-dir wheelhouse
