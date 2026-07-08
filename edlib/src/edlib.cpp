@@ -8,6 +8,8 @@
 #include <cstring>
 #include <string>
 
+#include "edlib_util.h"
+
 namespace {
 
 using namespace std;
@@ -16,7 +18,6 @@ typedef uint64_t Word;
 static const int WORD_SIZE = sizeof(Word) * 8; // Size of Word in bits
 static const Word WORD_1 = static_cast<Word>(1);
 static const Word HIGH_BIT_MASK = WORD_1 << (WORD_SIZE - 1);  // 100..00
-static const int MAX_UCHAR = 255;
 
 // Data needed to find alignment.
 struct AlignmentData {
@@ -124,12 +125,6 @@ static int obtainAlignmentHirschberg(
 static int obtainAlignmentTraceback(int queryLength, int targetLength,
                                     int bestScore, const AlignmentData* alignData,
                                     unsigned char** alignment, int* alignmentLength);
-
-static string transformSequences(const char* queryOriginal, int queryLength,
-                                 const char* targetOriginal, int targetLength,
-                                 unsigned char** queryTransformed,
-                                 unsigned char** targetTransformed);
-
 static inline int ceilDiv(int x, int y);
 
 static inline unsigned char* createReverseCopy(const unsigned char* seq, int length);
@@ -156,9 +151,11 @@ extern "C" EdlibAlignResult edlibAlign(const char* const queryOriginal, const in
     result.alphabetLength = 0;
 
     /*------------ TRANSFORM SEQUENCES AND RECOGNIZE ALPHABET -----------*/
-    unsigned char* query, * target;
+    TransformedSequencePointer tsQuery, tsTarget;
     string alphabet = transformSequences(queryOriginal, queryLength, targetOriginal, targetLength,
-                                         &query, &target);
+                                         &tsQuery, &tsTarget);
+    unsigned char* query = tsQuery.data;
+    unsigned char* target = tsTarget.data;
     result.alphabetLength = static_cast<int>(alphabet.size());
     /*-------------------------------------------------------*/
 
@@ -178,8 +175,8 @@ extern "C" EdlibAlignResult edlibAlign(const char* const queryOriginal, const in
             result.status = EDLIB_STATUS_ERROR;
         }
 
-        free(query);
-        free(target);
+        freeTransformedSequence(tsQuery);
+        freeTransformedSequence(tsTarget);
         return result;
     }
 
@@ -292,8 +289,8 @@ extern "C" EdlibAlignResult edlibAlign(const char* const queryOriginal, const in
 
     //--- Free memory ---//
     delete[] Peq;
-    free(query);
-    free(target);
+    freeTransformedSequence(tsQuery);
+    freeTransformedSequence(tsTarget);
     if (alignData) delete alignData;
     //-------------------//
 
@@ -1394,73 +1391,6 @@ static int obtainAlignmentHirschberg(
     free(lrAlignment);
     return EDLIB_STATUS_OK;
 }
-
-
-/**
- * Takes char query and char target, recognizes alphabet and transforms them into unsigned char sequences
- * where elements in sequences are not any more letters of alphabet, but their index in alphabet.
- * Most of internal edlib functions expect such transformed sequences.
- * This function will allocate queryTransformed and targetTransformed, so make sure to free them when done.
- * Example:
- *   Original sequences: "ACT" and "CGT".
- *   Alphabet would be recognized as "ACTG". Alphabet length = 4.
- *   Transformed sequences: [0, 1, 2] and [1, 3, 2].
- * @param [in] queryOriginal
- * @param [in] queryLength
- * @param [in] targetOriginal
- * @param [in] targetLength
- * @param [out] queryTransformed  It will contain values in range [0, alphabet length - 1].
- * @param [out] targetTransformed  It will contain values in range [0, alphabet length - 1].
- * @return  Alphabet as a string of unique characters, where index of each character is its value in transformed
- *          sequences.
- */
-static string transformSequences(const char* const queryOriginal, const int queryLength,
-                                 const char* const targetOriginal, const int targetLength,
-                                 unsigned char** const queryTransformed_,
-                                 unsigned char** const targetTransformed_) {
-    // Alphabet is constructed from letters that are present in sequences.
-    // Each letter is assigned an ordinal number, starting from 0 up to alphabetLength - 1,
-    // and new query and target are created in which letters are replaced with their ordinal numbers.
-    // This query and target are used in all the calculations later.
-    unsigned char *queryTransformed = static_cast<unsigned char *>(malloc(sizeof(unsigned char) * queryLength));
-    unsigned char *targetTransformed = static_cast<unsigned char *>(malloc(sizeof(unsigned char) * targetLength));
-
-    char alphabet[MAX_UCHAR + 1];
-    int alphabetSize = 0;
-
-    // Alphabet information, it is constructed on fly while transforming sequences.
-    // letterIdx[c] is index of letter c in alphabet.
-    unsigned char letterIdx[MAX_UCHAR + 1];
-    bool inAlphabet[MAX_UCHAR + 1]; // inAlphabet[c] is true if c is in alphabet
-    for (int i = 0; i < MAX_UCHAR + 1; i++) inAlphabet[i] = false;
-
-    for (int i = 0; i < queryLength; i++) {
-        unsigned char c = static_cast<unsigned char>(queryOriginal[i]);
-        if (!inAlphabet[c]) {
-            inAlphabet[c] = true;
-            const unsigned char idx = static_cast<unsigned char>(alphabetSize++);
-            letterIdx[c] = idx;
-            alphabet[idx] = queryOriginal[i];
-        }
-        queryTransformed[i] = letterIdx[c];
-    }
-    for (int i = 0; i < targetLength; i++) {
-        unsigned char c = static_cast<unsigned char>(targetOriginal[i]);
-        if (!inAlphabet[c]) {
-            inAlphabet[c] = true;
-            const unsigned char idx = static_cast<unsigned char>(alphabetSize++);
-            letterIdx[c] = idx;
-            alphabet[idx] = targetOriginal[i];
-        }
-        targetTransformed[i] = letterIdx[c];
-    }
-
-    *queryTransformed_  = queryTransformed;
-    *targetTransformed_ = targetTransformed;
-
-    return std::string(alphabet, alphabetSize);
-}
-
 
 extern "C" EdlibAlignConfig edlibNewAlignConfig(int k, EdlibAlignMode mode, EdlibAlignTask task,
                                                 const EdlibEqualityPair* additionalEqualities,

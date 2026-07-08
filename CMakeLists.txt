@@ -62,6 +62,15 @@ set_target_properties(edlib
 )
 
 target_compile_definitions(edlib PRIVATE DLIB_BUILD)
+
+if(CMAKE_SYSTEM_PROCESSOR MATCHES "AMD64|x86_64|AMD64")
+  if(MSVC)
+    target_compile_options(edlib PRIVATE /arch:AVX2)
+  else()
+    target_compile_options(edlib PRIVATE -mavx2)
+  endif()
+endif()
+
 if(BUILD_SHARED_LIBS)
   target_compile_definitions(edlib PUBLIC EDLIB_SHARED)
 endif()
