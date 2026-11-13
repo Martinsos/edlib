@@ -402,6 +402,13 @@ Space complexity: `O(T + Q)`.
 
 It is worth noting that Edlib works best for large, similar sequences, since such sequences get the highest speedup from banded approach and bit-vector parallelization.
 
+The block calculation keeps positive and negative horizontal score deltas separate,
+avoiding repeated decoding between blocks. This incorporates the optimization from
+[upstream PR #243](https://github.com/Martinsos/edlib/pull/243), originally proposed in
+[#214](https://github.com/Martinsos/edlib/pull/214), without changing the public API or
+alignment semantics. It requires no SIMD instructions. Use the [benchmark matrix](#benchmarks)
+to measure its effect across sequence lengths, mutation rates and alignment modes.
+
 
 ## Test data
 In [test_data/](test_data) directory there are different genome sequences, ranging from 10 kbp to 5 Mbp in length. They are ranging in length and similarity, so they can be useful for testing and measuring speed in different scenarios.
