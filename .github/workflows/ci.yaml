@@ -12,25 +12,18 @@ on:
 
 jobs:
   cpp_edlib:
-    name: "Check that CPP edlib correctly builds and passes tests."
+    name: "C++ (${{ matrix.os }}, ${{ matrix.cxx }})"
     strategy:
       matrix:
         include:
-          # I use different combos of OSes and compiler versions to cover as much version space as it reasonably makes sense.
-          # ubuntu-22.04 comes with gcc 10, 11 and 12, and clang 13, 14 and 15.
-          - { os: ubuntu-22.04, compiler: gcc-11 }
-          - { os: ubuntu-22.04, compiler: clang-13 }
-          # ubuntu-24.04 comes with gcc 12, 13 and 14, and clang 16, 17 and 18.
-          - { os: ubuntu-24.04, compiler: gcc-14 }
-          - { os: ubuntu-24.04, compiler: clang-18 }
-          # macos-13 comes with gcc 12, 13 and 14, and clang 14.
-          - { os: macos-13,     compiler: gcc-12 }
-          - { os: macos-13,     compiler: clang-14 }
-          # macos-14 comes with gcc 12, 13 and 14, and clang 15.
-          - { os: macos-14,     compiler: gcc-13 }
-          - { os: macos-14,     compiler: clang-15 }
+          # GCC on Linux and Apple Clang on ARM64 cover the regular builds.
+          # Linux Clang is covered separately by the sanitizer job.
+          - { os: ubuntu-24.04, cc: gcc-14, cxx: g++-14 }
+          - { os: macos-15, cc: clang, cxx: clang++ }
     runs-on: ${{ matrix.os }}
-    continue-on-error: true
+    env:
+      CC: ${{ matrix.cc }}
+      CXX: ${{ matrix.cxx }}
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
@@ -49,18 +42,6 @@ jobs:
       - name: Install Python packages
         run: |
           python -m pip install --upgrade pip setuptools meson ninja
-
-      - name: Set C/CPP compiler to use
-        run: |
-          compiler="${{ matrix.compiler }}"
-          if [[ "$compiler" =~ ^(gcc|clang)-[0-9]+$ ]]; then
-            export CC="$compiler"
-            export CXX="$(echo "$compiler" | sed -e 's/gcc/g++/' -e 's/clang/clang++/')"
-            printenv CC CXX
-          else
-            echo "Error: Don't know how to set CC and CXX env vars for compiler '$compiler'" >&2
-            exit 1
-          fi
 
       - name: Build binaries and libraries and test them (with Meson)
         run: |
@@ -101,6 +82,9 @@ jobs:
         run: |
           python -m pip install --upgrade pip setuptools meson ninja
 
+      - name: Test benchmark report comparisons
+        run: python -m unittest discover -s benchmarks -p 'test_*.py'
+
       - name: Build and test with sanitizers
         run: make sanitizer
 
@@ -121,11 +105,9 @@ jobs:
     strategy:
       matrix:
         include:
-          - os: ubuntu-22.04
+          - os: ubuntu-24.04
             deploy-sdist: true
-          - os: macos-13  # intel runner
-          # TODO: Get macos-14 building, currently I have an error with arch mismatch.
-          # - os: macos-14  # apple silicon
+          - os: macos-15-intel
     runs-on: ${{ matrix.os }}
     defaults:
       run:
@@ -159,7 +141,7 @@ jobs:
 
       - name: Build wheels
         run: |
-          if [ ${{ matrix.os }} == "macos-13" ]; then
+          if [ "${{ runner.os }}" = "macOS" ]; then
             # Default is x86-64 only, but this way we also build universal2 wheels,
             # which work on both intel (x86_64) and apple silicon (arm64).
             export CIBW_ARCHS_MACOS="x86_64 universal2"

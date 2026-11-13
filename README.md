@@ -281,6 +281,10 @@ Example of usage:
 Check [Building](#building) to see how to build binaries (including binary `runTests`).
 To run tests, just run `./runTests`. This will run random tests for each alignment method, and also some specific unit tests.
 
+Routine CI uses Linux/GCC and macOS 15/Apple Clang for C++ builds, plus a separate
+Linux/Clang sanitizer job. Python bindings run on Linux and macOS 15 Intel,
+retaining x86-64 and universal2 wheel builds. Performance measurements are manual.
+
 ### Sanitizers
 
 With Meson, Ninja and Clang installed:
@@ -380,8 +384,8 @@ calling a small difference a regression. JSON records the binary hash, compiler
 version, platform and measurement settings; use `--label` to record the revision,
 CPU model and build flags, and retain `compile_commands.json` with the results.
 
-The Benchmarks workflow runs the release smoke matrix on PRs/pushes, and supports
-manual full-matrix runs. It uploads JSON results and compiler configuration.
+The Benchmarks workflow is manual (`workflow_dispatch`), with a choice of the
+release smoke or full matrix. It uploads JSON results and compiler configuration.
 Hosted-runner timing noise does not fail CI on speed differences; build, execution
 and comparison-test errors do fail it. Run comparison safeguards locally with
 `python3 -m unittest discover -s benchmarks -p 'test_*.py'`.
