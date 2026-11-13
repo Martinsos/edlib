@@ -173,6 +173,9 @@ extern "C" {
         /**
          * Array of zero-based positions in target where optimal alignment paths end.
          * If gap after query is penalized, gap counts as part of query (NW), otherwise not.
+         * An empty match at boundary i has end location i - 1 and start location i.
+         * An empty query in HW mode matches all targetLength + 1 boundaries;
+         * in SHW mode it matches only boundary 0.
          * Set to NULL if edit distance is larger than k.
          * If you do not free whole result object using edlibFreeAlignResult(), do not forget to use free().
          */
@@ -194,7 +197,7 @@ extern "C" {
 
         /**
          * Alignment is found for first pair of start and end locations.
-         * Set to NULL if not calculated.
+         * Set to NULL if not calculated or if the alignment has zero length.
          * Alignment is sequence of numbers: 0, 1, 2, 3.
          * 0 stands for match.
          * 1 stands for insertion to target.
@@ -231,6 +234,9 @@ extern "C" {
      * It always returns edit distance and end locations of optimal alignment in target.
      * It optionally returns start locations of optimal alignment in target and alignment path,
      * if you choose appropriate tasks.
+     * Empty sequences are supported and obey the same k limit as non-empty sequences.
+     * In NW mode their distance is the length of the non-empty sequence.
+     * In SHW and HW modes an empty query has distance 0; an empty target has distance queryLength.
      * @param [in] query  First sequence.
      * @param [in] queryLength  Number of characters in first sequence.
      * @param [in] target  Second sequence.
@@ -262,6 +268,7 @@ extern "C" {
      *     = stands for match. (used only in extended format)
      *     M stands for (mis)match. (used only in standard format)
      *     String is null terminated.
+     * A zero-length alignment produces an empty string; alignment may be NULL in this case.
      *     Needed memory is allocated and given pointer is set to it.
      *     Do not forget to free it later using free()!
      */

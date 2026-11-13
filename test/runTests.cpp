@@ -553,20 +553,77 @@ bool testCustomEqualityRelation() {
 }
 
 bool testEmptySequences() {
-    printf("Empty query or target:\n");
-
-    const char* emptySeq =  "";
-    const char* nonEmptySeq = "ACTG";
-    const int nonEmptySeqLength = 4;
-
-    bool r = true;
-    r = r && executeTest(emptySeq, 0, nonEmptySeq, nonEmptySeqLength, EDLIB_MODE_NW);
-    r = r && executeTest(nonEmptySeq, nonEmptySeqLength, emptySeq, 0, EDLIB_MODE_NW);
-    r = r && executeTest(emptySeq, 0, nonEmptySeq, nonEmptySeqLength, EDLIB_MODE_SHW);
-    r = r && executeTest(nonEmptySeq, nonEmptySeqLength, emptySeq, 0, EDLIB_MODE_SHW);
-    r = r && executeTest(emptySeq, 0, nonEmptySeq, nonEmptySeqLength, EDLIB_MODE_HW);
-    r = r && executeTest(nonEmptySeq, nonEmptySeqLength, emptySeq, 0, EDLIB_MODE_HW);
-    return r;
+    struct TestCase {
+        const char* query;
+        const char* target;
+        EdlibAlignMode mode;
+        int score;
+        int numLocations;
+        int firstEnd;
+        const char* cigar;
+    };
+    const TestCase cases[] = {
+        {"", "ACGT", EDLIB_MODE_NW, 4, 1, 3, "4D"},
+        {"ACGT", "", EDLIB_MODE_NW, 4, 1, -1, "4I"},
+        {"", "", EDLIB_MODE_NW, 0, 1, -1, ""},
+        {"", "ACGT", EDLIB_MODE_SHW, 0, 1, -1, ""},
+        {"ACGT", "", EDLIB_MODE_SHW, 4, 1, -1, "4I"},
+        {"", "", EDLIB_MODE_SHW, 0, 1, -1, ""},
+        {"", "ACGT", EDLIB_MODE_HW, 0, 5, -1, ""},
+        {"ACGT", "", EDLIB_MODE_HW, 4, 1, -1, "4I"},
+        {"", "", EDLIB_MODE_HW, 0, 1, -1, ""}
+    };
+    const EdlibAlignTask tasks[] = {EDLIB_TASK_DISTANCE, EDLIB_TASK_LOC, EDLIB_TASK_PATH};
+    const int limits[] = {-1, 0, 3, 4, 5};
+    bool allPass = true;
+    for (const TestCase& test : cases) {
+        for (EdlibAlignTask task : tasks) {
+            for (int k : limits) {
+                EdlibAlignResult result = edlibAlign(
+                    test.query, static_cast<int>(strlen(test.query)),
+                    test.target, static_cast<int>(strlen(test.target)),
+                    edlibNewAlignConfig(k, test.mode, task, NULL, 0));
+                const bool withinLimit = k < 0 || test.score <= k;
+                bool pass = result.status == EDLIB_STATUS_OK
+                    && result.editDistance == (withinLimit ? test.score : -1);
+                if (!withinLimit) {
+                    pass &= result.numLocations == 0 && !result.endLocations
+                        && !result.startLocations && !result.alignment && result.alignmentLength == 0;
+                } else {
+                    pass &= result.numLocations == test.numLocations && result.endLocations;
+                    pass &= task == EDLIB_TASK_DISTANCE ? !result.startLocations : !!result.startLocations;
+                    if (result.numLocations == test.numLocations && result.endLocations) {
+                        for (int i = 0; i < result.numLocations; i++) {
+                            pass &= result.endLocations[i] == test.firstEnd + i;
+                            if (result.startLocations) {
+                                pass &= result.startLocations[i] == (test.mode == EDLIB_MODE_HW ? i : 0);
+                            }
+                        }
+                    }
+                    if (task == EDLIB_TASK_PATH) {
+                        pass &= result.alignmentLength == test.score;
+                        if (result.alignmentLength == 0 || result.alignment) {
+                            char* cigar = edlibAlignmentToCigar(
+                                result.alignment, result.alignmentLength, EDLIB_CIGAR_EXTENDED);
+                            pass &= cigar && strcmp(cigar, test.cigar) == 0;
+                            free(cigar);
+                        } else {
+                            pass = false;
+                        }
+                    } else {
+                        pass &= !result.alignment && result.alignmentLength == 0;
+                    }
+                }
+                if (!pass) {
+                    printf("Empty-input failure: query='%s', target='%s', mode=%d, task=%d, k=%d\n",
+                           test.query, test.target, test.mode, task, k);
+                }
+                allPass &= pass;
+                edlibFreeAlignResult(result);
+            }
+        }
+    }
+    return allPass;
 }
 
 bool runTests() {

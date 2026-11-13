@@ -1,5 +1,6 @@
 cimport cython
 from cpython.mem cimport PyMem_Malloc, PyMem_Free
+from libc.stdlib cimport free
 import re
 
 cimport cedlib
@@ -143,7 +144,10 @@ def align(query, target, mode="NW", task="distance", k=-1, additionalEqualities=
         ccigar = cedlib.edlibAlignmentToCigar(cresult.alignment, cresult.alignmentLength,
                                               cedlib.EDLIB_CIGAR_EXTENDED)
         cigar = <bytes> ccigar
+        free(ccigar)
         cigar = cigar.decode('UTF-8')
+    elif cconfig.task == cedlib.EDLIB_TASK_PATH and cresult.editDistance == 0:
+        cigar = ""
     result = {
         'editDistance': cresult.editDistance,
         'alphabetLength': cresult.alphabetLength,
@@ -191,8 +195,8 @@ def getNiceAlignment(alignResult, query, target, gapSymbol="-"):
 
     cigar = alignResult["cigar"]
 
-    if alignResult["cigar"] == '' or alignResult["cigar"] == None:
-        raise Exception("The object alignResult contains an empty CIGAR string. Users must run align() with task='path'. Please check the input alignResult.")        
+    if cigar is None:
+        raise Exception("The object alignResult contains no CIGAR string. Users must run align() with task='path'. Please check the input alignResult.")
 
     ###
     ## cigar parsing, motivated by yech1990: https://github.com/Martinsos/edlib/issues/127

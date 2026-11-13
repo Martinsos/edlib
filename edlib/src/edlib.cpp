@@ -162,24 +162,42 @@ extern "C" EdlibAlignResult edlibAlign(const char* const queryOriginal, const in
     result.alphabetLength = static_cast<int>(alphabet.size());
     /*-------------------------------------------------------*/
 
-    // Handle special situation when at least one of the sequences has length 0.
+    // Empty sequences still obey the distance limit and requested task.
     if (queryLength == 0 || targetLength == 0) {
-        if (config.mode == EDLIB_MODE_NW) {
-            result.editDistance = std::max(queryLength, targetLength);
-            result.endLocations = static_cast<int *>(malloc(sizeof(int) * 1));
-            result.endLocations[0] = targetLength - 1;
-            result.numLocations = 1;
-        } else if (config.mode == EDLIB_MODE_SHW || config.mode == EDLIB_MODE_HW) {
-            result.editDistance = queryLength;
-            result.endLocations = static_cast<int *>(malloc(sizeof(int) * 1));
-            result.endLocations[0] = -1;
-            result.numLocations = 1;
-        } else {
-            result.status = EDLIB_STATUS_ERROR;
-        }
-
         free(query);
         free(target);
+        if (config.mode != EDLIB_MODE_NW && config.mode != EDLIB_MODE_SHW
+            && config.mode != EDLIB_MODE_HW) {
+            result.status = EDLIB_STATUS_ERROR;
+            return result;
+        }
+
+        const int distance = config.mode == EDLIB_MODE_NW
+            ? std::max(queryLength, targetLength) : queryLength;
+        if (config.k >= 0 && distance > config.k) {
+            return result;
+        }
+        result.editDistance = distance;
+
+        // An empty infix matches at every boundary, including after the target.
+        const bool emptyInfix = config.mode == EDLIB_MODE_HW && queryLength == 0;
+        result.numLocations = emptyInfix ? targetLength + 1 : 1;
+        result.endLocations = static_cast<int*>(malloc(result.numLocations * sizeof(int)));
+        if (config.task == EDLIB_TASK_LOC || config.task == EDLIB_TASK_PATH) {
+            result.startLocations = static_cast<int*>(malloc(result.numLocations * sizeof(int)));
+        }
+        for (int i = 0; i < result.numLocations; i++) {
+            result.endLocations[i] = emptyInfix ? i - 1
+                : (config.mode == EDLIB_MODE_NW ? targetLength - 1 : -1);
+            if (result.startLocations) {
+                result.startLocations[i] = emptyInfix ? i : 0;
+            }
+        }
+        if (config.task == EDLIB_TASK_PATH && distance > 0) {
+            result.alignmentLength = distance;
+            result.alignment = static_cast<unsigned char*>(malloc(distance * sizeof(unsigned char)));
+            memset(result.alignment, queryLength == 0 ? EDLIB_EDOP_DELETE : EDLIB_EDOP_INSERT, distance);
+        }
         return result;
     }
 

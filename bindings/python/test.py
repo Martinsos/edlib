@@ -54,19 +54,44 @@ result_taskDistance = edlib.align(query="TAAGGATGGTCCCATTC", target="AAGGGGTCTCA
 if not (result_taskDistance["cigar"] == None):
     testFailed = True
 
-# Empty characters.
-result = edlib.align("", "elephant")
-testFailed = testFailed or (not (result and result["editDistance"] == 8))
-result = edlib.align("telephone", "")
-testFailed = testFailed or (not (result and result["editDistance"] == 9))
-result = edlib.align("", "elephant", mode="HW")
-testFailed = testFailed or (not (result and result["editDistance"] == 0))
-result = edlib.align("telephone", "", mode="HW")
-testFailed = testFailed or (not (result and result["editDistance"] == 9))
-result = edlib.align("", "elephant", mode="SHW")
-testFailed = testFailed or (not (result and result["editDistance"] == 0))
-result = edlib.align("telephone", "", mode="SHW")
-testFailed = testFailed or (not (result and result["editDistance"] == 9))
+# Empty inputs: distance limits, locations, CIGARs, and rendered paths.
+empty_cases = [
+    ("", "ACGT", "NW", 4, [(0, 3)], "4D", "----", "ACGT"),
+    ("ACGT", "", "NW", 4, [(0, -1)], "4I", "ACGT", "----"),
+    ("", "", "NW", 0, [(0, -1)], "", "", ""),
+    ("", "ACGT", "SHW", 0, [(0, -1)], "", "", ""),
+    ("ACGT", "", "SHW", 4, [(0, -1)], "4I", "ACGT", "----"),
+    ("", "", "SHW", 0, [(0, -1)], "", "", ""),
+    ("", "ACGT", "HW", 0, [(0, -1), (1, 0), (2, 1), (3, 2), (4, 3)], "", "", ""),
+    ("ACGT", "", "HW", 4, [(0, -1)], "4I", "ACGT", "----"),
+    ("", "", "HW", 0, [(0, -1)], "", "", ""),
+]
+for query, target, mode, score, locations, cigar, query_aligned, target_aligned in empty_cases:
+    for task in ("distance", "locations", "path"):
+        for k in (-1, 0, 3, 4, 5):
+            result = edlib.align(query, target, mode=mode, task=task, k=k)
+            within_limit = k < 0 or score <= k
+            expected_locations = locations if within_limit else []
+            if task == "distance":
+                expected_locations = [(None, end) for _, end in expected_locations]
+            expected = {
+                "editDistance": score if within_limit else -1,
+                "alphabetLength": 4 if query or target else 0,
+                "locations": expected_locations,
+                "cigar": cigar if task == "path" and within_limit else None,
+            }
+            if result != expected:
+                print("Empty-input failure:", query, target, mode, task, k, result, expected)
+                testFailed = True
+            if task == "path" and within_limit:
+                nice = edlib.getNiceAlignment(result, query, target)
+                if nice != {
+                    "query_aligned": query_aligned,
+                    "matched_aligned": "-" * len(query_aligned),
+                    "target_aligned": target_aligned,
+                }:
+                    print("Empty-input rendering failure:", query, target, mode, nice)
+                    testFailed = True
 
 # Unicode characters
 result = edlib.align("ты милая", "ты гений")

@@ -102,6 +102,19 @@ Aligns ``query`` against ``target`` with edit distance.
 
 ``query`` and ``target`` can be strings, bytes, or any iterables of hashable objects, as long as all together they don't have more than 256 unique values.
 
+Empty inputs are supported and still obey ``k``. In NW mode, the distance is the
+length of the non-empty input. In SHW and HW modes, an empty query has distance
+zero, while an empty target has distance equal to the query length.
+
+An empty match at target boundary ``i`` has location ``(i, i - 1)``. An empty
+query in HW mode matches every boundary, including after the target; in SHW
+mode it matches only ``(0, -1)``.
+
+With ``task="path"``, a valid zero-length path has ``cigar=""`` rather than
+``None``. ``getNiceAlignment()`` renders it as three empty strings. Non-empty
+gap-only paths have CIGARs such as ``"4I"`` or ``"4D"``. If the distance exceeds
+``k``, the result has distance ``-1``, no locations, and ``cigar=None``.
+
 ..  [[[cog
 
     import pydoc
