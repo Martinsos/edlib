@@ -84,6 +84,13 @@ if (BUILD_TESTING)
   add_test(edlib_tests ${CMAKE_RUNTIME_OUTPUT_DIRECTORY}/runTests)
 endif()
 
+# Explicit target: benchmarks are not part of ordinary builds or test timings.
+add_executable(edlib-benchmark EXCLUDE_FROM_ALL benchmarks/benchmark.cpp)
+target_link_libraries(edlib-benchmark edlib)
+if(WIN32)
+  target_link_libraries(edlib-benchmark psapi)
+endif()
+
 if(EDLIB_BUILD_UTILITIES)
   if(NOT WIN32) # If on windows, do not build binaries that do not support windows.
     add_executable(edlib-aligner apps/aligner/aligner.cpp)

@@ -70,6 +70,17 @@ runTests_main = executable(
   include_directories : include_directories('test'),
 )
 
+benchmark_dependencies = [edlib_dep]
+if host_machine.system() == 'windows'
+  benchmark_dependencies += [meson.get_compiler('cpp').find_library('psapi')]
+endif
+executable(
+  'edlib-benchmark',
+  files('benchmarks/benchmark.cpp'),
+  dependencies : benchmark_dependencies,
+  build_by_default : false,
+)
+
 ###### Tests ######
 
 test('runTests', runTests_main)

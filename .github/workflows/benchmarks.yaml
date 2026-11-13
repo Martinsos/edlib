@@ -1,0 +1,54 @@
+name: Benchmarks
+
+on:
+  pull_request:
+    branches: [master]
+  push:
+    branches: [master]
+  workflow_dispatch:
+    inputs:
+      suite:
+        description: Benchmark matrix (full includes expensive long alignments)
+        type: choice
+        options: [smoke, full]
+        default: full
+
+permissions:
+  contents: read
+
+jobs:
+  benchmarks:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 60
+    env:
+      CC: clang-18
+      CXX: clang++-18
+      SUITE: ${{ inputs.suite || 'smoke' }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.x'
+      - name: Build optimized benchmark driver
+        run: |
+          cmake -S . -B build/benchmarks -G Ninja \
+            -DCMAKE_BUILD_TYPE=Release -DCMAKE_EXPORT_COMPILE_COMMANDS=ON \
+            -DBUILD_TESTING=OFF -DEDLIB_BUILD_EXAMPLES=OFF -DEDLIB_BUILD_UTILITIES=OFF
+          cmake --build build/benchmarks --target edlib-benchmark
+      - name: Test report comparison safeguards
+        run: python -m unittest discover -s benchmarks -p 'test_*.py'
+      - name: Run benchmark matrix
+        run: |
+          python benchmarks/run.py --binary build/benchmarks/bin/edlib-benchmark \
+            --suite "$SUITE" --label "$GITHUB_SHA clang-18 CMake Release" \
+            --output build/benchmarks/results.json
+      - name: Save results and compiler flags
+        uses: actions/upload-artifact@v4
+        with:
+          name: benchmarks-${{ github.sha }}
+          path: |
+            build/benchmarks/results.json
+            build/benchmarks/compile_commands.json
+            build/benchmarks/CMakeCache.txt
+          if-no-files-found: error
+          retention-days: 14

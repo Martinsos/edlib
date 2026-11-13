@@ -41,6 +41,7 @@ There are third-party bindings to edlib in other languages as well:
 - [Alignment methods](#alignment-methods)
 - [Aligner](#aligner)
 - [Running tests](#running-tests)
+- [Benchmarks](#benchmarks)
 - [Time and space complexity](#time-and-space-complexity)
 - [Test data](#test-data)
 - [Development and contributing](#development-and-contributing)
@@ -279,6 +280,111 @@ Example of usage:
 ## Running tests
 Check [Building](#building) to see how to build binaries (including binary `runTests`).
 To run tests, just run `./runTests`. This will run random tests for each alignment method, and also some specific unit tests.
+
+### Sanitizers
+
+With Meson, Ninja and Clang installed:
+
+```sh
+CC=clang CXX=clang++ make sanitizer
+```
+
+This recreates `build/sanitizer`, builds a debugoptimized static library with
+AddressSanitizer and UndefinedBehaviorSanitizer, and runs the existing tests.
+Undefined behavior is fatal; frame pointers are retained for diagnostics.
+Override `SANITIZER_BUILD_DIR` to use another disposable build directory, or
+`SANITIZER_TEST_TIMEOUT_MULTIPLIER` (default 10) for slower machines.
+On Linux, use `ASAN_OPTIONS=detect_leaks=1` to explicitly enable leak detection.
+Apple Clang does not provide the same LeakSanitizer coverage.
+
+CI runs this as a separate, blocking Linux/Clang job, including leak detection
+and a sanitizer-instrumented smoke benchmark matrix. Sanitized builds are for
+correctness checks, not performance comparisons; do not run them under Valgrind.
+
+## Benchmarks
+
+The self-contained matrix in `benchmarks/run.py` needs Python 3 (standard library
+only) and the native `edlib-benchmark` executable. It does not require downloaded
+datasets, Python bindings, or other aligners. The executable is an explicit target
+in both build systems and is excluded from ordinary builds.
+
+```sh
+cmake -S . -B build/benchmarks -G Ninja -DCMAKE_BUILD_TYPE=Release \
+  -DCMAKE_EXPORT_COMPILE_COMMANDS=ON -DBUILD_TESTING=OFF \
+  -DEDLIB_BUILD_EXAMPLES=OFF -DEDLIB_BUILD_UTILITIES=OFF
+cmake --build build/benchmarks --target edlib-benchmark
+python3 benchmarks/run.py --binary build/benchmarks/bin/edlib-benchmark \
+  --suite smoke --label "baseline, Release" --output build/benchmarks/baseline.json
+```
+
+With Meson, configure a separate release directory and explicitly build the target:
+`meson setup build/benchmarks-meson --buildtype=release`, then
+`meson compile -C build/benchmarks-meson edlib-benchmark`.
+The executable is `build/benchmarks-meson/edlib-benchmark`.
+
+Use `--suite full` for the complete matrix:
+
+| Dimension | Coverage |
+| --- | --- |
+| Modes | NW, SHW, HW |
+| Tasks | Distance, locations, path |
+| Equal-length inputs before mutation | 32, 63, 64, 65, 128, 1,024, 10,000, 100,000 characters |
+| Short query / long target | 128 / 100,000 and 1,024 / 100,000 |
+| Alphabets | DNA (4), protein (20), arbitrary bytes (256, including NUL) |
+| Mutation probabilities | 0%, 5%, 30%; mixed substitutions, insertions and deletions |
+| Distance limits | Automatic; exact optimum; one below optimum (no solution) |
+
+The full matrix selects 2,430 cases. The smoke matrix selects 216 cases using
+32 / 32 and 65 / 4,096 inputs, DNA/bytes, and 0%/30% mutations, retaining every
+mode, task and distance-limit policy. A rejection case with optimum zero is
+explicitly skipped: a negative `k` would request an unbounded search instead.
+Long, dissimilar full-matrix cases can be expensive; `--timeout` limits each
+case to 300 seconds by default and failures stop the run.
+
+Inputs use a fixed seed (default 42), with the mutated query-derived segment
+at the target's beginning for NW/SHW and centered for HW when there is padding.
+Indels change the actual target length, which is recorded alongside the requested
+size. Mutation probability is not measured sequence identity or edit distance.
+`--list` lists cases without executing them; `--filter q100000-t100000` selects
+only those long-input cases.
+
+Each case runs in a fresh process. An untimed unbounded-distance call establishes
+the cutoff and expected score; every timed call checks score/status consistency.
+This is not an independent correctness oracle. After warmup and batch calibration,
+the driver records five samples by default, targeting at least 10 ms per batch.
+`--samples` and `--sample-ms` control these settings. Timing includes alignment,
+status/score checks and result deallocation, but excludes input generation and
+process startup. Reports retain raw nanoseconds per alignment and median/min/max.
+
+Memory is **peak process resident memory**, not live Edlib allocations. It includes
+input generation, the reference call, warmup and allocator retention. Linux/macOS
+use `getrusage`; Windows uses peak working-set size. Compare memory on the same OS;
+small changes can be obscured by runtime overhead and page granularity.
+
+After rebuilding with a candidate change, run the same selection and seed:
+
+```sh
+python3 benchmarks/run.py --binary build/benchmarks/bin/edlib-benchmark \
+  --suite smoke --label "candidate, Release" --output build/benchmarks/candidate.json \
+  --baseline build/benchmarks/baseline.json > build/benchmarks/comparison.csv
+# Or compare two existing reports without rerunning:
+python3 benchmarks/run.py --compare build/benchmarks/candidate.json \
+  --baseline build/benchmarks/baseline.json
+```
+
+Comparison rejects mismatched cases, seeds, input fingerprints or reference
+distances. Speedup is baseline median / candidate median: above 1 is faster.
+Inspect per-case results, not just the geometric mean. Use an idle machine,
+identical compiler flags and consistent power settings; repeat measurements before
+calling a small difference a regression. JSON records the binary hash, compiler
+version, platform and measurement settings; use `--label` to record the revision,
+CPU model and build flags, and retain `compile_commands.json` with the results.
+
+The Benchmarks workflow runs the release smoke matrix on PRs/pushes, and supports
+manual full-matrix runs. It uploads JSON results and compiler configuration.
+Hosted-runner timing noise does not fail CI on speed differences; build, execution
+and comparison-test errors do fail it. Run comparison safeguards locally with
+`python3 -m unittest discover -s benchmarks -p 'test_*.py'`.
 
 
 ## Time and space complexity
