@@ -409,6 +409,13 @@ avoiding repeated decoding between blocks. This incorporates the optimization fr
 alignment semantics. It requires no SIMD instructions. Use the [benchmark matrix](#benchmarks)
 to measure its effect across sequence lengths, mutation rates and alignment modes.
 
+Queries of 1–64 characters use a single-word Myers kernel for distance computation
+in NW, SHW and HW modes, avoiding block allocation and band bookkeeping. It supports
+automatic and explicit distance limits, arbitrary byte alphabets and custom equality.
+SHW scans only prefixes that can meet the current limit; HW still scans every target
+endpoint. Alignment-path requests use the same fast distance calculation, followed
+by the existing traceback implementation.
+
 
 ## Test data
 In [test_data/](test_data) directory there are different genome sequences, ranging from 10 kbp to 5 Mbp in length. They are ranging in length and similarity, so they can be useful for testing and measuring speed in different scenarios.

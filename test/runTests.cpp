@@ -626,12 +626,215 @@ bool testEmptySequences() {
     return allPass;
 }
 
+bool testSingleWordBoundaries() {
+    const int lengths[] = {63, 64, 65};
+    const EdlibAlignMode modes[] = {EDLIB_MODE_NW, EDLIB_MODE_SHW, EDLIB_MODE_HW};
+    const EdlibAlignTask tasks[] = {EDLIB_TASK_DISTANCE, EDLIB_TASK_LOC, EDLIB_TASK_PATH};
+    bool allPass = true;
+    for (int queryLength : lengths) {
+        char query[65], target[66];
+        for (int i = 0; i < queryLength; i++) {
+            query[i] = target[i] = static_cast<char>(i);
+        }
+        target[0] = static_cast<char>(128);
+        target[queryLength / 2] = static_cast<char>(255);
+        target[queryLength] = static_cast<char>(129);
+        const int targetLength = queryLength + 1;
+        for (EdlibAlignMode mode : modes) {
+            int score, numLocations;
+            int* endLocations;
+            calcEditDistanceSimple(query, queryLength, target, targetLength,
+                                   mode, &score, &endLocations, &numLocations);
+            const int limits[] = {-1, score - 1, score, score + 1};
+            for (EdlibAlignTask task : tasks) {
+                for (int k : limits) {
+                    EdlibAlignResult result = edlibAlign(
+                        query, queryLength, target, targetLength,
+                        edlibNewAlignConfig(k, mode, task, NULL, 0));
+                    const bool withinLimit = k < 0 || score <= k;
+                    bool pass = result.status == EDLIB_STATUS_OK
+                        && result.alphabetLength == queryLength + 3
+                        && result.editDistance == (withinLimit ? score : -1);
+                    if (!withinLimit) {
+                        pass &= result.numLocations == 0 && !result.endLocations
+                            && !result.startLocations && !result.alignment && result.alignmentLength == 0;
+                    } else {
+                        pass &= result.numLocations == numLocations && result.endLocations;
+                        pass &= task == EDLIB_TASK_DISTANCE ? !result.startLocations : !!result.startLocations;
+                        if (result.numLocations == numLocations && result.endLocations) {
+                            for (int i = 0; i < numLocations; i++) {
+                                pass &= result.endLocations[i] == endLocations[i];
+                                if (result.startLocations) pass &= result.startLocations[i] == 0;
+                            }
+                        }
+                        if (task == EDLIB_TASK_PATH) {
+                            pass &= result.alignment && result.alignmentLength > 0;
+                            if (result.alignment && result.endLocations && result.numLocations > 0) {
+                                pass &= checkAlignment(query, queryLength, target, score,
+                                                       result.endLocations[0], mode,
+                                                       result.alignment, result.alignmentLength);
+                                pass &= result.startLocations
+                                    && result.startLocations[0] == getAlignmentStart(
+                                        result.alignment, result.alignmentLength, result.endLocations[0]);
+                            }
+                        } else {
+                            pass &= !result.alignment && result.alignmentLength == 0;
+                        }
+                    }
+                    if (!pass) {
+                        printf("Word-boundary failure: queryLength=%d, mode=%d, task=%d, k=%d\n",
+                               queryLength, mode, task, k);
+                    }
+                    allPass &= pass;
+                    edlibFreeAlignResult(result);
+                }
+            }
+            delete[] endLocations;
+        }
+    }
+    return allPass;
+}
+
+bool testSingleWordEndpoints() {
+    const int lengths[] = {63, 64, 65};
+    const EdlibAlignMode modes[] = {EDLIB_MODE_SHW, EDLIB_MODE_HW};
+    const EdlibAlignTask tasks[] = {EDLIB_TASK_DISTANCE, EDLIB_TASK_LOC, EDLIB_TASK_PATH};
+    bool allPass = true;
+    for (int queryLength : lengths) {
+        char query[65], target[5000];
+        memset(query, 'A', queryLength);
+        for (int scenario = 0; scenario < 2; scenario++) {
+            memset(target, 'B', sizeof(target));
+            const int targetLength = scenario == 0 ? 1 : static_cast<int>(sizeof(target));
+            if (scenario == 1) {
+                memset(target, 'A', queryLength - 1);
+                memset(target + 2048, 'A', queryLength);
+                memset(target + 4096, 'A', queryLength);
+            }
+            for (EdlibAlignMode mode : modes) {
+                const int score = scenario == 0 ? queryLength : (mode == EDLIB_MODE_HW ? 0 : 1);
+                // A full block does not expose the empty-prefix endpoint.
+                const int numLocations = scenario == 0 && queryLength == 64 ? 1 : 2;
+                const int ends[] = {
+                    scenario == 0 ? (queryLength == 64 ? 0 : -1)
+                        : (mode == EDLIB_MODE_HW ? 2048 + queryLength - 1 : queryLength - 2),
+                    scenario == 0 ? 0
+                        : (mode == EDLIB_MODE_HW ? 4096 + queryLength - 1 : queryLength - 1)
+                };
+                const int limits[] = {-1, 0, queryLength - 1, queryLength};
+                for (EdlibAlignTask task : tasks) {
+                    for (int k : limits) {
+                        EdlibAlignResult result = edlibAlign(
+                            query, queryLength, target, targetLength,
+                            edlibNewAlignConfig(k, mode, task, NULL, 0));
+                        const bool withinLimit = k < 0 || score <= k;
+                        bool pass = result.status == EDLIB_STATUS_OK && result.alphabetLength == 2
+                            && result.editDistance == (withinLimit ? score : -1);
+                        if (!withinLimit) {
+                            pass &= result.numLocations == 0 && !result.endLocations
+                                && !result.startLocations && !result.alignment && result.alignmentLength == 0;
+                        } else {
+                            pass &= result.numLocations == numLocations && result.endLocations;
+                            pass &= task == EDLIB_TASK_DISTANCE ? !result.startLocations : !!result.startLocations;
+                            if (result.numLocations == numLocations && result.endLocations) {
+                                for (int i = 0; i < numLocations; i++) {
+                                    pass &= result.endLocations[i] == ends[i];
+                                    if (result.startLocations) {
+                                        const int start = scenario == 1 && mode == EDLIB_MODE_HW
+                                            ? (i == 0 ? 2048 : 4096) : 0;
+                                        pass &= result.startLocations[i] == start;
+                                    }
+                                }
+                            }
+                            if (task == EDLIB_TASK_PATH) {
+                                pass &= result.alignment && result.alignmentLength == queryLength;
+                                if (result.alignment && result.endLocations && result.numLocations > 0) {
+                                    pass &= checkAlignment(query, queryLength, target, score,
+                                                           result.endLocations[0], mode,
+                                                           result.alignment, result.alignmentLength);
+                                }
+                            } else {
+                                pass &= !result.alignment && result.alignmentLength == 0;
+                            }
+                        }
+                        if (!pass) {
+                            printf("Word-endpoint failure: queryLength=%d, scenario=%d, mode=%d, task=%d, k=%d\n",
+                                   queryLength, scenario, mode, task, k);
+                        }
+                        allPass &= pass;
+                        edlibFreeAlignResult(result);
+                    }
+                }
+            }
+        }
+    }
+    return allPass;
+}
+
+bool testSingleWordCustomEquality() {
+    const int lengths[] = {1, 63, 64, 65};
+    const EdlibAlignMode modes[] = {EDLIB_MODE_NW, EDLIB_MODE_SHW, EDLIB_MODE_HW};
+    const EdlibAlignTask tasks[] = {EDLIB_TASK_DISTANCE, EDLIB_TASK_LOC, EDLIB_TASK_PATH};
+    const int limits[] = {-1, 0};
+    const char querySymbols[] = {'\0', static_cast<char>(128), 'N'};
+    const char targetSymbols[] = {'\1', static_cast<char>(255), 'A'};
+    const EdlibEqualityPair equalities[] = {
+        {'\0', '\1'}, {static_cast<char>(128), static_cast<char>(255)}, {'N', 'A'}
+    };
+    bool allPass = true;
+    for (int queryLength : lengths) {
+        for (EdlibAlignMode mode : modes) {
+            char query[65], target[77];
+            memset(target, '?', sizeof(target));
+            const int start = mode == EDLIB_MODE_HW ? 7 : 0;
+            const int targetLength = start + queryLength + (mode == EDLIB_MODE_NW ? 0 : 5);
+            for (int i = 0; i < queryLength; i++) {
+                query[i] = querySymbols[i % 3];
+                target[start + i] = targetSymbols[i % 3];
+            }
+            for (EdlibAlignTask task : tasks) {
+                for (int k : limits) {
+                    EdlibAlignResult result = edlibAlign(
+                        query, queryLength, target, targetLength,
+                        edlibNewAlignConfig(k, mode, task, equalities, 3));
+                    bool pass = result.status == EDLIB_STATUS_OK && result.editDistance == 0
+                        && result.numLocations == 1 && result.endLocations
+                        && result.endLocations[0] == start + queryLength - 1;
+                    if (task == EDLIB_TASK_DISTANCE) {
+                        pass &= !result.startLocations;
+                    } else {
+                        pass &= result.startLocations && result.startLocations[0] == start;
+                    }
+                    if (task == EDLIB_TASK_PATH) {
+                        pass &= result.alignment && result.alignmentLength == queryLength;
+                        if (result.alignment && result.alignmentLength == queryLength) {
+                            for (int i = 0; i < queryLength; i++) {
+                                pass &= result.alignment[i] == EDLIB_EDOP_MATCH;
+                            }
+                        }
+                    } else {
+                        pass &= !result.alignment && result.alignmentLength == 0;
+                    }
+                    if (!pass) {
+                        printf("Word-equality failure: queryLength=%d, mode=%d, task=%d, k=%d\n",
+                               queryLength, mode, task, k);
+                    }
+                    allPass &= pass;
+                    edlibFreeAlignResult(result);
+                }
+            }
+        }
+    }
+    return allPass;
+}
+
 bool runTests() {
     // TODO: make this global vector where tests have to add themselves.
-    int numTests = 19;
+    int numTests = 22;
     bool (* tests [])() = {test1, test2, test3, test4, test5, test6,
                            test7, test8, test9, test10, test11, test12, test13, test14, test15, test16,
-                           testCigar, testCustomEqualityRelation, testEmptySequences};
+                           testCigar, testCustomEqualityRelation, testEmptySequences,
+                           testSingleWordBoundaries, testSingleWordEndpoints, testSingleWordCustomEquality};
 
     bool allTestsPassed = true;
     for (int i = 0; i < numTests; i++) {

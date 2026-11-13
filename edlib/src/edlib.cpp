@@ -542,6 +542,91 @@ static inline bool allBlockCellsLarger(const Block block, const int k) {
     return true;
 }
 
+// Track the actual last query row; padding bits cannot affect lower rows.
+template<bool FREE_START>
+static inline void advanceSingleWord(const Word Eq, const Word highestBit,
+                                     Word& Pv, Word& Mv, int& score) {
+    const Word Xv = Eq | Mv;
+    const Word Xh = (((Eq & Pv) + Pv) ^ Pv) | Eq;
+    Word Ph = Mv | ~(Xh | Pv);
+    Word Mh = Pv & Xh;
+
+    score += static_cast<int>((Ph & highestBit) != 0);
+    score -= static_cast<int>((Mh & highestBit) != 0);
+
+    Ph = (Ph << 1) | static_cast<Word>(!FREE_START);
+    Mh <<= 1;
+    Pv = Mh | ~(Xv | Ph);
+    Mv = Ph & Xv;
+}
+
+template<bool FREE_START>
+static int myersCalcEditDistanceSemiGlobalSingleWord(
+        const Word* const Peq, const int queryLength,
+        const unsigned char* const target, const int targetLength, int k,
+        int* const bestScore_, int** const positions_, int* const numPositions_) {
+    Word Pv = static_cast<Word>(-1);
+    Word Mv = 0;
+    const Word highestBit = WORD_1 << (queryLength - 1);
+    int score = queryLength;
+    int bestScore = -1;
+    vector<int> positions;
+
+    // The block kernel exposes the empty-prefix endpoint only through padding;
+    // a full word starts reporting at target column zero.
+    k = min(k, queryLength);
+    if (queryLength < WORD_SIZE && score <= k) {
+        bestScore = score;
+        positions.push_back(-1);
+    }
+
+    // SHW prefixes longer than queryLength + k cannot qualify, even for ties.
+    // Tighten that bound with k; HW must inspect every target endpoint.
+    for (int c = 0; c < targetLength && (FREE_START || c < queryLength + k); c++) {
+        advanceSingleWord<FREE_START>(Peq[target[c]], highestBit, Pv, Mv, score);
+        if (score <= k) {
+            if (score != bestScore) {
+                positions.clear();
+                k = bestScore = score;
+            }
+            positions.push_back(c);
+        }
+    }
+
+    *bestScore_ = bestScore;
+    *positions_ = NULL;
+    *numPositions_ = static_cast<int>(positions.size());
+    if (bestScore != -1) {
+        *positions_ = static_cast<int*>(malloc(sizeof(int) * positions.size()));
+        copy(positions.begin(), positions.end(), *positions_);
+    }
+    return EDLIB_STATUS_OK;
+}
+
+static int myersCalcEditDistanceNWSingleWord(
+        const Word* const Peq, const int queryLength,
+        const unsigned char* const target, const int targetLength, const int k,
+        int* const bestScore_, int* const position_) {
+    Word Pv = static_cast<Word>(-1);
+    Word Mv = 0;
+    const Word highestBit = WORD_1 << (queryLength - 1);
+    int score = queryLength;
+    *bestScore_ = *position_ = -1;
+
+    for (int c = 0; c < targetLength; c++) {
+        advanceSingleWord<false>(Peq[target[c]], highestBit, Pv, Mv, score);
+        // Each remaining target symbol can lower this row's score by at most 1.
+        if (score - (targetLength - c - 1) > k) {
+            return EDLIB_STATUS_OK;
+        }
+    }
+    if (score <= k) {
+        *bestScore_ = score;
+        *position_ = targetLength - 1;
+    }
+    return EDLIB_STATUS_OK;
+}
+
 
 /**
  * Uses Myers' bit-vector algorithm to find edit distance for one of semi-global alignment methods.
@@ -567,6 +652,17 @@ static int myersCalcEditDistanceSemiGlobal(
         const unsigned char* const target, const int targetLength,
         int k, const EdlibAlignMode mode,
         int* const bestScore_, int** const positions_, int* const numPositions_) {
+    if (queryLength > 0 && queryLength <= WORD_SIZE) {
+        if (mode == EDLIB_MODE_HW) {
+            return myersCalcEditDistanceSemiGlobalSingleWord<true>(
+                    Peq, queryLength, target, targetLength, k,
+                    bestScore_, positions_, numPositions_);
+        }
+        return myersCalcEditDistanceSemiGlobalSingleWord<false>(
+                Peq, queryLength, target, targetLength, k,
+                bestScore_, positions_, numPositions_);
+    }
+
     *positions_ = NULL;
     *numPositions_ = 0;
 
@@ -764,6 +860,13 @@ static int myersCalcEditDistanceNW(const Word* const Peq, const int W, const int
     }
 
     k = min(k, max(queryLength, targetLength));  // Upper bound for k
+
+    if (queryLength > 0 && queryLength <= WORD_SIZE
+        && !findAlignment && targetStopPosition < 0) {
+        *alignData = NULL;
+        return myersCalcEditDistanceNWSingleWord(
+                Peq, queryLength, target, targetLength, k, bestScore_, position_);
+    }
 
     // firstBlock is 0-based index of first block in Ukkonen band.
     // lastBlock is 0-based index of last block in Ukkonen band.
